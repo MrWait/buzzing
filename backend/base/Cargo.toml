@@ -1,0 +1,66 @@
+[package]
+name = "base"
+version = "0.1.0"
+edition = "2021"
+publish = false
+# default-run = "backend-cli"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+axum = { workspace = true }
+axum-server = { workspace = true }
+chrono = { workspace = true }
+dashmap = { workspace = true }
+loco-rs = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+validator = { workspace = true }
+sea-orm = { workspace = true }
+tokio-tungstenite = { workspace = true }
+tungstenite = { workspace = true }
+futures-util = { workspace = true }
+prost = { workspace = true }
+redis = { workspace = true }
+moka = { workspace = true }
+include_dir = { workspace = true }
+uuid = { workspace = true }
+tracing-subscriber = { workspace = true }
+yrs-axum = { workspace = true }
+yrs = { workspace = true }
+# yjs
+tower-http = { workspace = true }
+# view engine i18n
+fluent-templates = { workspace = true }
+unic-langid = { workspace = true }
+# /view engine
+# warp = { workspace = true }
+tokio-stream = { workspace = true }
+strum = { workspace = true }
+
+
+proto = { workspace = true }
+migration = { workspace = true }
+common = { workspace = true }
+
+
+# [[bin]]
+# name = "backend-cli"
+# path = "src/bin/main.rs"
+# required-features = []
+
+[[bin]]
+name = "tool"
+path = "src/bin/tool.rs"
+required-features = []
+
+[dev-dependencies]
+serial_test = "3.1.1"
+rstest = "0.21.0"
+loco-rs = { version = "0.16.0", features = ["testing"] }
+insta = { version = "1.34.0", features = ["redactions", "yaml", "filters"] }

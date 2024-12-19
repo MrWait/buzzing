@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package helloworld;
+
+message Hello {
+  string msg = 1;
+  string field_may_be_null = 2;
+  uint64 field_skip_zero = 3;
+  string filed_skip = 4;
+  bytes data1 = 5;
+  bytes data2 = 6;
+  map<string, bytes> map = 7;
+  repeated bytes list_data = 8;
+  World world = 9;
+}
+
+message World { uint32 world = 1; }
+
+enum Status {
+  Ok = 0;
+  NotFound = 1;
+  InternalError = 2;
+}

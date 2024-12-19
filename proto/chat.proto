@@ -1,0 +1,71 @@
+syntax = "proto3";
+package chat;
+option go_package = "./proto";
+import "entity.proto";
+
+message CreateChatRequest {
+    entity.Chat chat = 1;
+}
+
+message CreateChatResponse {
+    int64 chat_id = 1;
+    entity.Entity entities = 2;
+}
+
+message GetChatByIdsRequest {
+    repeated int64 ids = 1;
+}
+
+message GetChatByIdsResponse {
+    entity.Entity entities = 1;
+}
+
+message SetChatDraftRequest {
+    int64 chat_id = 1;
+    bytes content = 2;
+    int64 time_ms = 3;
+}
+message SetChatDraftResponse {}
+
+message GetChatDraftRequest {
+    int64 chat_id = 1;
+}
+message GetChatDraftResponse {
+    int64 chat_id = 1;
+    bytes content = 2;
+    int64 time_ms = 3;
+}
+
+message DismissChatRequest {
+    int64 chat_id = 1;
+}
+message DismissChatResponse {}
+
+message UpdateChatRequest {
+    entity.Chat chat = 1;
+}
+message UpdateChatResponse {}
+
+message AddChatChatterRequest {
+    int64 chat_id = 1;
+    repeated int64 ids = 2;
+}
+message AddChatChatterResponse {}
+
+message RemoveChatChatterRequest {
+    int64 chat_id = 1;
+    repeated int64 ids = 2;
+}
+message RemoveChatChatterResponse {}
+
+message ReadChatMessageRequest {
+    int64 chat_id = 1;
+    int32 pos = 2;
+    repeated int64 message_ids = 3;
+}
+message ReadChatMessageResponse {}
+
+message QuitChatRequest {
+    int64 chat_id = 1;
+}
+message QuitChatResponse {}

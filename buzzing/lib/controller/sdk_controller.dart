@@ -1,0 +1,247 @@
+import 'dart:ffi';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:buzzing/ffi/rust/frb_generated.dart';
+import 'package:fixnum/fixnum.dart';
+import 'package:channel/channel.dart';
+//import 'package:buzzing/ffi/rust/ffi_rust.dart';
+import 'package:buzzing/ffi/rust/api/flutter.dart';
+import 'package:buzzing/models/idl/command.pb.dart';
+import 'package:buzzing/models/idl/error.pb.dart';
+import 'package:buzzing/models/idl/sdk.pb.dart';
+import 'package:buzzing/models/idl/entity.pb.dart';
+import 'package:buzzing/utils/loogger_util.dart';
+import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
+import 'package:fixnum/fixnum.dart' as $fixnum;
+import 'package:buzzing/controller/event.dart';
+
+bool inited = false;
+
+class SdkController extends GetxController {
+  int invoke_seq = 1;
+
+  final ev = Get.find<EventController>();
+  final initCh = Channel<int>();
+  var userId = Int64(0);
+
+  final invokeCh = Map<int, Channel<Uint8List>>();
+  final pushCallback = Map<int, Function>();
+  @override
+  void onInit() {
+    // TODO: implement onInit
+    LW("init sdk controller");
+    if (!inited) {
+      inited = true;
+      Future.delayed(Duration(milliseconds: 0), () async {
+        await _init();
+        defaultLogger.setLogFn(log);
+        initCh.send(0);
+      });
+    }
+    super.onInit();
+  }
+
+  @override
+  void onClose() {
+    // TODO: implement onClose
+    //api.uninit();
+    LW("sdk controller close");
+    super.onClose();
+  }
+
+  @override
+  void onReady() {
+    // TODO: implement onReady
+    super.onReady();
+  }
+
+  void regPushCallback(int cmd, Function f) {
+    pushCallback[cmd] = f;
+  }
+
+  void onLogined() {}
+
+  void handlePush(Uint8List data) {
+    //LD("receive sdk push data: ${data}");
+    var push = SdkPushPacket.fromBuffer(data);
+    LD("sdk push cmd: ${push.command}");
+    final f = pushCallback[push.command];
+    if (f != null) {
+      f(push.payload);
+    }
+  }
+
+  void handleInvokeResponse(Uint8List data) {
+    //LD("receive sdk response data: ${data}");
+    var response = InvokeResponse.fromBuffer(data);
+    LD("sdk response seq: ${response.seq}");
+    final ch = invokeCh.remove(response.seq);
+    if (ch != null) {
+      ch.send(data);
+    }
+  }
+
+  void initSdkPushHandler() {
+    var push_handle = buzzingRegPushHandler();
+    Future.delayed(Duration.zero, () async {
+      await for (final data in push_handle) {
+        //LD("receive sdk push data: ${data}");
+        handlePush(data);
+      }
+      LD("push handler finish");
+    });
+  }
+
+  void initSdkInvokeHandler() {
+    var invoke_handle = buzzingRegInvokeHandler();
+    Future.delayed(Duration.zero, () async {
+      await for (final data in invoke_handle) {
+        //LD("receive sdk response data: ${data}");
+        handleInvokeResponse(data);
+      }
+      LD("invoke handler finish");
+    });
+  }
+
+  Future<void> _init() async {
+    LD("call _init");
+    InitRequest init = InitRequest.create();
+    var currentDir = Directory.current.path;
+    var userStore = (await getApplicationSupportDirectory()).path;
+    var docDir = (await getApplicationDocumentsDirectory()).path;
+    var cacheDir = (await getApplicationCacheDirectory()).path;
+    var downloadDir = (await getDownloadsDirectory())?.path;
+    LD("${currentDir}  ${userStore}, doc: ${docDir}, cache: ${cacheDir}, download: ${downloadDir}");
+    init.appId = "buzzing";
+    init.appVersion = "0.1.0";
+    init.env = EnvChannel.ENV_DEV;
+    init.locale = "zh";
+    init.commonDataPath = p.join(userStore, "Data");
+    init.logPath = p.join(userStore, "Log");
+    init.osVersion = "6.1.0";
+    init.storagePath = p.join(userStore, "Data");
+    init.pathPrefix = userStore;
+    init.isRelease = false;
+    init.deviceModel = "Windows";
+    init.deviceId = "123456";
+    LD("init request ${init}");
+
+    //LD("get ${greeting}");
+
+    await RustLib.init();
+    var ret = await buzzingInit(param: init.writeToBuffer().toList());
+    LD("init ret ${ret}");
+    initSdkPushHandler();
+    initSdkInvokeHandler();
+    // var data = await invokeAsync(Command.ACK, Uint8List.fromList([7, 8, 9]));
+    //LD("invoke async return ${data}");
+    LD("init finish");
+  }
+
+  void log(String message, int level, String? error, String? backtrace) {
+    if (!inited) {
+      return;
+    }
+    var log = WriteClientLog.create();
+    log.msg = message;
+    log.level = level;
+    if (error != null) {
+      log.error = error;
+    }
+    if (backtrace != null) {
+      //log.backtrace = backtrace;
+    }
+
+    invokeWithoutAck(Command.SDK_WRITE_LOG, log.writeToBuffer());
+  }
+
+  void invokeWithoutAck(Command command, Uint8List request) {
+    if (!inited) {
+      return;
+    }
+
+    var req = InvokeRequest.create();
+    req.command = command.value;
+    req.payload = request;
+    buzzingInvoke(param: req.writeToBuffer().toList());
+  }
+
+  Future<void> login(
+      $fixnum.Int64? uid, String token, String locale, String config) async {
+    LD("call login");
+    if (uid == null) {
+      return;
+    }
+    SdkLoginUserRequest req = SdkLoginUserRequest.create();
+    req.userId = uid;
+    req.accessToken = token;
+    req.unionClientConfig = config;
+    var data = await invokeAsync(Command.USER_LOGIN, req.writeToBuffer());
+    LD("invoke login return ${data}");
+    LD("call login finish");
+    userId = uid;
+    ev.emitEvent(GlobalEvent.Logined.num);
+  }
+
+  void _uninit() {}
+
+  Future<({int code, List<int>? data})> invokeAsync(
+      Command command, Uint8List request) async {
+    var _ = await initCh.receive();
+    initCh.send(0);
+    InvokeRequest req = InvokeRequest.create();
+    final channel = Channel<Uint8List>();
+    var seq = invoke_seq++;
+    invokeCh[seq] = channel;
+    req.command = command.value;
+    req.seq = seq;
+    req.payload = request;
+    buzzingInvoke(param: req.writeToBuffer().toList());
+    final data = await channel.receive();
+    if (!data.isClosed) {
+      invokeCh.remove(seq);
+      if (data.data != null) {
+        var resp = InvokeResponse.fromBuffer(data.data!);
+        if (resp.status == 200 || resp.status == 0) {
+          return (code: resp.status, data: resp.payload);
+        } else {
+          LE("invoke sdk response error, ${command}, ${seq}, ${resp.status}");
+          return (code: resp.status, data: null);
+        }
+      } else {
+        LE("invoke sdk error, return data null");
+      }
+    }
+
+    return (code: ErrorCode.ERROR_TIMEOUT.value, data: null);
+  }
+
+  String genContextId() {
+    return "unknown";
+  }
+
+  Future<void> logout() async {
+    var req = SdkLogoutUserRequest.create();
+    await invokeAsync(Command.USER_LOGOUT, req.writeToBuffer());
+  }
+
+  void contactGetOrg() {}
+  void contactGetProfile() {}
+  void contactUpdate() {}
+
+  void chatCreate() {}
+  void chatAddMember() {}
+  void chatDisolve() {}
+  void chatUpdateSetting() {}
+  void chatGetMessage() {}
+
+  void messagePrepare() {}
+  void messageSend() {}
+  void messageRecall() {}
+
+  void feedGetList() {}
+  void feedSetTop() {}
+}

@@ -1,0 +1,15 @@
+{
+  "name": "buzzing",
+  "scripts": {
+    "run": "node init.js",
+    "proto": "pbjs -t json-module -w commonjs -o proto.js ../proto/*.proto"
+  },
+  "dependencies": {
+    "axios": "^1.7.8",
+    "json-bigint": "^1.0.0"
+  },
+  "devDependencies": {
+    "protobufjs": "^7.4.0",
+    "protobufjs-cli": "^1.1.3"
+  }
+}

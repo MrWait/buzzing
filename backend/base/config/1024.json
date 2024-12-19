@@ -1,0 +1,17 @@
+{
+  "union": "https://www.buzzing-im.com",
+  "union_id": 1024,
+  "gateway": "https://www.buzzing-im.com",
+  "gateway_port": 5150,
+  "ws": "ws://www.buzzing-im.com",
+  "ws_port": 8889,
+  "rtc": "wss://www.buzzing-im.com",
+  "rtc_port": 8086,
+  "upload_file_path": "/storage/file/upload",
+  "upload_icon_path": "/storage/icon/upload",
+  "upload_avatar_path": "/storage/avatar/upload",
+  "api_gateway": "/api/v1",
+  "api_register": "/api/accounts/register",
+  "api_login": "/api/accounts/login",
+  "features": ["im", "calendar", "meeting"]
+}

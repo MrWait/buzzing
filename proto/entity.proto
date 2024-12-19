@@ -1,0 +1,516 @@
+syntax = "proto3";
+option go_package = "./proto";
+package entity;
+
+enum EnvChannel {
+    ENV_UNKNOWN = 0;
+    ENV_RELEASE = 1;
+    ENV_PRERELEASE = 2;
+    ENV_DEV = 3;
+}
+
+enum PackageType {
+    PACKAGE_UNKNOWN = 0;
+    PACKAGE_RELEASE = 1;
+    PACKAGE_DEBUG = 2;
+}
+
+enum OSType {
+    OS_UNKNOWN = 0;
+    OS_WINDOWS = 1;
+    OS_MACOS = 2;
+    OS_ANDROID = 3;
+    OS_IOS = 4;
+}
+
+enum DataSource {
+    SOURCE_UNKNOWN = 0;
+    SOURCE_LOCAL_ONLY = 1;
+    SOURCE_LOCAL_FIRST = 2;
+    SOURCE_SERVER_FIRST = 3;
+}
+
+enum ChatType {
+    CHAT_UNKNOWN = 0;
+    CHAT_P2P = 1;
+    CHAT_GROUP = 2;
+}
+
+enum UserType {
+    USER_TYPE_UNKNOWN = 0;
+    USER_TYPE_PERSONAL = 1;
+    USER_TYPE_TENANT = 2;
+}
+
+enum TenantPermision {
+    TENANT_PERMISION_UNKNOWN = 0;
+    TENANT_PERMISION_NORMAL = 1;
+    TENANT_PERMISION_ADMIN = 2;
+    TENANT_PERMISION_SUPER_ADMIN = 3;
+}
+
+enum BizType {
+    BIZ_UNKNOWN = 0;
+    BIZ_IM = 1;
+    BIZ_GATEWAY = 2;
+    BIZ_SETTING = 3;
+    BIZ_CALENDAR = 4;
+    BIZ_TODO = 5;
+    BIZ_RTC = 6;
+    BIZ_OFFICE = 7;
+    BIZ_USER = 8;
+    BIZ_STORAGE = 9;
+}
+
+enum EntityType {
+    ENTITY_TYPE_UNKNOWN = 0;
+    USER = 1;
+    CHAT = 2;
+    BOT = 4;
+    DOC = 5;
+    FEED = 6;
+    ACCOUNT = 7;
+    TENANT = 8;
+    DEPARTMENT = 9;
+    OPENAPP = 10;
+    SUBSCRIPTION = 11;
+    DOC_FEED = 12;
+    THREAD = 14;
+    MESSAGE = 15;
+    DEPT = 16;
+    READSTATE = 17;
+    FILE_TYPE = 18;
+    URL = 19;
+    SETTING = 20;
+    CALENDAR = 21;
+    SCHEDULE = 22;
+    SCHEDULE_CYCLE = 23;
+}
+
+enum SettingType {
+    SETTING_TYPE_UNKNOWN = 0;
+    SETTING_FAVORITE = 1;
+    SETTING_TOP_LIST = 2;
+    USER_CALENDAR_LIST = 3;
+}
+
+enum EntityStatus {
+    STATUS_UNKNOWN = 0;
+    NORMAL = 1;
+    INVISIBLE = 2;
+    DELETE_PENDING = 3;
+    DISMISS_PENDING = 4;
+    DELETED = 5;
+    RECALL = 6;
+    STOP = 7;
+    FAIL = 8;
+}
+
+enum MessageType {
+    MESSAGE_TYPE_UNKNOWN = 0;
+    TEXT = 1;
+    IMAGE = 2;
+    FILE = 3;
+    VOICE = 4;
+    MEDIA = 5;
+    RICH_TEXT = 6;
+    LOCATION = 7;
+    CARD = 8;
+    VOTE = 9;
+    REDPACKET = 10;
+    RICH_TEXT_QUILL = 11;
+}
+
+enum Direct {
+    NONE = 0;
+    UP = 1;
+    DOWN = 2;
+    BOTH = 3;
+}
+
+enum Operate {
+    OPERATE_NONE = 0;
+    OPERATE_CREATE = 1;
+    OPERATE_UPDATE = 2;
+    OPERATE_DELETE = 3;
+    OPERATE_SEARCH = 4;
+}
+
+message CommonError {
+    int32 status           = 1;
+    int32 code             = 2;
+    string display_message = 3;
+    string display_title   = 4;
+    string server_message  = 5;
+}
+
+message Setting {
+    int64 version = 1;
+    bytes data = 2;
+}
+
+message Settings {
+    map<int32, Setting> settings = 1;
+}
+
+message User {
+    int64 id = 1;
+    string name = 2;
+    int32 status = 3;
+    int64 tenant_id = 4;
+    int64 version = 5;
+    string avatar = 6;
+    int64 dept_id = 7;
+}
+
+message UserLite {
+    int64 id = 1;
+    string name = 2;
+    int32 status = 3;
+    int64 tenant_id = 4;
+    int64 version = 5;
+    string avatar = 6;
+}
+
+message EntityId {
+    int64 id = 1;
+    EntityType type = 2;
+}
+
+message IdList {
+    repeated int64 ids = 1;
+}
+
+message EntityChange {
+    int64 id = 1;
+    int32 type = 2;
+    int64 version = 3;
+    int32 operate = 4;
+}
+
+message I18nValue {
+    map<string, string> value = 1;
+}
+
+message Chat {
+    int64 id = 1;
+    int32 chat_type = 2;
+    int32 status = 3;
+    string name = 4;
+    int64 peer_a_id = 5;
+    int64 peer_b_id = 6;
+    int64 owner_id = 7;
+    repeated int64 member_ids = 8;
+    int64 create_at_ms = 9;
+    int64 update_at_ms = 10;
+    int64 last_message_id = 11;
+    int32 last_message_badge_count = 12;
+    int32 last_message_pos = 13;
+    repeated int64 admin_ids = 14;
+    int64 version = 15;
+    string avatar = 16;
+    int32 color = 17;
+}
+
+message Feed {
+    int64 id = 1;
+    int32 type = 2;
+    int32 badge = 3;
+    int64 update_time_ms = 4;
+    int64 rank_time_ms = 5;
+    int64 refer_id = 6;
+    int32 refer_pos = 7;
+    int32 refer_badge = 8;
+    int32 read_pos = 9;
+    int32 read_badge = 10;
+    int64 version = 11;
+    int32 is_top = 12;
+    int32 is_mute = 13;
+    int32 status = 14;
+}
+
+message Favorite {
+    int64 id = 1;
+    int32 tpy = 2;
+    Message message = 3;
+}
+
+message FavoriteList {
+    repeated Favorite favorites = 1;
+}
+
+message ReadState {
+    int32 total = 1;
+    int32 read_count = 2;
+    int32 unread_count = 3;
+    bool me_read = 4;
+    repeated int64 top_read_ids = 5;
+}
+
+message Reaction {
+    int32 total = 1;
+    bool me_read = 2;
+    repeated int64 top_ids = 3;
+}
+
+message Reactions {
+    map<int32, Reaction> reactions = 1;
+}
+
+message Message {
+    int32 tpy = 1;
+    int64 id = 2;
+    int64 chat_id = 3;
+    int64 from_id = 4;
+    int32 pos = 5;
+    int32 badge_count = 6;
+    int32 status = 7;
+    int64 client_id = 8;
+    int64 create_time_ms = 9;
+    int64 update_time_ms = 10;
+    repeated int64 at_user_ids = 11;
+    bytes content = 20;
+    string summary = 21;
+    int64 version = 22;
+    ReadState read_state = 23;
+    map<int32, Reaction> reactions = 24;
+}
+
+message MessageText {
+    string text = 1;
+}
+
+message MessageImage {
+
+}
+
+message MessageFile {
+
+}
+
+message UserConfig {
+
+}
+
+message LoginUser {
+    User user = 1;
+    string token = 2;
+    Tenant tenant = 3;
+    int64 token_expire = 4;
+}
+
+message Account {
+    int64 id = 1;
+    string name = 2;
+    repeated LoginUser users = 3;
+    int64 version = 4;
+}
+
+message Tenant {
+    int64 id = 1;
+    string name = 2;
+    int64 root_department_id = 3;
+    int64 owner_id = 4;
+    int64 version = 5;
+    string avatar = 6;
+}
+
+message Department {
+    int64 id = 1;
+    int64 parent_id = 2;
+    int64 tenant_id = 3;
+    repeated int64 member_ids = 4;
+    repeated int64 sub_department_ids = 5;
+    string name = 6;
+    int64 version = 7;
+}
+
+message Packet {
+    int64 rid = 1;
+    int32 cmd = 2;
+    int32 code = 3;
+    bool http = 4;
+    bytes payload = 5;
+}
+
+message Entity {
+    map<int64, int64> entity_ids = 1;
+    map<int64, User> users = 2;
+    map<int64, Chat> chats = 3;
+    map<int64, Message> messages = 4;
+    map<int64, Feed> feeds = 5;
+}
+
+enum ClientPlatform {
+    PLATFORM_UNKNOWN = 0;
+    WINDOWS = 1;
+    MACOS = 2;
+    WEB = 3;
+    ANDROID = 4;
+    IOS = 5;
+}
+
+message EntityImage {
+    string url = 1;
+    int32 width = 3;
+    int32 height = 4;
+    int32 size = 5;
+}
+
+message ImageIcon {
+    enum IconType {
+        UNKNOWN_ICON_TYPE = 0;
+        EMOJI = 1;
+        IMAGE = 2;
+    }
+
+    int32 type = 1; // 图标类型，目前有图片类型，后续可支持emoji等类型
+    string Key = 2; // 图片key或emoji 字符
+}
+
+message PipeUpdateItem {
+    int64 sid = 1;
+    int32 typ = 2;
+    int64 id = 3;
+    int64 version = 4;
+}
+
+message MemberStatus {
+    int64 id = 1;
+    int64 finish_time = 2;
+    int32 status = 3;
+    bool subscribe = 4;
+}
+
+message Task {
+    int64 id = 1;
+    int64 creator = 2;
+    string title = 3;
+    int64 create_time = 4;
+    int64 update_time = 6;
+    int64 start_time = 7;
+    int64 deadline = 8;
+    repeated MemberStatus status = 9;
+}
+
+message Todo {
+    int64 id = 1;
+    Task main = 2;
+    int32 message_count = 3;
+    repeated Task sub_task = 4;
+}
+
+message CalendarSubscribers {
+    map<int64, Calendar.Subscriber> subscribers = 1;
+}
+
+enum CalendarRole {
+    RoleUnknown = 0;
+    RoleGuest = 1;
+    RoleSubscriber = 2;
+    RoleEditor = 3;
+    RoleManager = 4;
+    RoleOwner = 5;
+}
+
+message Calendar {
+    message Subscriber {
+        int64 id = 1;
+        int64 subscribe_time = 2;
+        int32 role = 3;
+        int32 color = 4;
+    }
+    int64 id = 1;
+    int64 creater = 3;
+    int64 tenant_id = 5;
+    int64 version = 6;
+    int32 color = 7;
+    string name = 8;
+    string desc = 9;
+    bool is_default = 10;
+    bool public = 11;
+    bool enable = 12;
+    CalendarSubscribers subscribers = 20;
+}
+
+message SubscribeCalendarList {
+    repeated Calendar calendars = 1;
+}
+
+message UserScheduleBrief {
+    message Brief {
+        int64 id = 1;
+        int64 calendar_id = 2;
+        string name = 3;
+        int64 start_time = 4;
+        int64 end_time = 5;
+    }
+
+    repeated Brief briefs = 1;
+}
+
+message Schedule {
+    int64 id = 1;
+    int64 calendar_id = 2;
+    int32 type = 3; // 0: calendar, 1: meeting, 2: task
+    int64 tenant_id = 4;
+    int64 owner = 5;
+    int64 version = 6;
+    int64 summary_doc_id = 7;
+    int64 room_id = 8;
+    int64 chat_id = 9; // 0: not set, -1: not allow, -: chat id
+    int64 cycle_rule_id = 10;
+    int64 start_time = 11;
+    int64 end_time = 12;
+    int32 color = 13;
+    int32 public_permision = 14; // 0: default, 1: public, 2: private
+    int32 member_count = 15;
+    bool member_view_list = 16;
+    bool member_invite_other = 17;
+    bool member_alter_schedule = 18;
+    bool member_create_summary = 19;
+    bool member_create_meeting = 20;
+    bool need_checkin = 21;
+    bool show_as_idle = 22;
+    bool exception = 23;
+    bool full_day = 24;
+    string location = 25;
+    string archive = 26;
+    string desc = 27;
+    string title = 28;
+    repeated int64 member_ids = 29;
+    repeated int32 notify_time = 30;
+    ScheduleCycleRule cycle = 31;
+}
+
+// by day => seq: 0, week_seqs: [0, 1, 2, 3, 4, ?5, ?6]
+// by week => seq: 0, week_seqs: [?0, ?1, ?2, ?3, ?4, ?5, ?6]
+// by month => seq: 0~30, week_seqs: []
+// by month week => seq: 0~5, week_seqs: [?0, ?1, ?2, ?3, ?4, ?5, ?6]
+// by year: => seq: 0~30
+message CycleRule {
+    enum CycleType {
+        CycleNone = 0;
+        CycleByDay = 1;
+        CycleByWeek = 2;
+        CycleByMonth = 3;
+        CycleByMonthWeek = 4;
+        CycleByYear = 5;
+    }
+
+    int32 cycle_type = 1;
+    int32 seq = 2; // 0~30
+    repeated int32 week_seqs = 3; // 0 ~ 6
+}
+
+message ScheduleCycleRule {
+    int64 id = 1;
+    int64 calendar_id = 2;
+    int64 start_at = 3;
+    int64 stop_at = 4;
+    CycleRule rule = 5;
+    repeated int64 exception_ids = 6;
+    int64 version = 7;
+
+    // Schedule template;
+}

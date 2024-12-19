@@ -1,0 +1,16 @@
+[package]
+name = "app-todo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+prost = { workspace = true }
+async-trait = { workspace = true }
+
+base-db = { workspace = true }
+base-log = { workspace = true }
+base-runtime = { workspace = true }
+base-util = { workspace = true }
+proto = { workspace = true }
+service = { workspace = true }

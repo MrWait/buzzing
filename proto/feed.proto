@@ -1,0 +1,55 @@
+syntax = "proto3";
+package feed;
+option go_package = "./proto";
+import "entity.proto";
+
+message PullFeedListRequest {
+    int64 cursor = 1;
+    int32 count = 2;
+    int64 prev_cursor = 3;
+}
+message PullFeedListResponse {
+    int64 cursor = 1;
+    bool has_more = 2;
+    entity.Entity entity = 4;
+}
+
+message PushFeedList {
+    entity.Entity entity = 1;
+}
+
+message PullFeedByIdsRequest {
+    repeated int64 ids = 1;
+}
+message PullFeedByIdsResponse {
+    entity.Entity entity = 1;
+}
+
+message RemoveFeedRequest {
+    int64 id = 1;
+}
+message RemoveFeedResponse {}
+
+message SetFeedTopRequest {
+    int64 id = 1;
+    bool top = 2;
+}
+message SetFeedTopResponse {}
+
+message SetFeedMuteRequest {
+    int64 id = 1;
+    bool mute = 2;
+}
+message SetFeedMuteResponse {}
+
+message GetFeedTopListRequest {}
+message GetFeedTopListResponse {
+    repeated int64 ids = 1;
+    int64 version = 2;
+    entity.Entity entity = 3;
+}
+
+message ActiveFeedRequest {
+    int64 id = 1;
+}
+message ActiveFeedResponse {}

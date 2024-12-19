@@ -1,0 +1,14 @@
+syntax = "proto3";
+option go_package = "./proto";
+package dept;
+import "entity.proto";
+
+message GetDeptRequest  {
+    int64 id = 1;
+    int64 tenant_id = 2;
+    bool recursive = 3;
+}
+message GetDeptResponse {
+    map<int64, entity.Department> depts = 1;
+    map<int64, entity.User> users = 2;
+}

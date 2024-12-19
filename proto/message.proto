@@ -1,0 +1,100 @@
+syntax = "proto3";
+option go_package = "./proto";
+package message;
+import "entity.proto";
+
+message CreateMessageDraftRequest {
+    int64 chat_id = 1;
+    entity.Message message = 2;
+}
+message CreateMessageDraftResponse {
+    int64 client_id = 1;
+}
+
+message SendMessageRequest {
+    int64 client_id = 1;
+    entity.Message message = 2;
+}
+message SendMessageResponse {
+    int64 id = 1;
+    entity.Entity entity = 2;
+}
+
+message GetMessageByRangeRequest {
+    int64 chat_id = 1;
+    int32 pos = 2;
+    int32 count = 3;
+    int32 direct = 4;
+}
+message GetMessageByRangeResponse {
+    entity.Entity entity = 1;
+}
+
+message GetMessageByPosRequest {
+    int64 chat_id = 1;
+    repeated int32 pos = 2;
+}
+message GetMessageByPosResponse {
+    entity.Entity entity = 1;
+}
+
+message GetMessageByIdsRequest {
+    repeated int64 ids = 1;
+    bool with_full = 2;
+}
+message GetMessageByIdsResponse {
+    entity.Entity entity = 1;
+}
+
+message PushMessages {
+    entity.Entity entity = 1;
+}
+
+message FavoriteAddRequest {
+    entity.Favorite favorite = 1;
+}
+message FavoriteAddResponse {}
+message FavoriteRemoveRequest {
+    int64 id = 1;
+}
+message FavoriteRemoveResponse {}
+
+message PushFavoriteList {
+    int64 version = 1;
+    repeated entity.Favorite favorites = 2;
+}
+message GetFavoriteListRequest {}
+message GetFavoriteListResponse {
+    int64 version = 1;
+    entity.FavoriteList favorites = 2;
+}
+
+message MessageReadRequest {
+    int64 chat_id = 1;
+    int32 max_pos = 2;
+    repeated int64 message_ids = 3;
+}
+message MessageReadResponse {}
+
+message PushReadMessageRequest {
+    entity.Entity entity = 1;
+}
+
+message SetMessageReactitonRequest {
+    int64 message_id = 1;
+    int32 reaction = 2;
+    bool set = 3;
+}
+message SetMessageReactitonResponse {
+
+}
+message PushMessageReactionRequest {
+    entity.Entity entity = 1;
+}
+
+message RecallMessageRequest {
+    int64 id = 1;
+}
+message RecallMessageResponse {
+    entity.Entity entity = 1;
+}

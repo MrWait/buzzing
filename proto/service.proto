@@ -1,0 +1,14 @@
+syntax = "proto3";
+package service;
+option go_package = "./proto";
+import "user.proto";
+import "gateway.proto";
+
+service gw {
+    // rpc register(user.RegisterRequest) returns(user.RegisterResponse);
+    // rpc login(user.LoginRequest) returns(user.LoginResponse);
+    // rpc loginUser(user.LoginUserRequest) returns(user.LoginUserResponse);
+    // rpc refreshToken(user.RefreshTokenRequest) returns(user.RefreshTokenResponse);
+    // rpc basic(gateway.RpcRequest) returns(gateway.RpcResponse);
+    // rpc gatewayInvoke(gateway.GatewayInvokeRequest) returns(gateway.GatewayInvokeResponse);
+}

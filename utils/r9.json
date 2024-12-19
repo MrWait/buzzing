@@ -1,0 +1,38 @@
+{
+  "user_id":"4611704464031612970",
+  "account": "4611704464024272898",
+  "token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJwaWQiOiJ7XCJpZFwiOjQ2MTE3MDQ0NjQwMzE2MTI5NzAsXCJwaWRcIjpcImMxODA5YWU4LWFmY2EtNDkwMS1iNjA0LTJmYWZlZTNlMGEwYVwiLFwiYWlkXCI6NDYxMTcwNDQ2NDAyNDI3Mjg5OCxcInRlbmFudF9pZFwiOjQ2MTE3MDQ0NjQwMzE2MTI5Njl9IiwiZXhwIjoxNzU2MjQ5MDA3fQ.cmiU9f1Ft3O4KCsudVpyfF6NuuHFGobVsjxGdz_skMbmaaLOcqSWLtqdbH2oVvTv7EY1urMI9gGkwJ7oXFccDQ",
+  "tenant":"4611704464031612969",
+  "dept": "4611704464031612972",
+  "chat": {
+    "p2p_peer": "4611704464031612978",
+    "group": ["4611704464031612980", "4611704464032661558"],
+    "name": "Chat001"
+  },
+  "message": {
+    "p2p":"4611704465233281099",
+    "group": "4611704465278369869"
+  },
+  "action": {
+    "t": "schedule",
+    "c": "create",
+    "r": 1
+  },
+  "calendar": {
+    "default_id": "4611704464031612970",
+    "custom_id": "4611706188988416001"
+  },
+  "schedule": {
+    "cid": "4611704464031612970",
+    "sid": "4611706189727662082"
+  },
+  "feed": {
+    "id": "4611704465278369869"
+  },
+  "user": {
+    "peer_a": "4611704464031612980",
+    "peer_b": "4611704464032661558"
+  },
+  "phone": "10011110001",
+  "pass": "123456"
+}

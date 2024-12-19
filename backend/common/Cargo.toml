@@ -1,0 +1,28 @@
+[package]
+name = "common"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ab_glyph = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+dashmap = { workspace = true }
+futures = { workspace = true }
+image = { workspace = true }
+imageproc = { workspace = true }
+loco-rs = { workspace = true }
+moka = { workspace = true }
+parking_lot = { workspace = true }
+prost = { workspace = true }
+rand = { workspace = true }
+scopeguard = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+# rusttype = { workspace = true }
+strum = { workspace = true }
+tracing = { workspace = true }
+vecbool = { workspace = true }
+chrono = { workspace = true }
+
+proto =  { workspace = true }

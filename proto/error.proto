@@ -1,0 +1,18 @@
+syntax = "proto3";
+package error;
+option go_package = "./proto";
+
+enum ErrorCode {
+    ERROR_UNKNOWN = 0;
+    // HTTP
+    OK = 200;
+
+    ERROR_SDK_ERROR = 1000;
+    ERROR_SERVER_ERROR = 1001;
+    ERROR_NOT_AUTH = 1002;
+    ERROR_ON_PROCESS = 1003;
+    ERROR_TIMEOUT = 1004;
+    ERROR_NO_PERMISION = 1005;
+    ERROR_PARAM_INVALID = 1006;
+    ERROR_INVALID_DATA = 1007;
+}

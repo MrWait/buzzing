@@ -1,0 +1,26 @@
+syntax = "proto3";
+option go_package = "./proto";
+package pipeline;
+import "entity.proto";
+
+message PullPipelineRequest {
+    int64 sid = 1;
+    int32 count = 2;
+}
+
+message PullPipelineResponse {
+    int64 sid = 1;
+    repeated entity.Packet packets = 2;
+    bool has_more = 3;
+}
+
+message PushEntityChanged {
+    repeated entity.EntityChange changes = 1;
+}
+
+message PullEntityRequest {
+    repeated entity.EntityId ids = 1;
+}
+message PullEntityResponse {
+    entity.Entity entity = 2;
+}

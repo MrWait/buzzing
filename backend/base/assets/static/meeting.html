@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <title>WebRTC demo</title>
+    <body>
+      <h1>WebRTC Video Chat</h1>
+      <video id="localVideo" autoplay muted></video>
+      <br/>
+      <video id="remoteVideo" autoplay></video>
+      <br/>
+      <div id="list-peers-container">
+        <ul id="list-peers">
+        </ul>
+      </div>
+      <div id="target-id"></div>
+      <button id="startCall">StartCall</button>
+      <button id="endCall">EndCall</button>
+
+      <script>
+        //const ws = new WebSocket("https://www.buzzing-im.com:8086/ws");
+        const ws = new WebSocket("wss://www.buzzing-im.com:5150/ws");
+        console.log("start meeting");
+        const uid = "667593";
+        var target = "";
+        var sessionId = "";
+        let localStream;
+        let peerConnection;
+
+        const config = {
+          iceServers: [{urls: "stun:stun.1.google.com:19302"}]
+        };
+
+        ws.onopen = () => {
+          console.log("ws on open");
+          ws.send(JSON.stringify({"type":"new", "data": {"name": "Webrtc Browser", id: uid, "user_agent": "Chrome"}}));
+        }
+
+        ws.onerror = (error) => {
+          console.log("conn error: ", error)
+        }
+
+        ws.onmessage = (message) => {
+          console.log("on message: ", message);
+          const signal = JSON.parse(message.data);
+          if (signal.type === "offer") {
+            handleOffer(signal.data)
+          } else if (signal.type === "answer") {
+            handleAnswer(signal.data)
+          } else if (signal.type === "candidate") {
+            handleIce(signal.data)
+          } else if (signal.type === "peers") {
+            handlePeers(signal.data)
+          } else if (signal.type === 'bye') {
+            handleBye(signal.data)
+          }
+        };
+
+        async function startCall() {
+          console.log("start get media ");
+          localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: false});
+          if(localStream == null) {
+            console.log("device not found ");
+            return;
+          }
+          console.log(localStream);
+
+          document.getElementById("localVideo").srcObject = localStream;
+
+          peerConnection = new RTCPeerConnection(config);
+          peerConnection.onicecandidate = function (event) {
+            console.log("on ice candidate: ", event);
+            if (event.candidate) {
+              var candidate = {
+                event: "candidate",
+                data: {
+                  'from': uid,
+                  to: target,
+                  session_id: sessionId,
+                  candidate: {
+                    'sdpMLineIndex': 0,
+                    'sdpMid': 0,
+                    'candidate': JSON.stringify(event.candidate)
+                  }}};
+              ws.send(JSON.stringify(candidate));
+            }
+          };
+          peerConnection.ontrack = function (event) {
+            document.getElementById("remoteVideo").srcObject = event.streams[0];
+          };
+          localStream.getTracks().forEach((track) => {
+            peerConnection.addTrack(track, localStream);
+          });
+
+          const offer = await peerConnection.createOffer();
+          await peerConnection.setLocalDescription(offer);
+          var off = {'type': 'offer', 'data': {'from': uid, 'to': ''+target, description: {'sdp': offer.sdp, 'type': offer.type}, session_id: sessionId, media: "video"}};
+          ws.send(JSON.stringify(off));
+        }
+
+        async function handleOffer(offer) {
+          peerConnection = new RTCPeerConnection(config);
+          peerConnection.onicecandidate = (event) => {
+            console.log("on ice candidate: ", event);
+            if (event.candidate) {
+              var candidate = {
+                event: "candidate",
+                data: {
+                  'from': uid,
+                  to: target,
+                  session_id: sessionId,
+                  candidate: {
+                    'sdpMLineIndex': event.candidate.sdpMLineIndex,
+                    'sdpMid': event.candidate.sdpMid,
+                    'candidate': event.candidate.candidate
+                  }}};
+              ws.send(JSON.stringify(candidate));
+            }
+          };
+
+          peerConnection.ontrack = (event) => {
+            document.getElementById("remoteVideo").srcObject = event.streams[0];
+          };
+
+          localStream.getTracks().forEach((track) => {
+            peerConnection.addTrack(track, localStream);
+          });
+
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(offer)));
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+
+          var as = {
+            'from': uid,
+            'to': target,
+            'session_id': sessionId,
+            'description': {
+              'sdp': answer.sdp,
+              'type': answer.type,
+            }
+          };
+
+          ws.send(JSON.stringify({event: "answer", data: JSON.stringify(as)}));
+        }
+
+        function handleBye(answer) {
+          endCall(false)
+        }
+
+        function handleAnswer(answer) {
+          var answer = {
+            'sdp': answer.description.sdp,
+            'type': answer.description.type,
+          }
+          peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        }
+
+        function handleIce(ice) {
+          console.log("on ice: ", ice);
+          try {
+            var candidate = {
+              'sdpMLineIndex': ice.candidate.sdpMLineIndex,
+              'sdpMid': ice.candidate.sdpMid,
+              'candidate': ice.candidate.candidate
+            };
+            peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch (e) {
+            console.log("handle ice error: ", e);
+          }
+        }
+
+        function handlePeers(peers) {
+          console.log("peers: ", peers);
+          const listContainer = $("#list-peers");
+          listContainer.empty();
+          peers.forEach((p, index) => {
+            listContainer.append(peer(p));
+          });
+        }
+
+        function peer(p) {
+          return "<li><div><button onclick='onPeerClick(" + p.id + ")'>" + p.id + "</button></div></li>";
+        }
+
+        function onPeerClick(id) {
+          console.log("click: ", id);
+          $('#target-id').empty();
+          $('#target-id').append(id);
+          target = id;
+          sessionId = uid + '-' + target;
+        }
+
+        function endCall(active) {
+          if (localStream) {
+            localStream.getTracks().forEach((track)=>
+              track.stop());
+          }
+
+          if (peerConnection) {
+            peerConnection.close();
+            peerConnection = null;
+          }
+          if (active) {
+            var bye = {'type': 'bye', data: {session_id: sessionId, from: uid}};
+            ws.send(JSON.stringify(bye));
+          }
+
+          // document.getElementById("")
+          document.getElementById("localVideo").srcObject = null;
+          document.getElementById("remoteVideo").srcObject = null;
+        }
+
+        document.getElementById("startCall").addEventListener("click", startCall);
+        document.getElementById("endCall").addEventListener("click", () => {
+          endCall(true);
+        });
+      </script>
+    </body>
+  </head>
+</html>

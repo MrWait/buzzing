@@ -1,0 +1,20 @@
+syntax = "proto3";
+package gateway;
+option go_package = "./proto";
+import "entity.proto";
+
+message RpcRequest{
+    string name = 1;
+}
+
+message RpcResponse {
+    string msg = 1;
+}
+
+message GatewayInvokeRequest {
+    entity.Packet req = 1;
+}
+
+message GatewayInvokeResponse {
+    entity.Packet res = 1;
+}

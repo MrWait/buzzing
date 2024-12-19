@@ -1,0 +1,111 @@
+syntax = "proto3";
+package calendar;
+option go_package = "./proto";
+import "entity.proto";
+
+message CalendarGetListRequest {}
+message CalendarGetListResponse {
+    repeated entity.Calendar calendars = 1;
+}
+
+message CalendarCreateRequest {
+    entity.Calendar calendar = 1;
+}
+message CalendarCreateResponse {
+    entity.Calendar calendar = 1;
+}
+
+message CalendarUpdateRequest {
+    entity.Calendar calendar = 1;
+}
+message CalendarUpdateResponse {
+    entity.Calendar calendar = 1;
+}
+
+message CalendarDeleteRequest {
+    int64 id = 1;
+}
+message CalendarDeleteResponse {}
+
+message CalendarSearchRequest {
+    string key = 1;
+}
+message CalendarSearchResponse {
+    repeated entity.Calendar calendars = 1;
+}
+
+message CalendarPushListRequest {
+    repeated entity.Calendar calendars = 1;
+}
+
+message CalendarSubscribeRequest {
+    int64 id = 1;
+    bool subscribe = 2;
+}
+message CalendarSubscribeResponse {}
+
+message CalendarPushUpdateRequest {
+    entity.Calendar calendar = 1;
+}
+
+message ScheduleCreateRequest {
+    entity.Schedule schedule = 1;
+}
+message ScheduleCreateResponse {
+    entity.Schedule schedule = 1;
+}
+
+message ScheduleRemoveRequest {
+    int64 id = 1;
+    int64 cycle_id = 2;
+    bool with_all = 3;
+}
+message ScheduleRemoveResponse {}
+
+message ScheduleUpdateRequest {
+    entity.Schedule schedule = 1;
+    bool with_all = 3;
+}
+message ScheduleUpdateResponse {
+    entity.Schedule schedule = 1;
+}
+
+message SchedulePullByIdsRequest {
+    int64 calendar_id = 1;
+    repeated int64 ids = 2;
+}
+message SchedulePullByIdsResponse {
+    repeated entity.Schedule schedules = 1;
+    entity.Entity entity = 2;
+}
+
+message SchedulePullByCalendarIdsRequest {
+    repeated int64 calendar_ids = 1;
+    int64 start_time = 2;
+    int64 end_time = 3;
+}
+message SchedulePullByCalendarIdsResponse {
+    repeated entity.Schedule schedules = 1;
+}
+
+message SchedulePullBusyRequest {
+    repeated int64 user_ids = 1;
+    int64 start_time = 2;
+    int64 end_time = 3;
+}
+message SchedulePullBusyResponse {
+    map<int64, entity.UserScheduleBrief> schedules = 1;
+}
+
+message SchedulePushUpdateRequest {
+    repeated entity.Schedule schedules = 1;
+}
+
+message SchedulePullByCycleRequest {
+    int64 rule_id = 1;
+    int64 start_at = 2;
+    int64 end_at = 3;
+}
+message SchedulePullByCycleResponse {
+    repeated entity.Schedule schedules = 1;
+}

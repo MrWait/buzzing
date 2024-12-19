@@ -1,0 +1,38 @@
+[package]
+name = "buzzing"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "buzzing"
+crate-type = ['staticlib', 'cdylib', 'rlib']
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libc = "*"
+anyhow = "1.0"
+flutter_rust_bridge = "=2.11.1"
+neon = "1"
+bytes = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+prost = { workspace = true }
+dashmap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+base-db = { workspace = true }
+base-log = { workspace = true }
+base-runtime = { workspace = true }
+base-util = { workspace = true }
+proto = { workspace = true }
+service = { workspace = true }
+
+app-account = { workspace = true }
+app-chat = { workspace = true }
+app-common = { workspace = true }
+app-ffi = { workspace = true }
+app-network = { workspace = true }
+app-calendar = { workspace = true }
+app-todo = { workspace = true }

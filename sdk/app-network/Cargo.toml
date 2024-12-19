@@ -1,0 +1,29 @@
+[package]
+name = "app-network"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+futures-util = { workspace = true }
+bincode = { workspace = true }
+bytes = { workspace = true }
+prost = { workspace = true }
+rand = { workspace = true }
+reqwest = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+tungstenite = { workspace = true }
+tokio-tungstenite = { workspace = true }
+async-trait = { workspace = true }
+
+base-db = { workspace = true }
+base-log = { workspace = true }
+base-runtime = { workspace = true }
+base-util = { workspace = true }
+proto = { workspace = true }
+service = { workspace = true }

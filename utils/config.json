@@ -1,0 +1,38 @@
+{
+  "user_id":"",
+  "account": "",
+  "token":"",
+  "tenant":"",
+  "dept": "",
+  "chat": {
+    "p2p_peer": "",
+    "group": ["", ""],
+    "name": "Chat001"
+  },
+  "message": {
+    "p2p":"",
+    "group": ""
+  },
+  "feed": {
+    "id": ""
+  },
+  "user": {
+    "user_a": "",
+    "user_b": ""
+  },
+  "action": {
+    "t": "message",
+    "c": "p2p",
+    "r": 1
+  },
+  "calendar": {
+    "default_id": "",
+    "custom_id": ""
+  },
+  "schedule": {
+    "cid": "",
+    "sid": ""
+  },
+  "phone": "10011110001",
+  "pass": "123456"
+}

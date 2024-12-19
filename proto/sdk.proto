@@ -1,0 +1,111 @@
+syntax = "proto3";
+package sdk;
+option go_package = "./proto";
+import "entity.proto";
+
+message InitRequest {
+    int32 device_type = 1;
+    string app_id = 2;
+    string app_version = 3;
+    string device_id = 4;
+    string log_path = 5;
+    string storage_path = 6;
+    string locale = 8;
+    string common_data_path = 9;
+    string os_version = 10;
+    entity.EnvChannel env = 11; // no use
+    string path_prefix = 12;
+    string custom_log_path = 13;
+    bool is_release = 14;
+    string device_model = 15;
+    map<string, string> settings_queries = 16;
+    string app_channel = 17;
+}
+
+message InvokeRequest {
+    int32 seq = 1;
+    int32 command = 2;
+    int64 user_id = 4;
+    int32 source = 5;
+    bytes payload = 20;
+}
+
+message InvokeResponse {
+    int32 seq = 1;
+    int32 status = 2;
+    int64 user_id = 3;
+    bytes payload = 4;
+}
+
+message SdkPushPacket {
+    int32 command = 1;
+    int64 user_id = 2;
+    int32 seq = 3;
+    bytes payload = 4;
+}
+
+message SdkLoginUserRequest {
+    int64 user_id = 1;
+    int64 tenant_id = 2;
+    string access_token = 3;
+    int32 union_id = 4;
+    string union_client_config = 5;
+}
+
+message SdkLoginUserResponse {}
+
+message SdkLogoutUserRequest {
+
+}
+message SdkLogoutUserResponse {
+
+}
+
+message PushDeviceKickoffResponse {
+
+}
+
+message PushFeedCardsResponse {
+
+}
+
+message GetSdkVersionRequest {
+
+}
+
+message GetSdkVersionResponse {
+    string sdk_version = 1;
+}
+
+message AvatarKey {
+    enum EntityType {
+        OTHERS        = 0;
+        CHATTER        = 1;
+        CHAT           = 2;
+        TENANT         = 3;
+        NAMECARD       = 4;
+        TEAM           = 5;
+    }
+    // entity_id(optional) + key 唯一标识一个头像。
+    string entity_id = 1;
+    string key = 2;
+    EntityType entity_type =3;
+}
+
+message WriteClientLog {
+    string msg = 1;
+    int32 level = 2;
+    string error = 3;
+    string backtrace = 4;
+}
+
+// response with entity.Packet
+message NetRequest {
+    int32 cmd = 1;
+    bytes body = 2;
+}
+
+message PushEntityChangeRequest {
+    repeated int32 types = 1;
+    entity.Entity entity = 2;
+}

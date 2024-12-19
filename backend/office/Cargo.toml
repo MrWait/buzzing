@@ -1,0 +1,16 @@
+[package]
+name = "office"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { workspace = true }
+tokio = { workspace = true }
+tower-http = { workspace = true }
+yrs = { workspace = true }
+futures-util = { workspace = true }
+yrs-axum = { workspace = true }
+moka = { workspace = true }
+loco-rs = { workspace = true }
+
+common = { workspace = true }

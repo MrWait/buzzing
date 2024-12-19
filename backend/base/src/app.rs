@@ -1,0 +1,180 @@
+use async_trait::async_trait;
+use loco_rs::{
+    app::{AppContext, Hooks, Initializer},
+    bgworker::{BackgroundWorker, Queue},
+    boot::{create_app, shutdown_signal, BootResult, ServeParams, StartMode},
+    config::Config,
+    controller::AppRoutes,
+    db::{self, truncate_table},
+    environment::Environment,
+    task::Tasks,
+    Result,
+};
+use migration::Migrator;
+use tokio::signal;
+use std::{net::SocketAddr, time::Duration};
+use std::path::{Path, PathBuf};
+
+use crate::workers::downloader::DownloadWorker;
+use crate::{controllers, initializers, models::_entities::users, tasks};
+use common::AppHub;
+
+pub struct App;
+#[async_trait]
+impl Hooks for App {
+    fn app_name() -> &'static str {
+        env!("CARGO_CRATE_NAME")
+    }
+
+    fn app_version() -> String {
+        format!(
+            "{} ({})",
+            env!("CARGO_PKG_VERSION"),
+            option_env!("BUILD_SHA")
+                .or(option_env!("GITHUB_SHA"))
+                .unwrap_or("dev")
+        )
+    }
+
+    async fn boot(
+        mode: StartMode,
+        environment: &Environment,
+        config: Config,
+    ) -> Result<BootResult> {
+        create_app::<Self, Migrator>(mode, environment, config).await
+    }
+
+    async fn initializers(_ctx: &AppContext) -> Result<Vec<Box<dyn Initializer>>> {
+        let mut initializers = Vec::new();
+
+        if let Ok(hub) = AppHub::get() {
+            let apps = hub.get_all();
+            for app in apps.iter() {
+                initializers.extend(app.initializers(_ctx));
+            }
+        }
+        initializers.push(Box::new(initializers::view_engine::ViewEngineInitializer));
+
+        Ok(initializers)
+    }
+
+    fn routes(_ctx: &AppContext) -> AppRoutes {
+        let mut app_route = AppRoutes::with_default_routes(); // controller routes below
+        app_route = app_route.add_route(controllers::routes());
+        if let Ok(hub) = AppHub::get() {
+            let apps = hub.get_all();
+            for app in apps.iter() {
+                app_route = app_route.add_routes(app.routes(_ctx));
+            }
+        }
+        app_route
+    }
+
+    async fn connect_workers(ctx: &AppContext, queue: &Queue) -> Result<()> {
+        queue.register(DownloadWorker::build(ctx)).await?;
+        Ok(())
+    }
+
+    fn register_tasks(tasks: &mut Tasks) {
+        tasks.register(tasks::seed::SeedData);
+    }
+
+    /*
+        fn register_channels(_ctx: &AppContext) -> AppChannels {
+            let messages = channels::state::MessageStore {
+                messages: Arc::new(RwLock::new(HashMap::new())),
+                ctx: _ctx.clone().into(),
+            };
+            let channels: AppChannels = AppChannels::builder().with_state(messages).into();
+            channels.register.ns("/", channels::application::on_connect);
+            channels
+                .register
+                .ns("/conn", channels::connection::on_connect);
+            channels
+    }
+         */
+
+    async fn truncate(ctx: &AppContext) -> Result<()> {
+        truncate_table(&ctx.db, users::Entity).await?;
+        Ok(())
+    }
+
+    async fn seed(ctx: &AppContext, base: &Path) -> Result<()> {
+        db::seed::<users::ActiveModel>(&ctx.db, &base.join("users.yaml").display().to_string())
+            .await?;
+        Ok(())
+    }
+
+    async fn serve(
+        app: axum::Router,
+        ctx: &AppContext,
+        _server_params: &ServeParams,
+    ) -> Result<()> {
+        use std::net::{IpAddr, Ipv4Addr};
+
+        if let Ok(hub) = AppHub::get() {
+            let apps = hub.get_all();
+            for app in apps.iter() {
+                app.serve(ctx);
+            }
+        }
+
+        let handle = axum_server::Handle::new();
+        let handle_clone = handle.clone();
+
+        let addr = SocketAddr::from(([0, 0, 0, 0], ctx.config.server.port as u16));
+        tracing::info!("listen on addr: {:?}", addr);
+        // let listener = tokio::net::TcpListener::bind(&addr).await?;
+
+        let _ = crate::util::cache_get(ctx).await;
+        tracing::debug!("cache init ok");
+
+        let config = axum_server::tls_rustls::RustlsConfig::from_pem_file(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .join("base")
+                .join("assets")
+                .join("cert")
+                .join("www.buzzing-im.com+2.pem"),
+            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .join("base")
+                .join("assets")
+                .join("cert")
+                .join("www.buzzing-im.com+2-key.pem"),
+        )
+        .await?;
+
+        axum_server::bind_rustls(addr, config)
+            .handle(handle)
+            .serve(app.into_make_service_with_connect_info::<SocketAddr>())
+            .await?;
+
+        tokio::spawn(async move {
+            let _ = shutdown_task(handle_clone).await;
+        });
+
+        Ok(())
+    }
+}
+
+async fn shutdown_task(handle: axum_server::Handle) {
+    let ctrl_c = async {
+        let _ = signal::ctrl_c().await;
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {}
+        _ = terminate => {},
+    }
+
+    handle.graceful_shutdown(Some(Duration::from_secs(10)));
+}

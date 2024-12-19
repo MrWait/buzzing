@@ -1,0 +1,43 @@
+syntax = "proto3";
+package server;
+option go_package = "./proto";
+import "entity.proto";
+
+message PullPacketsBySidsRequest {
+    string sids = 1;
+}
+
+message PullPacketsBySidsResponse {
+    map<string, entity.Packet> packets = 1;
+}
+
+message ProcessMultiPacketsRequest {
+    repeated bytes packets = 1;
+}
+
+message ProcessMultiPacketsResponse {
+    repeated bytes results = 1;
+    map<int32, MultiPacketResultExt> results_extension = 2;
+}
+
+message MultiPacketResultExt {
+    int32 status_code = 1;
+}
+
+message PullPacketsBySeqIdRequest {
+    string sid = 1;
+    uint32 count = 2;
+    uint32 version = 3;
+    bool frontier_downgrade = 4;
+    string batch_uniq_id = 5;
+    int64 batch_index = 6;
+}
+
+message PullPacketsBySeqIdResponse {
+    bool has_more = 1;
+    repeated entity.Packet packets = 2;
+    int64 last_packet_create_time = 3;
+    string last_sid = 4;
+    int64 response_time = 5;
+    int64 max_batch_index = 6;
+}

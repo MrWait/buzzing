@@ -1,0 +1,38 @@
+---
+includes: [../../proto]
+files: [
+../../proto/calendar.proto,
+../../proto/chat.proto,
+../../proto/command.proto,
+../../proto/dept.proto,
+../../proto/entity.proto,
+../../proto/error.proto,
+../../proto/feed.proto,
+../../proto/message.proto,
+../../proto/pipeline.proto,
+../../proto/sdk.proto,
+../../proto/setting.proto,
+../../proto/user.proto,
+]
+output: src/idl
+messages:
+  - paths: [entity.Account]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+      - serde(rename_all = "camelCase")
+  - paths: [entity.LoginUser]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+      - serde(rename_all = "camelCase")
+  - paths: [entity.User]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+      - serde(rename_all = "camelCase")
+  - paths: [entity.Tenant]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+      - serde(rename_all = "camelCase")

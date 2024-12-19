@@ -1,0 +1,21 @@
+[package]
+name = "base-util"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+md5 = "0.7"
+# ecb = "0.1.2"
+# aes = "0.8.3"
+# cipher = "0.4.4"
+rand = { workspace = true }
+flate2 = { version = "1.0.34", features = ["any_zlib", "zlib"] }
+b64 = "0.4"
+tracing = { workspace = true }
+# cryptolib = "0.1.3"
+parking_lot = { workspace = true }
+# indexmap = "2.7.0"

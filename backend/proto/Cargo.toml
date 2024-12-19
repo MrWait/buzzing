@@ -1,0 +1,17 @@
+[package]
+name = "proto"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bytes = "*"
+prost = "0.13"
+prost-types = "0.13"
+serde = { version = "1", features = ["derive"] }
+
+[build-dependencies]
+prost-build = "0.13"
+prost-build-config = { path = "../../tool/prost-build-config" }
+serde_yaml = "0.9.33"

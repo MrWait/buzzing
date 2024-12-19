@@ -1,0 +1,58 @@
+---
+includes: [../../proto/]
+files: [
+../../proto/calendar.proto,
+../../proto/chat.proto,
+../../proto/command.proto,
+../../proto/dept.proto,
+../../proto/entity.proto,
+../../proto/error.proto,
+../../proto/feed.proto,
+../../proto/message.proto,
+../../proto/pipeline.proto,
+../../proto/sdk.proto,
+../../proto/setting.proto,
+../../proto/user.proto,
+]
+output: src/idl
+messages:
+  - paths: [entity.User]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.LoginUser]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.Account]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.I18nValue]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.AtInfo]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.Tenant]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.Department]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.Reaction]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [calendar.CalendarGetListRequest]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.Calendar.Subscriber]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)

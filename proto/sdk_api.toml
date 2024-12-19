@@ -1,0 +1,3 @@
+[COMMAND_BASE_INIT_SDK]
+request = 'InitSdkRequest'
+response = "InitSdkResponse"

@@ -1,0 +1,16 @@
+[package]
+name = "store"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+loco-rs = { workspace = true }
+axum = { workspace = true }
+proto = { workspace = true }
+tracing = { workspace = true }
+tokio-util = { workspace = true }
+tokio = { workspace = true }
+async-trait = { workspace = true }
+
+common = { workspace = true }
+base = { workspace = true }

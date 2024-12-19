@@ -1,0 +1,23 @@
+[package]
+name = "gateway"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-trait = { workspace = true }
+axum = { workspace = true }
+dashmap = { workspace = true }
+futures-util = { workspace = true }
+loco-rs = { workspace = true }
+moka = { workspace = true }
+prost = { workspace = true }
+scopeguard = { workspace = true }
+sea-orm = { workspace = true }
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true }
+tracing = { workspace = true }
+tungstenite = { workspace = true }
+
+proto = { workspace = true }
+common = { workspace = true }
+base = { workspace = true }

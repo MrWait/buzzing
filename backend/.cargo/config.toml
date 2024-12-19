@@ -1,0 +1,5 @@
+[alias]
+loco = "run -p app --"
+loco-tool = "run -p base --bin tool --"
+playground = "run -p core --example playground"
+deploy = "run --release -p app --"

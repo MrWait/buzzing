@@ -1,0 +1,39 @@
+[union]
+id = 1024
+ws_host = "ws://127.0.0.1"
+ws_port = 8889
+features = [
+  "im",
+  "setting",
+  "calendar",
+  "todo",
+  "office",
+  "rtc",
+]
+http_host = "http://127.0.0.1"
+http_port = 5150
+
+[upload.avatar]
+host = "http://127.0.0.1"
+port = 5150
+path = "/storage/upload/avatar"
+
+[upload.icon]
+host = "http://127.0.0.1"
+port = 5150
+path = "/storage/upload/icon"
+
+[upload.im]
+host = "http://127.0.0.1"
+port = 5150
+path = "/storage/upload/im"
+
+[upload.log]
+host = "http://127.0.0.1"
+port = 5150
+path = "/storage/upload/log"
+
+[upload.crash]
+host = "http://127.0.0.1"
+port = 5150
+path = "/storage/upload/crash"

@@ -1,0 +1,33 @@
+syntax = "proto3";
+option go_package = "./proto";
+package setting;
+import "entity.proto";
+
+message GetAllSettingsRequest {}
+message GetAllSettingsResponse {
+    entity.Settings settings = 1;
+}
+
+message GetSettingByTypeRequest {
+    int32 type = 1;
+}
+message GetSettingByTypeResponse {
+    entity.Setting setting = 1;
+}
+
+message GetSettingByVersionRequest {
+    int64 version = 1;
+}
+message GetSettingByVersionResponse {
+    entity.Setting settings = 1;
+}
+
+message PushSettingsRequest {
+    entity.Settings settings = 1;
+}
+
+message UpdateSettingRequest {
+    int32 type = 1;
+    bytes value = 2;
+}
+message UpdateSettingResponse {}

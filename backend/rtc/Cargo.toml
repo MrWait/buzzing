@@ -1,0 +1,20 @@
+[package]
+name = "rtc"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { workspace = true }
+axum-server = { workspace = true }
+futures-util = { workspace = true }
+loco-rs = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+strum = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tokio-stream= { workspace = true }
+uuid = { version = "1.6.0", features = ["v4"] }
+webrtc = "0.14.0"
+
+common = { workspace = true }

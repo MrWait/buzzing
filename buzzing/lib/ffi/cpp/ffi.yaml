@@ -1,0 +1,8 @@
+name: BuzzingLib
+output: 'gen_ffi_cpp.dart'
+headers:
+  entry-points:
+    - "buzzing_api.h"
+
+llvm-path:
+  - 'D:\IDES\llvm18'

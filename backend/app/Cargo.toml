@@ -1,0 +1,25 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+loco-rs = { workspace = true }
+tokio = { workspace = true }
+dashmap = { workspace = true }
+mimalloc = { workspace = true }
+
+base = { workspace = true }
+migration = { workspace = true }
+gateway = { workspace = true }
+office = { workspace = true }
+todo = { workspace = true }
+im = { workspace = true }
+rtc = { workspace = true }
+setting = { workspace = true }
+calendar = { workspace = true }
+proto = { workspace = true }
+common = { workspace = true }
+store = { workspace = true }
+user = { workspace = true }

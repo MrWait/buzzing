@@ -1,0 +1,20 @@
+set shell := ["cmd", "/c"]
+default:
+
+p:
+     pip install toml
+# protoc --proto_path=. --go_out=../../internal/proto/ --go_opt=paths=source_relative entity.proto
+gen_rpc:
+     goctl rpc protoc service.proto --go_out=../../internal --go-grpc_out=../../internal --zrpc_out=../../cmd/buzzing/buzzing_rpc_gateway
+
+gen_rust:
+     python pb.py -t rust -o ../sdk/service-model/src/idl/
+
+gen_dart:
+     python pb.py -t dart -o ../buzzing/lib/models/idl/
+
+gen_go:
+     python pb.py -t golang -o ../backend/internal/proto/
+
+gen_py:
+     python pb.py -t python -o ../backend/testsuite/model

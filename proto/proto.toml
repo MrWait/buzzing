@@ -1,0 +1,29 @@
+[proto]
+files = [
+      "command.proto",
+      "entity.proto",
+      "error.proto",
+      "gateway.proto",
+      "sdk.proto",
+      "service.proto",
+      "types.proto",
+      "user.proto",
+      "server.proto",
+      "feed.proto",
+      "chat.proto",
+      "dept.proto",
+      "message.proto",
+      "pipeline.proto",
+]
+
+[rust]
+ignore = []
+
+[golang]
+ignore = ["service.proto"]
+
+[dart]
+ignore = []
+
+[python]
+ignore = []
