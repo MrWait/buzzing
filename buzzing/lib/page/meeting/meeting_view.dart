@@ -1,5 +1,6 @@
 import 'package:buzzing/models/const.dart';
-import 'package:buzzing/res/strings.dart';
+import 'package:buzzing/provider/page_providers.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/res/styles.dart';
 import 'package:buzzing/widget/button.dart';
 import 'package:buzzing/widget/code_input_box.dart';
@@ -12,16 +13,15 @@ import 'package:buzzing/widget/touch_close_keyboard.dart';
 import 'package:buzzing/controller/app_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'meeting_logic.dart';
 
-class MeetingPage extends StatelessWidget {
-  final ctl = Get.find<MeetingLogic>();
-
+class MeetingPage extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ctl = ref.watch(meetingLogicProvider);
     return Scaffold(
       backgroundColor: PageStyle.c_FFFFFF,
       body: Row(
@@ -43,28 +43,28 @@ class MeetingPage extends StatelessWidget {
                           children: [
                             Text("Meeting", style: PageStyle.ts_000000_14sp),
                             TextButton(
-                              child: Text(StrRes.createMeeting),
+                              child: Text(t.createMeeting),
                               onPressed: () {
                                 ctl.createMeeting();
                               },
                             ),
                             TextButton(
-                              child: Text(StrRes.joinMeeting),
+                              child: Text(t.joinMeeting),
                               onPressed: () {
                                 ctl.joinMeeting();
                               },
                             ),
                             TextButton(
-                              child: Text(StrRes.scheduleMeeting),
+                              child: Text(t.scheduleMeeting),
                               onPressed: () {},
                             ),
                             Container(
                               alignment: Alignment.topLeft,
-                              child: Text(StrRes.comingMeeting),
+                              child: Text(t.comingMeeting),
                             ),
                             Container(
                               alignment: Alignment.topLeft,
-                              child: Text(StrRes.historyMeeting),
+                              child: Text(t.historyMeeting),
                             ),
                           ],
                         ),
@@ -74,7 +74,6 @@ class MeetingPage extends StatelessWidget {
                           height: 1.sh,
                           child: Column(
                             children: [
-                              // server addr
                               TextButton(
                                 child: Text("connect"),
                                 onPressed: () async {
@@ -99,58 +98,16 @@ class MeetingPage extends StatelessWidget {
   }
 }
 
-class MeetingView extends StatelessWidget {
-  final ctl = Get.find<MeetingLogic>();
-
-  buildRow(context, peer) {
-    var self = (peer['id'] == ctl.uid);
-    return ListBody(
-      children: <Widget>[
-        ListTile(
-          title: Text(
-            self
-                ? peer['name'] + ', ID: ${peer['id']}' + ' [Your Self]'
-                : peer['name'] + ', ID: ${peer['id']}',
-          ),
-          onTap: null,
-          trailing: SizedBox(
-            width: 100.0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: Icon(
-                    self ? Icons.close : Icons.videocam,
-                    color: self ? Colors.grey : Colors.black,
-                  ),
-                  onPressed: () => ctl.invitePeer(context, peer['id'], false),
-                  tooltip: "Video Calling",
-                ),
-                IconButton(
-                  icon: Icon(
-                    self ? Icons.close : Icons.screen_share,
-                    color: self ? Colors.grey : Colors.black,
-                  ),
-                  onPressed: () => ctl.invitePeer(context, peer['id'], true),
-                  tooltip: "Screen Sharing",
-                ),
-              ],
-            ),
-          ),
-          subtitle: Text('[' + peer['user_agent'] + ']'),
-        ),
-        Divider(),
-      ],
-    );
-  }
-
+class MeetingView extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
-    return Obx(
-      () => Scaffold(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ctl = ref.watch(meetingLogicProvider);
+    return ListenableBuilder(
+      listenable: ctl,
+      builder: (ctx, _) => Scaffold(
         appBar: AppBar(title: Text("Meeting View")),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton: ctl.inCalling.value
+        floatingActionButton: ctl.inCalling
             ? SizedBox(
                 width: 240.0,
                 child: Row(
@@ -181,7 +138,7 @@ class MeetingView extends StatelessWidget {
                 ),
               )
             : null,
-        body: ctl.inCalling.value
+        body: ctl.inCalling
             ? OrientationBuilder(
                 builder: (context, orientation) {
                   return Container(
@@ -226,18 +183,57 @@ class MeetingView extends StatelessWidget {
                   );
                 },
               )
-            : GetBuilder<MeetingLogic>(
-                id: ConstKey.KeyMeetingPeers,
-                builder: (c) => ListView.builder(
+            : ListView.builder(
                   shrinkWrap: true,
                   padding: const EdgeInsets.all(0.0),
                   itemCount: (ctl.peers != null ? ctl.peers.length : 0),
                   itemBuilder: (context, i) {
-                    return buildRow(context, ctl.peers[i]);
+                    return buildRow(context, ctl, ctl.peers[i]);
                   },
                 ),
-              ),
       ),
+    );
+  }
+
+  Widget buildRow(BuildContext context, MeetingLogic ctl, peer) {
+    var self = (peer['id'] == ctl.uid);
+    return ListBody(
+      children: <Widget>[
+        ListTile(
+          title: Text(
+            self
+                ? peer['name'] + ', ID: ${peer['id']}' + ' [Your Self]'
+                : peer['name'] + ', ID: ${peer['id']}',
+          ),
+          onTap: null,
+          trailing: SizedBox(
+            width: 100.0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    self ? Icons.close : Icons.videocam,
+                    color: self ? Colors.grey : Colors.black,
+                  ),
+                  onPressed: () => ctl.invitePeer(context, peer['id'], false),
+                  tooltip: "Video Calling",
+                ),
+                IconButton(
+                  icon: Icon(
+                    self ? Icons.close : Icons.screen_share,
+                    color: self ? Colors.grey : Colors.black,
+                  ),
+                  onPressed: () => ctl.invitePeer(context, peer['id'], true),
+                  tooltip: "Screen Sharing",
+                ),
+              ],
+            ),
+          ),
+          subtitle: Text('[' + peer['user_agent'] + ']'),
+        ),
+        Divider(),
+      ],
     );
   }
 

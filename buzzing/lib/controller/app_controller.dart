@@ -1,15 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:buzzing/res/strings.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/utils/config/config.dart';
-import 'package:buzzing/utils/data_persistence.dart';
 import 'package:buzzing/utils/upgrade_manager.dart';
 import 'package:buzzing/utils/loogger_util.dart';
 //import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
-import 'package:get/get.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/v4.dart';
@@ -28,12 +26,12 @@ class SubWindow {
 }
 
 //class AppController extends GetxController with UpgradeManager {
-class AppController extends GetxController {
+class AppController {
   var isRunningBackground = false;
   var backgroundSubject = PublishSubject<bool>();
   var flutterLocalNotificationPlugin = FlutterLocalNotificationsPlugin();
   var isAppBadgeSupported = false;
-  var theme = 0.obs;
+  var theme = 0;
   var windows = Map<String, SubWindow>();
   final mainChannel = WindowMethodChannel("Main");
 
@@ -50,7 +48,7 @@ class AppController extends GetxController {
   final initializationSettingsDarwin = DarwinInitializationSettings();
 
   final notDisturbMap = <String, bool>{};
-  final clientConfigMap = <String, dynamic>{}.obs;
+  final clientConfigMap = <String, dynamic>{};
 
   void runningBackground(bool run) {
     LD('App running background: $run');
@@ -61,7 +59,6 @@ class AppController extends GetxController {
     }
   }
 
-  @override
   void onInit() async {
     final initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
@@ -74,7 +71,7 @@ class AppController extends GetxController {
       initializationSettings,
       onDidReceiveNotificationResponse: (notificationResponse) {},
     );
-    if (!GetPlatform.isWindows) {
+    if (!Platform.isWindows) {
       //isAppBadgeSupported = await FlutterAppBadger.isAppBadgeSupported();
     }
 
@@ -117,7 +114,6 @@ class AppController extends GetxController {
       }
     });
 
-    super.onInit();
   }
 
   Future<WindowController?> createWindow(
@@ -193,7 +189,7 @@ class AppController extends GetxController {
         ?.startForegroundService(
           1,
           /*packageInfo!.appName*/ "buzzing",
-          StrRes.serviceNotificationBody,
+          t.serviceNotificationBody,
           notificationDetails: androidPlatformChannelSpecifiecs,
           payload: '',
         );
@@ -221,36 +217,16 @@ class AppController extends GetxController {
     // FlutterAppBadger.removeBadge();
   }
 
-  @override
   void onClose() {
     backgroundSubject.close();
-    //closeSubject();
-    super.onClose();
   }
 
   void changeTheme(int newTheme) {
-    this.theme.value = newTheme;
+    this.theme = newTheme;
   }
 
-  Locale? getLocale() {
-    var local = Get.locale;
-    var index = DataPersistence.getLanguage() ?? 0;
-    switch (index) {
-      case 1:
-        local = Locale('zh', 'CN');
-        break;
-      case 2:
-        local = Locale('en', 'US');
-        break;
-    }
-    return local;
-  }
-
-  @override
   void onReady() {
     _queryClientConfig();
-    //autoCheckVersionUpgrade();
-    super.onReady();
   }
 
   Future<bool> _noDisturb() async {

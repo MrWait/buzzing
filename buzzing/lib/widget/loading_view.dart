@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:get/get.dart';
 
 class LoadingView {
   static final LoadingView singleton = LoadingView._();
@@ -9,12 +8,13 @@ class LoadingView {
 
   LoadingView._();
 
-  OverlayState? _overlayState;
   OverlayEntry? _overlayEntry;
   bool _isVisible = false;
 
-  Future<T> wrap<T>({required Future<T> Function() asyncFunction}) async {
-    show();
+  Future<T> wrap<T>(
+      {required BuildContext context,
+      required Future<T> Function() asyncFunction}) async {
+    show(context);
     T data;
     try {
       data = await asyncFunction();
@@ -26,9 +26,8 @@ class LoadingView {
     return data;
   }
 
-  void show() async {
+  void show(BuildContext context) async {
     if (_isVisible) return;
-    _overlayState = Overlay.of(Get.overlayContext!);
     _overlayEntry = OverlayEntry(
         builder: (BuildContext context) => Container(
               width: MediaQuery.of(context).size.width,
@@ -36,7 +35,7 @@ class LoadingView {
               child: Center(child: SpinKitCircle(color: Colors.blueAccent)),
             ));
     _isVisible = true;
-    _overlayState?.insert(_overlayEntry!);
+    Overlay.of(context).insert(_overlayEntry!);
   }
 
   dismiss() async {

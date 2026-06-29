@@ -1,20 +1,18 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:buzzing/widget/avatar.dart';
 import 'package:buzzing/widget/profile.dart';
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
+import 'package:buzzing/provider/im_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:buzzing/res/styles.dart';
 import 'package:fixnum/fixnum.dart';
-import 'package:get/get.dart';
-import 'package:path/path.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
 
-class MessageWidget extends StatelessWidget {
-  var im = Get.find<ImController>();
+class MessageWidget extends ConsumerWidget {
   late final String icon;
   late final String name;
   late final String desc;
@@ -45,11 +43,12 @@ class MessageWidget extends StatelessWidget {
        key = key;
 
   @override
-  Widget build(BuildContext context) {
-    return renderMsg(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final im = ref.watch(imProvider);
+    return renderMsg(context, im);
   }
 
-  Widget renderMsg(context) {
+  Widget renderMsg(context, ImController im) {
     if (simple) {
       return Container(
         //color: PageStyle.c_71BCFF,
@@ -90,12 +89,14 @@ class MessageWidget extends StatelessWidget {
                       alignment: Alignment.topCenter,
                       //                      width: 40,
                       height: 40,
-                      child: Obx(
-                        () => ProfilePopup(
+                      child: ListenableBuilder(
+                        listenable: im,
+                        builder: (ctx, _) => ProfilePopup(
+                          im,
                           context,
                           userId,
                           avatar,
-                          im.getUserVer(userId).value,
+                          im.getUserVer(userId),
                         ),
                       ),
                     ),
@@ -202,8 +203,7 @@ List<Widget> genMessages() {
   ];
 }
 
-class MessageBox extends StatelessWidget {
-  var im = Get.find<ImController>();
+class MessageBox extends ConsumerWidget {
   final User user;
   final Message msg;
   var controller = QuillController.basic();
@@ -211,7 +211,8 @@ class MessageBox extends StatelessWidget {
   MessageBox({required msg, required user}) : user = user, msg = msg;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final im = ref.watch(imProvider);
     Widget render;
     switch (msg.tpy) {
       // MessageType.TEXT.value:
@@ -258,12 +259,14 @@ class MessageBox extends StatelessWidget {
                     alignment: Alignment.topCenter,
                     //                      width: 40,
                     height: 40,
-                    child: Obx(
-                      () => ProfilePopup(
+                    child: ListenableBuilder(
+                      listenable: im,
+                      builder: (ctx, _) => ProfilePopup(
+                        im,
                         context,
                         user.id,
                         user.avatar,
-                        im.getUserVer(user.id).value,
+                        im.getUserVer(user.id),
                       ),
                     ),
                   ),

@@ -1,20 +1,20 @@
 import 'package:buzzing/models/const.dart';
-import 'package:buzzing/res/strings.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/res/styles.dart';
-import 'package:buzzing/controller/im.dart';
+import 'package:buzzing/provider/im_provider.dart';
+import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/widget/header_bar.dart';
 import 'package:buzzing/widget/navigate_bar.dart';
 import 'package:buzzing/widget/profile.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'contact_logic.dart';
 
-class ContactPage extends StatelessWidget {
-  final contactController = Get.find<ContactController>();
-
+class ContactPage extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final contactController = ref.watch(contactLogicProvider);
     return Scaffold(
       backgroundColor: PageStyle.c_FFFFFF,
       body: Row(children: [
@@ -27,8 +27,10 @@ class ContactPage extends StatelessWidget {
             child: Row(children: [
               ContactList(),
               Expanded(
-                  child: Obx(() => ContactDetail(
-                      contactController.mode.value, contactController))),
+                  child: ListenableBuilder(
+                      listenable: contactController,
+                      builder: (ctx, _) => ContactDetail(
+                           contactController.mode, contactController))),
             ]),
           )
         ])),
@@ -37,10 +39,10 @@ class ContactPage extends StatelessWidget {
   }
 }
 
-class ContactList extends StatelessWidget {
-  final contactController = Get.find<ContactController>();
+class ContactList extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final contactController = ref.watch(contactLogicProvider);
     var tenant = contactController.getTenant();
     return Container(
         width: 260,
@@ -51,7 +53,7 @@ class ContactList extends StatelessWidget {
                 alignment: Alignment.topLeft,
                 color: PageStyle.c_F0F0F0,
                 child: Text(
-                  StrRes.contacts,
+                  t.contacts,
                   style: PageStyle.ts_000000_14sp,
                 )),
             Container(
@@ -65,32 +67,33 @@ class ContactList extends StatelessWidget {
                 child: Container(
                   alignment: Alignment.topLeft,
                   child: Text(
-                    StrRes.internalContacts,
+                    t.internalContacts,
                     style: PageStyle.ts_000000_13sp,
                   ),
                 ),
                 onTap: () async {
-                  contactController.mode.value = 1;
+                  contactController.mode = 1;
+                  contactController.notifyListeners();
                   await contactController.getDeptInfo();
                 }),
             Container(
               alignment: Alignment.topLeft,
               child: Text(
-                StrRes.externalContacts,
+                t.externalContacts,
                 style: PageStyle.ts_000000_13sp,
               ),
             ),
             Container(
               alignment: Alignment.topLeft,
               child: Text(
-                StrRes.starContacts,
+                t.starContacts,
                 style: PageStyle.ts_000000_13sp,
               ),
             ),
             Container(
               alignment: Alignment.topLeft,
               child: Text(
-                StrRes.newFriendApplication,
+                t.newFriendApplication,
                 style: PageStyle.ts_000000_13sp,
               ),
             ),
@@ -99,19 +102,17 @@ class ContactList extends StatelessWidget {
   }
 }
 
-class ContactDetail extends StatelessWidget {
+class ContactDetail extends ConsumerWidget {
   final int mode;
   final ContactController ctl;
-  final im = Get.find<ImController>();
   ContactDetail(this.mode, this.ctl);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final im = ref.watch(imProvider);
     switch (this.mode) {
       case 1:
-        return GetBuilder<ContactController>(
-            id: ConstKey.KeyContactDetail,
-            builder: (c) => ListView.separated(
+        return ListView.separated(
                 itemCount: ctl.listUsers.length,
                 itemBuilder: (context, index) {
                   var u = ctl.listUsers[index];
@@ -120,13 +121,13 @@ class ContactDetail extends StatelessWidget {
                     child: Row(
                       children: [
                         ProfilePopup(
-                            context, u.id, u.avatar, im.getUserVer(u.id).value),
+                            im, context, u.id, u.avatar, im.getUserVer(u.id)),
                         Text(u.name),
                       ],
                     ),
                   );
                 },
-                separatorBuilder: (context, index) => Divider(height: 0.0)));
+                separatorBuilder: (context, index) => Divider(height: 0.0));
       default:
         return Container(child: Text("Contact Detail"));
     }

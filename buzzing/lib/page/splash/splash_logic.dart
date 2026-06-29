@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:ffi';
 
-import 'package:buzzing/controller/app_controller.dart';
 import 'package:buzzing/controller/sdk_controller.dart';
 import 'package:buzzing/routes/app_navigator.dart';
 import 'package:buzzing/utils/config/config.dart';
@@ -9,33 +7,26 @@ import 'package:buzzing/utils/data_persistence.dart';
 import 'package:buzzing/models/login_certificate.dart';
 import 'package:buzzing/utils/net/http_util.dart';
 import 'package:buzzing/utils/loogger_util.dart';
-import 'package:fixnum/fixnum.dart' as $fixnum;
-import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
 
-class SplashLogic extends GetxController {
-//  final imLogic = Get.find();
-//  final pushLogic = Get.find();
+class SplashLogic {
   late StreamSubscription initializedSub;
-  final sdk = Get.find<SdkController>();
-  final app = Get.find<AppController>();
+  final SdkController sdk;
+  SplashLogic({required this.sdk});
 
-  @override
-  void onInit() {
-    if (!try_login()) {
+  void init(GoRouter router) {
+    if (!try_login(router)) {
       Future.delayed(Duration(seconds: 2), () {
-        AppNavigator.startLogin();
+        AppNavigator.startLogin(router);
       });
     }
-
-    super.onInit();
   }
 
-  @override
-  void onReady() {
-    super.onReady();
+  void dispose() {
+    //initializedSub.cancel();
   }
 
-  bool try_login() {
+  bool try_login(GoRouter router) {
     try {
       String currentUnion = DataPersistence.getCurrentUnionServer() ?? "";
       if (currentUnion.isEmpty) {
@@ -79,7 +70,7 @@ class SplashLogic extends GetxController {
 
       HttpUtil.resetBaseUrl(Config.apiUrl());
       LD("login account: $account");
-      AppNavigator.startIm(account.loginUser);
+      AppNavigator.startIm(router, account.loginUser);
       return true;
       // pushLogic.
     } catch (e) {
@@ -87,11 +78,5 @@ class SplashLogic extends GetxController {
       LD(e);
       return false;
     }
-  }
-
-  @override
-  void onClose() {
-    //initializedSub.cancel();
-    super.onClose();
   }
 }

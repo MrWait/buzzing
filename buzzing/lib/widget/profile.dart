@@ -1,19 +1,15 @@
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/widget/avatar.dart';
-import 'package:buzzing/widget/picker.dart';
 import 'package:flutter_popup/flutter_popup.dart';
 import 'package:flutter/material.dart';
 import 'package:buzzing/res/styles.dart';
 import 'package:buzzing/utils/loogger_util.dart';
-import 'package:window_manager/window_manager.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:get/get.dart';
 import 'package:fixnum/fixnum.dart';
-import 'button.dart';
 
-Widget ProfilePopup(BuildContext context, Int64 id, String url, Int64 ver) {
-  var im = Get.find<ImController>();
+Widget ProfilePopup(ImController im, BuildContext context, Int64 id,
+    String url, Int64 ver) {
   var user = im.getUser(id);
   L.d("profile popup, get user: ${id}, ${user}");
   return CustomPopup(
@@ -34,7 +30,7 @@ Widget ProfilePopup(BuildContext context, Int64 id, String url, Int64 ver) {
               if (chatId != null) {
                 im.enterChat(chatId);
               }
-              Get.back();
+              Navigator.of(context).pop();
             },
             behavior: HitTestBehavior.translucent,
             child: Text("Send Message"),

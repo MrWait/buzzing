@@ -43,7 +43,7 @@
 ```
 用户输入 → ImController.onSendMessage()
   → SdkController.invokeAsync(CMD_MESSAGE_SEND, proto_bytes)
-  → flink_invoke() FFI
+  → invoke() FFI
     → Rust SDK 处理本地缓存
     → app-network WebSocket 发送
       → 服务端 Gateway 接收
@@ -62,7 +62,7 @@
 服务端 WebSocket → AppNetwork 接收
   → 反序列化 Packet
   → app-network 回调
-    → flink_reg_push_handler sink
+    → reg_push_handler sink
       → Dart SdkController.handlePush()
         → ImController.onPushMessages()
           → mergeEntity() → GetBuilder UI 更新

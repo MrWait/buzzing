@@ -1,20 +1,17 @@
 import 'package:buzzing/controller/im.dart';
-import 'package:buzzing/res/strings.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/widget/avatar.dart';
-import 'package:buzzing/widget/picker.dart';
 import 'package:flutter_popup/flutter_popup.dart';
 import 'package:flutter/material.dart';
 import 'package:buzzing/res/styles.dart';
 import 'package:buzzing/utils/loogger_util.dart';
-import 'package:window_manager/window_manager.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:get/get.dart';
 import 'package:fixnum/fixnum.dart';
-import 'button.dart';
+import 'package:go_router/go_router.dart';
 
-Widget PersonalPopup(BuildContext context, Int64 id, String url, Int64 ver) {
-  var im = Get.find<ImController>();
+Widget PersonalPopup(ImController im, BuildContext context, Int64 id,
+    String url, Int64 ver) {
   var user = im.getUser(id);
   var tenant = im.getTenant();
   L.d("hero popup, get user: ${id}, ${user}");
@@ -45,31 +42,31 @@ Widget PersonalPopup(BuildContext context, Int64 id, String url, Int64 ver) {
           GestureDetector(
             child: Container(
               alignment: Alignment.centerLeft,
-              child: Text(StrRes.myInfo),
+              child: Text(t.myInfo),
             ),
             onTap: () {},
           ),
           GestureDetector(
             child: Container(
               alignment: Alignment.centerLeft,
-              child: Text(StrRes.myQrcode),
+              child: Text(t.myQrcode),
             ),
             onTap: () {},
           ),
           GestureDetector(
             child: Container(
               alignment: Alignment.centerLeft,
-              child: Text(StrRes.mySetting),
+              child: Text(t.mySetting),
             ),
             onTap: () {},
           ),
           GestureDetector(
             child: Container(
               alignment: Alignment.centerLeft,
-              child: Text(StrRes.logout),
+              child: Text(t.logout),
             ),
             onTap: () {
-              im.logout();
+              im.logout(GoRouter.of(context));
             },
           ),
         ],

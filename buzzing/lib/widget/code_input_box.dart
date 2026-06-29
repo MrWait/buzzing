@@ -1,4 +1,4 @@
-import 'package:buzzing/res/strings.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/res/styles.dart';
 import 'package:buzzing/widget/verify_code_send_button2.dart';
 import 'package:flutter/material.dart';
@@ -36,7 +36,7 @@ class CodeInputBox extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(StrRes.verificationCode, style: labelStyle),
+          Text(t.verificationCode, style: labelStyle),
           SizedBox(height: 10.h),
           Container(
             height: 28.h,
@@ -64,7 +64,7 @@ class CodeInputBox extends StatelessWidget {
         maxLength: maxLength,
         autofocus: autofocus,
         decoration: InputDecoration(
-          hintText: StrRes.plsInputVerificationCode,
+          hintText: t.plsInputVerificationCode,
           hintStyle: hintStyle,
           isDense: true,
           contentPadding: EdgeInsets.all(0),
@@ -76,6 +76,6 @@ class CodeInputBox extends StatelessWidget {
         onTap: onClickCodeBtn,
         behavior: HitTestBehavior.translucent,
         child:
-            Text(StrRes.getVerificationCode, style: PageStyle.ts_0089FF_16sp),
+            Text(t.getVerificationCode, style: PageStyle.ts_0089FF_16sp),
       );
 }

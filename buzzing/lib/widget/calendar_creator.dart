@@ -1,8 +1,10 @@
 import 'package:buzzing/controller/sdk_controller.dart';
 import 'package:buzzing/models/const.dart';
 import 'package:buzzing/models/idl/calendar.pb.dart';
+import 'package:buzzing/provider/sdk_provider.dart';
 import 'package:buzzing/widget/avatar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:buzzing/models/idl/chat.pb.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
@@ -10,17 +12,15 @@ import 'package:buzzing/widget/draft_input.dart';
 import 'package:buzzing/widget/message.dart';
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/utils/loogger_util.dart';
-import 'package:buzzing/controller/event.dart';
 import 'package:buzzing/models/model.dart';
 import 'package:buzzing/res/styles.dart';
-import 'package:get/get.dart';
 import 'package:fixnum/fixnum.dart';
 
-class CalendarCreator extends StatelessWidget {
-  final ctl = Get.put(CalendarCreatorController());
-
+class CalendarCreator extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sdk = ref.watch(sdkProvider);
+    final ctl = CalendarCreatorController(sdk: sdk);
     return AlertDialog(
       content: Column(children: [
         Text("Create Calendar"),
@@ -36,7 +36,7 @@ class CalendarCreator extends StatelessWidget {
           child: Text("Cancel"),
           onPressed: () {
             ctl.resetData();
-            Get.back();
+            Navigator.of(context).pop();
           },
         ),
         TextButton(
@@ -44,7 +44,7 @@ class CalendarCreator extends StatelessWidget {
           onPressed: () async {
             await ctl.createCalendar();
             ctl.resetData();
-            Get.back();
+            Navigator.of(context).pop();
           },
         ),
       ],
@@ -52,8 +52,9 @@ class CalendarCreator extends StatelessWidget {
   }
 }
 
-class CalendarCreatorController extends GetxController {
-  final sdk = Get.find<SdkController>();
+class CalendarCreatorController {
+  final SdkController sdk;
+  CalendarCreatorController({required this.sdk});
 
   var nameCtrl = TextEditingController();
   var descCtrl = TextEditingController();

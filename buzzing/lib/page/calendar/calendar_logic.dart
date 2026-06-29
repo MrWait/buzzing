@@ -1,12 +1,10 @@
 import 'package:buzzing/controller/sdk_controller.dart';
-import 'package:buzzing/models/const.dart';
 import 'package:buzzing/models/login_certificate.dart';
 import 'package:buzzing/models/model.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/calendar.pb.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/routes/app_navigator.dart';
-import 'package:buzzing/res/strings.dart';
 import 'package:buzzing/res/styles.dart';
 import 'package:buzzing/utils/net/apis.dart';
 import 'package:buzzing/utils/data_persistence.dart';
@@ -15,32 +13,31 @@ import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/widget/im_widget.dart';
 import 'package:buzzing/widget/loading_view.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+
 import 'package:fixnum/fixnum.dart';
 
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:infinite_calendar_view/infinite_calendar_view.dart';
 
-class CalendarLogic extends GetxController {
-  final sdk = Get.find<SdkController>();
+class CalendarLogic extends ChangeNotifier {
+  final SdkController sdk;
+  CalendarLogic({required this.sdk});
   var currentDate = DateTime(2025, 9, 2);
   var currentMonth = DateFormat.yMMM().format(DateTime(2025, 9, 2));
   var calendarSearchInput = TextEditingController();
   final firstDay = DateTime(2000, 1, 1);
   final lastDay = DateTime(2030, 12, 30);
   var eventController = EventsController();
-  var darkMode = false.obs;
-  var calendarMode = CalendarView.day7.obs;
+  var darkMode = false;
+  var calendarMode = CalendarView.day7;
 
-  var myCalendarListMode = true.obs;
-  var subscribeCalendarListMode = true.obs;
+  var myCalendarListMode = true;
+  var subscribeCalendarListMode = true;
   var calendarList = <Calendar>[];
   // id > 1: new, 2: my, 3: sub
   var originCalendarList = <Calendar>[];
 
-  @override
-  void onInit() {
-    super.onInit();
+  void init() {
     Future.delayed(Duration.zero, () async {
       await refreshCalendarList();
     });
@@ -95,15 +92,13 @@ class CalendarLogic extends GetxController {
       }
       subCalendars.add(calendar);
     }
-    if (myCalendarListMode.value) {
+    if (myCalendarListMode) {
       calendarList.addAll(myCalendars);
     }
     calendarList.add(Calendar(id: Int64(3)));
-    if (subscribeCalendarListMode.value) {
+    if (subscribeCalendarListMode) {
       calendarList.addAll(subCalendars);
     }
-
-    update([ConstKey.KeyCalendarList]);
   }
 
   void resetCreateInfo() {}

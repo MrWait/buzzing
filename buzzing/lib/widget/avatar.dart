@@ -6,7 +6,6 @@ import 'package:buzzing/res/styles.dart';
 import 'package:buzzing/utils/loogger_util.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:get/get.dart';
 import 'button.dart';
 
 class Avatar extends StatelessWidget {

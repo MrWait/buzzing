@@ -1,17 +1,32 @@
 import 'package:buzzing/ffi/rust/api/flutter.dart';
 import 'package:buzzing/page/splash/splash_logic.dart';
+import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/res/images.dart';
-import 'package:buzzing/res/strings.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/res/styles.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
 
-class SplashPage extends StatelessWidget {
-  final logic = Get.find<SplashLogic>();
+class SplashPage extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<SplashPage> createState() => _SplashPageState();
+}
+
+class _SplashPageState extends ConsumerState<SplashPage> {
+  bool _initialized = false;
 
   @override
   Widget build(BuildContext context) {
+    final logic = ref.watch(splashLogicProvider);
+    if (!_initialized) {
+      _initialized = true;
+      Future.microtask(() {
+        final router = GoRouter.of(context);
+        logic.init(router);
+      });
+    }
     return Material(
       child: Stack(
         children: [
@@ -26,7 +41,7 @@ class SplashPage extends StatelessWidget {
             top: 673.h,
             width: 375.w,
             child: Center(
-              child: Text(StrRes.welcomeUse, style: PageStyle.ts_333333_16sp),
+              child: Text(t.welcomeUse, style: PageStyle.ts_333333_16sp),
             ),
           ),
         ],
