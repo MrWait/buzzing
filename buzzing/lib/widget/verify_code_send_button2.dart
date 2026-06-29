@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:buzzing/res/strings.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/res/styles.dart';
 import 'package:flutter/material.dart';
 import 'package:dart_date/dart_date.dart';
@@ -91,7 +91,7 @@ class _VerifyCodeSendButtonState extends State<VerifyCodeSendButton2> {
           }
         },
         behavior: HitTestBehavior.translucent,
-        child: Text(_isEnabled ? StrRes.getVerificationCode : '$_second s',
+        child: Text(_isEnabled ? t.getVerificationCode : '$_second s',
             style: PageStyle.ts_0089FF_16sp),
       );
 }

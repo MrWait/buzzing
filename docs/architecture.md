@@ -48,7 +48,7 @@
 
 ```
 用户操作 → GetX Controller → SdkController.invokeAsync()
-  → FFI (flink_invoke) → Rust SDK 本地处理
+  → FFI (invoke) → Rust SDK 本地处理
   → app-network WebSocket/HTTP → 服务端 Gateway
   → AppHub 命令分发 → 模块 Handler → DB 操作
   → 响应回传 + 通过 BizGateway 推送其他用户

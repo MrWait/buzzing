@@ -20,6 +20,8 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:desktop_lifecycle/desktop_lifecycle.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'app.dart';
 import 'webview.dart';
 import 'vc.dart';
@@ -80,7 +82,7 @@ Future<Null> main(List<String> args) async {
         mode: ChannelMode.unidirectional,
       );
       //debugPaintSizeEnabled = true;
-      Config.init(() => runApp(BuzzingApp(channel: channel)));
+      Config.init(() => runApp(ProviderScope(child: BuzzingApp(channel: channel))));
     },
     (Object error, StackTrace stackTrace) {
       print("Error from outside framework");

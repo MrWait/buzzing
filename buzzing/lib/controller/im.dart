@@ -6,10 +6,11 @@ import 'package:buzzing/models/idl/chat.pb.dart';
 import 'package:buzzing/models/idl/dept.pb.dart';
 import 'package:buzzing/routes/app_navigator.dart';
 import 'package:buzzing/utils/data_persistence.dart';
+import 'package:go_router/go_router.dart';
 import 'package:buzzing/models/idl/message.pb.dart';
 import 'package:buzzing/models/idl/user.pb.dart';
 import 'package:buzzing/controller/sdk_controller.dart';
-import 'package:buzzing/controller/event.dart';
+import 'package:buzzing/event/event_bus.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/idl/feed.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
@@ -22,78 +23,66 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/animation.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/quill_delta.dart';
-import 'package:get/get.dart';
 import 'package:fixnum/fixnum.dart';
 
-import "app_controller.dart";
-
 class UserVer {
-  var ver = Int64(0).obs;
+  var ver = Int64(0);
   User? user;
 
   UserVer(Int64 version, this.user) {
-    ver.value = version;
+    ver = version;
   }
 }
 
-class ImController extends GetxController {
-  final sdk = Get.find<SdkController>();
-  final ev = Get.find<EventController>();
-  final app = Get.find<AppController>();
-  // text editing controllors
+class ImController extends ChangeNotifier {
+  final SdkController sdk;
+  final EventBus ev;
 
-  // obs
+  ImController({required this.sdk, required this.ev});
+
   var feedList = <FeedModel>[];
   var messagePosList = <MessageIndex>[];
   var imInputCtrl = TextEditingController();
   var msgCtrl = ScrollController();
   Map<Int64, UserVer> userVers = {};
 
-  // quill editor
   var _focusNode = FocusNode();
   var quillController = QuillController.basic();
-  var showMentionPopup = false.obs;
+  var showMentionPopup = false;
   Offset popuppOffset = Offset.zero;
   final LayerLink layerLink = LayerLink();
   final List<String> candidates = ["Atom", "Bob", "Crys", "David"];
 
-  var avatar = "".obs;
+  var avatar = "";
 
-  var chatId = Int64(0).obs;
+  var chatId = Int64(0);
   var userId = Int64(0);
-  var debug = true.obs;
+  var debug = true;
   var entity = Entity.create();
   int ver = 0;
   var user = User.create();
 
   LoginUser loginUser = LoginUser.create();
 
-  @override
-  void onReady() {
-    // TODO: implement onReady
-    super.onReady();
-  }
-
-  @override
   void onClose() {
-    // TODO: implement onClose
     LW("im logic close");
-    super.onClose();
   }
 
   void onTextChanged() {
-    // L.d("text changed");
     final text = quillController.document.toPlainText();
     final selection = quillController.selection;
     if (selection.isCollapsed) {
       final offset = selection.baseOffset;
       if (offset > 0 && text.substring(offset - 1, offset) == '@') {
-        showMentionPopup.value = true;
+        showMentionPopup = true;
+        notifyListeners();
       } else {
-        showMentionPopup.value = false;
+        showMentionPopup = false;
+        notifyListeners();
       }
     } else {
-      showMentionPopup.value = false;
+      showMentionPopup = false;
+      notifyListeners();
     }
   }
 
@@ -121,7 +110,6 @@ class ImController extends GetxController {
       });
     quillController.document.compose(
       delta,
-      //quillController.selection,
       ChangeSource.local,
     );
 
@@ -129,10 +117,11 @@ class ImController extends GetxController {
       TextSelection.collapsed(offset: offset - 1 + mentionText.length),
       ChangeSource.local,
     );
-    showMentionPopup.value = false;
+    showMentionPopup = false;
+    notifyListeners();
   }
 
-  Rx<Int64> getUserVer(Int64 id) {
+  Int64 getUserVer(Int64 id) {
     if (this.userVers.containsKey(id)) {
       return userVers[id]!.ver;
     } else {
@@ -172,7 +161,8 @@ class ImController extends GetxController {
         for (var u in resp.users) {
           if (u.id == id) {
             this.user = u;
-            this.avatar.value = u.avatar;
+            this.avatar = u.avatar;
+            notifyListeners();
           }
         }
       }
@@ -195,7 +185,7 @@ class ImController extends GetxController {
       var resp = GetUserByIdsResponse.fromBuffer(result.data!);
       for (var u in resp.users) {
         if (userVers.containsKey(id)) {
-          userVers[id]!.ver.value = u.version;
+          userVers[id]!.ver = u.version;
           userVers[id]!.user = u;
         } else {
           userVers[id] = UserVer(u.version, u);
@@ -206,7 +196,8 @@ class ImController extends GetxController {
         }
 
         if (u.id == userId) {
-          avatar.value = u.avatar;
+          avatar = u.avatar;
+          notifyListeners();
         }
       }
     }
@@ -219,13 +210,6 @@ class ImController extends GetxController {
     if (feed == null) {
       return null;
     }
-    /*
-    var chat = entity.chats[id];
-    if (chat == null) {
-      LE("feed has no deps: ${id}");
-      return null;
-    }
-    */
     var model = FeedModel();
     model.feed = feed;
     model.chat = entity.chats[id];
@@ -255,7 +239,7 @@ class ImController extends GetxController {
       return 1;
     });
     LD("feed list: ${feedList}");
-    update([ConstKey.KeyFeedList]);
+    notifyListeners();
     return msgIds;
   }
 
@@ -265,7 +249,7 @@ class ImController extends GetxController {
     );
     if (referIds != null) {
       entity.messages.removeWhere((id, msg) {
-        var keep = (referIds.contains(id) || msg.chatId == chatId.value);
+        var keep = (referIds.contains(id) || msg.chatId == chatId);
         return !keep;
       });
     }
@@ -273,7 +257,7 @@ class ImController extends GetxController {
     if (curMsgIds.length > 0) {
       messagePosList.clear();
       entity.messages.forEach((id, msg) {
-        if (msg.chatId == chatId.value) {
+        if (msg.chatId == chatId) {
           messagePosList.add(
             MessageIndex(msg.id, msg.fromId, msg.pos, msg.createTimeMs),
           );
@@ -289,8 +273,7 @@ class ImController extends GetxController {
         }
         return 1;
       });
-      //jumpToMessage(messagePosList.last.globalKey);
-      update([ConstKey.KeyChatMessage]);
+      notifyListeners();
       jumpToEnd();
     }
   }
@@ -348,10 +331,10 @@ class ImController extends GetxController {
     LD("enter chat ${id}, cur: ${chatId}");
     if (chatId != id) {
       messagePosList.clear();
-      chatId.call(id);
+      chatId = id;
       var chat = entity.chats[id];
       if (chat != null) {
-        preloadMessage(chatId.value, chat.lastMessagePos, 30);
+        preloadMessage(chatId, chat.lastMessagePos, 30);
       } else {
         LW("chat not exists: ${id}");
       }
@@ -368,19 +351,14 @@ class ImController extends GetxController {
     var push = PushMessages.fromBuffer(data);
     LD("sdk push message list, ${push}");
     mergeEntity(push.entity);
-    //msgCtrl.animateTo(1000,
-    //duration: Duration(milliseconds: 200), curve: Curves.ease);
   }
 
-  @override
   void onInit() {
-    // TODO: implement onInit
-    super.onInit();
     LW("init im logic");
 
     sdk.regPushCallback(Command.PUSH_FEED_LIST.value, onPushFeedList);
     sdk.regPushCallback(Command.PUSH_MESSAGES.value, onPushMessages);
-    ev.regEventHandler(GlobalEvent.Logined.num, "im_controller", () {
+    ev.stream.where((e) => e == GlobalEvent.logined).listen((_) {
       Future.delayed(Duration.zero, () async {
         LD("sdk logined, fetch feed");
         await fetchFeed();
@@ -415,23 +393,21 @@ class ImController extends GetxController {
     var feedLen = src.feeds.length;
     var msgLen = src.messages.length;
     LD(
-      "merge entity, chatId: ${chatId.value}, feeds: ${src.feeds.keys}, messages: ${src.messages.keys}",
+      "merge entity, chatId: ${chatId}, feeds: ${src.feeds.keys}, messages: ${src.messages.keys}",
     );
     var currentMsgIds = <Int64>[];
     src.messages.forEach((id, msg) {
-      if (msg.chatId == chatId.value) {
+      if (msg.chatId == chatId) {
         currentMsgIds.add(msg.id);
       }
     });
     entity.mergeFromMessage(src);
 
-    // check feed
     var msgIds = null;
     if (feedLen > 0) {
       msgIds = updateFeedList();
     }
 
-    // check message
     if (msgLen > 0) {
       updateMessage(msgIds, currentMsgIds);
     }
@@ -509,11 +485,11 @@ class ImController extends GetxController {
       text = jsonEncode(delta.toJson());
     }
     LD("send message, text: ${text}, type: $msgType, summary: $summary");
-    if (chatId.value == 0) {
+    if (chatId == 0) {
       return;
     }
 
-    var chat = entity.chats[chatId.value];
+    var chat = entity.chats[chatId];
     if (chat != null) {
       Future.delayed(Duration.zero, () async {
         var message = Message.create();
@@ -524,9 +500,9 @@ class ImController extends GetxController {
         message.fromId = userId;
         message.content = inner.writeToBuffer();
         message.summary = summary;
-        message.chatId = chatId.value;
+        message.chatId = chatId;
 
-        var stashId = await preSendMessage(chatId.value, message);
+        var stashId = await preSendMessage(chatId, message);
         if (stashId != null) {
           await sendMessage(stashId, message);
         }
@@ -600,12 +576,12 @@ class ImController extends GetxController {
     }
   }
 
-  void logout() {
+  void logout(GoRouter router) {
     Future.delayed(Duration.zero, () async {
       L.d("logout user");
       await DataPersistence.removeAccount();
-      Get.back();
-      AppNavigator.startLogin();
+      router.pop();
+      AppNavigator.startLogin(router);
       await sdk.logout();
     });
   }

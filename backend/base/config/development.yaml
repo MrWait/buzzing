@@ -109,7 +109,7 @@ mailer:
 # Database Configuration
 database:
   # Database connection URI
-  uri: {{ get_env(name="DATABASE_URL", default="postgres://flink:flink@localhost:5432/flink") }}
+  uri: {{ get_env(name="DATABASE_URL", default="postgres://buzzing:buzzing@localhost:5432/buzzing") }}
   # When enabled, the sql query will be logged.
   enable_logging: false
   # Set the timeout duration when acquiring a connection.

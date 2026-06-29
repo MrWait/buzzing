@@ -12,26 +12,23 @@ import 'package:buzzing/models/idl/error.pb.dart';
 import 'package:buzzing/models/idl/sdk.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/utils/loogger_util.dart';
-import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:fixnum/fixnum.dart' as $fixnum;
-import 'package:buzzing/controller/event.dart';
+import 'package:buzzing/event/event_bus.dart';
 
 bool inited = false;
 
-class SdkController extends GetxController {
+class SdkController {
   int invoke_seq = 1;
-
-  final ev = Get.find<EventController>();
+  final EventBus eventBus;
   final initCh = Channel<int>();
   var userId = Int64(0);
 
   final invokeCh = Map<int, Channel<Uint8List>>();
   final pushCallback = Map<int, Function>();
-  @override
-  void onInit() {
-    // TODO: implement onInit
+
+  SdkController({required this.eventBus}) {
     LW("init sdk controller");
     if (!inited) {
       inited = true;
@@ -41,21 +38,10 @@ class SdkController extends GetxController {
         initCh.send(0);
       });
     }
-    super.onInit();
   }
 
-  @override
-  void onClose() {
-    // TODO: implement onClose
-    //api.uninit();
+  void dispose() {
     LW("sdk controller close");
-    super.onClose();
-  }
-
-  @override
-  void onReady() {
-    // TODO: implement onReady
-    super.onReady();
   }
 
   void regPushCallback(int cmd, Function f) {
@@ -183,7 +169,7 @@ class SdkController extends GetxController {
     LD("invoke login return ${data}");
     LD("call login finish");
     userId = uid;
-    ev.emitEvent(GlobalEvent.Logined.num);
+    eventBus.emit(GlobalEvent.logined);
   }
 
   void _uninit() {}

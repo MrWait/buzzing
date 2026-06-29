@@ -4,12 +4,10 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:buzzing/controller/app_controller.dart';
-import 'package:buzzing/models/const.dart';
 import 'package:buzzing/res/styles.dart';
 import 'package:buzzing/utils/net/apis.dart';
 import 'package:buzzing/utils/net/http_util.dart';
 import 'package:buzzing/models/login_certificate.dart';
-import 'package:buzzing/res/strings.dart';
 import 'package:buzzing/utils/data_persistence.dart';
 import 'package:buzzing/utils/loogger_util.dart';
 import 'package:buzzing/utils/common_utils.dart';
@@ -21,10 +19,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:flutter_macos_permissions/flutter_macos_permissions.dart';
-import 'package:get/get.dart';
 
-class MeetingLogic extends GetxController {
-  var inCalling = false.obs;
+
+class MeetingLogic extends ChangeNotifier {
+  var inCalling = false;
   Signaling? signaling;
   String uid = randomNumeric(6);
   List<dynamic> peers = [];
@@ -33,12 +31,10 @@ class MeetingLogic extends GetxController {
   Session? session;
   DesktopCapturerSource? selectedSource;
   bool waitAccept = false;
-  final app = Get.find<AppController>();
+  final AppController app;
+  MeetingLogic({required this.app});
 
-  @override
-  void onInit() {
-    // TODO: implement onInit
-    super.onInit();
+  void init() {
     initRenderers();
   }
 
@@ -81,7 +77,8 @@ class MeetingLogic extends GetxController {
           bool? acc = await showAcceptDialog(context);
           if (acc!) {
             accept();
-            inCalling.value = true;
+            inCalling = true;
+            notifyListeners();
           } else {
             reject();
           }
@@ -93,7 +90,8 @@ class MeetingLogic extends GetxController {
           }
           localRenderer.srcObject = null;
           remoteRenderer.srcObject = null;
-          inCalling.value = false;
+          inCalling = false;
+          notifyListeners();
           session = null;
           break;
         case CallState.CallStateInvite:
@@ -104,7 +102,8 @@ class MeetingLogic extends GetxController {
           if (waitAccept) {
             waitAccept = false;
           }
-          inCalling.value = true;
+          inCalling = true;
+          notifyListeners();
           break;
       }
     };
@@ -113,7 +112,6 @@ class MeetingLogic extends GetxController {
       L.d("[RTC] peer update: $event");
       uid = event['self'];
       peers = event['peers'];
-      update([ConstKey.KeyMeetingPeers]);
     });
     signaling?.onLocalStream = ((stream) {
       L.d("[RTC] local stream opened");

@@ -1,5 +1,5 @@
 import 'package:buzzing/res/images.dart';
-import 'package:buzzing/res/strings.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -44,7 +44,7 @@ class PhoneInputBox extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            inputWay == InputWay.phone ? StrRes.phoneNum : StrRes.email,
+            inputWay == InputWay.phone ? t.phoneNum : t.email,
             style: labelStyle,
           ),
           SizedBox(height: 10.h),
@@ -78,8 +78,8 @@ class PhoneInputBox extends StatelessWidget {
           : null,
       decoration: InputDecoration(
         hintText: inputWay == InputWay.phone
-            ? StrRes.plsInputPhone
-            : StrRes.plsInputEmail,
+            ? t.plsInputPhone
+            : t.plsInputEmail,
         hintStyle: hintStyle,
         isDense: true,
         contentPadding: EdgeInsets.all(0),

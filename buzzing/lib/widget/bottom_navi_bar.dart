@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:buzzing/res/styles.dart';
-import 'package:get/get.dart';
 
 class BottomNaviBar extends StatelessWidget {
   @override
