@@ -51,7 +51,7 @@ Buzzing 是一个企业级协作平台（类飞书/钉钉/Slack），包含完�
 - 所有客户端↔服务端通信使用 **Protobuf 编码包 + 命令枚举** 分发
 - proto 定义文件存储在 proto/ 目录中。使用 proto v3 版本，无 optional、required
 - 后端模块实现 `ExternApp` trait，注册到 `AppHub` 统一分发
-- SDK 实现 `AppTrait` / `BizXxx` trait，通过 `flink_invoke` FFI 入口调用
+- SDK 实现 `AppTrait` / `BizXxx` trait，通过 `invoke` FFI 入口调用
 - ID 生成：Snowflake 变体 `[12-bit 集群 | 32-bit 秒级时间戳 | 20-bit 序列]`
 - Flutter 状态管理：GetX (Controller + GetBuilder + Reactive)
 - 客户端、SDK、服务端均使用 proto 通信，存储在项目目录 proto/ 中

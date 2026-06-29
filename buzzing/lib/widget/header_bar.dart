@@ -1,23 +1,19 @@
 import 'dart:io';
 
-import 'package:buzzing/controller/im.dart';
-import 'package:buzzing/widget/avatar.dart';
 import 'package:buzzing/widget/picker.dart';
 import 'package:buzzing/widget/profile.dart';
+import 'package:buzzing/provider/im_provider.dart';
 import 'package:flutter_popup/flutter_popup.dart';
 import 'package:flutter/material.dart';
 import 'package:buzzing/res/styles.dart';
-import 'package:buzzing/utils/loogger_util.dart';
-import 'package:path/path.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:get/get.dart';
-import 'button.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class HeaderBar extends StatelessWidget {
+class HeaderBar extends ConsumerWidget {
   final double height = 44;
-  final im = Get.find<ImController>();
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final im = ref.watch(imProvider);
     return GestureDetector(
         onPanStart: (details) {
           windowManager.startDragging();
@@ -28,8 +24,10 @@ class HeaderBar extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   height: height,
                   color: PageStyle.c_F0F0F0,
-                  child: Obx(() => ProfilePopup(context, im.userId,
-                      im.avatar.value, im.getUserVer(im.userId).value)))),
+                  child: ListenableBuilder(
+                      listenable: im,
+                      builder: (ctx, _) => ProfilePopup(im, context, im.userId,
+                          im.avatar, im.getUserVer(im.userId))))),
           Container(
             width: height,
             child: Icon(Icons.query_builder, color: Colors.lightBlue),
@@ -44,12 +42,6 @@ class HeaderBar extends StatelessWidget {
           Container(
             width: height,
             child: MainPopup(context),
-            /*
-        child: NaviButton(
-            () => {
-                },
-            Icons.add),
-            */
           ),
           Expanded(
               child: Container(
@@ -113,20 +105,11 @@ Widget MainPopup(BuildContext context) {
     content: Column(mainAxisSize: MainAxisSize.min, children: [
       GestureDetector(
         onTap: () {
-          Get.back();
+          Navigator.of(context).pop();
           showDialog<bool>(
               context: context,
               builder: (context) {
                 return ImChatCreater();
-                /*
-                return AlertDialog(
-                    title: Text("Alert"),
-                    content: Text("Content"),
-                    actions: <Widget>[
-                      TextButton(
-                          child: Text("OK"), onPressed: () => Get.back()),
-                    ]);
-                    */
               });
         },
         behavior: HitTestBehavior.translucent,

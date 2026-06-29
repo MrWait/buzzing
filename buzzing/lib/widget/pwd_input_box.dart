@@ -1,5 +1,5 @@
 import 'package:buzzing/res/images.dart';
-import 'package:buzzing/res/strings.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -44,7 +44,7 @@ class PwdInputBox extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(StrRes.pwd, style: labelStyle),
+          Text(t.pwd, style: labelStyle),
           SizedBox(height: 10.h),
           Container(
             height: 28.h,
@@ -73,7 +73,7 @@ class PwdInputBox extends StatelessWidget {
         maxLength: maxLength,
         autofocus: autofocus,
         decoration: InputDecoration(
-            hintText: StrRes.plsInputPwd,
+            hintText: t.plsInputPwd,
             hintStyle: hintStyle,
             isDense: true,
             contentPadding: EdgeInsets.all(0),

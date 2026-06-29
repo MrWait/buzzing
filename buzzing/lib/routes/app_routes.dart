@@ -1,5 +1,3 @@
-part of 'app_pages.dart';
-
 abstract class AppRoute {
   static const NOT_FOUND = '/not-found';
   static const LOGIN = '/login';

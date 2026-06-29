@@ -3,22 +3,23 @@ import 'dart:io';
 import 'package:buzzing/utils/screencapture_pc.dart';
 import 'package:flutter/material.dart';
 import 'package:buzzing/widget/button.dart';
-import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/provider/im_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
-import 'package:get/get.dart';
 import 'package:flutter_macos_permissions/flutter_macos_permissions.dart';
 
-class MessageInput extends StatelessWidget {
-  final im = Get.find<ImController>();
+class MessageInput extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final im = ref.watch(imProvider);
     return Container(
       height: 150,
-      child: Obx(
-        () => Scaffold(
-          floatingActionButton: im.showMentionPopup.value
+      child: ListenableBuilder(
+        listenable: im,
+        builder: (ctx, _) => Scaffold(
+          floatingActionButton: im.showMentionPopup
               ? MentionPopup(
                   candidates: im.candidates,
                   layerLink: im.layerLink,
@@ -64,7 +65,6 @@ class MessageInput extends StatelessWidget {
                       text: "SC",
                       textStyle: PageStyle.ts_171A1D_17,
                       onTap: () async {
-                        // start screen capture
                         if (Platform.isMacOS) {
                           var granted =
                               await FlutterMacosPermissions.requestScreenRecording();
@@ -83,7 +83,6 @@ class MessageInput extends StatelessWidget {
                       text: "@",
                       textStyle: PageStyle.ts_171A1D_17,
                       onTap: () async {
-                        // start screen capture
                       },
                     ),
                     Button(

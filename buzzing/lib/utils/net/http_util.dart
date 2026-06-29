@@ -5,7 +5,7 @@ import 'package:buzzing/utils/config/config.dart';
 import 'package:buzzing/models/model.dart';
 import 'package:buzzing/widget/im_widget.dart';
 import 'package:buzzing/utils/loogger_util.dart';
-import 'package:get/get.dart' hide MultipartFile, FormData;
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 var dio = Dio();
@@ -75,7 +75,7 @@ class HttpUtil {
         return resp.data;
       } else {
         if (showErrorToast) {
-          IMWidget.showToast(resp.code.toString().tr);
+          IMWidget.showToast(t['k${resp.code}']?.toString() ?? resp.code.toString());
         }
         return Future.error(resp.msg);
       }

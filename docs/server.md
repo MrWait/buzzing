@@ -44,7 +44,7 @@ backend/
 
 ## WebSocket 协议
 
-- 升级时携带 `x-flink-token`, `x-flink-appversion`, `x-flink-deviceid` 头
+- 升级时携带 `x-buzzing-token`, `x-buzzing-appversion`, `x-buzzing-deviceid` 头
 - 二进制消息：Protobuf 编码的 `entity.Packet`
 - 心跳：30 秒 Ping/Pong
 - 服务端推送：新消息、Feed 更新、实体变更
@@ -84,3 +84,13 @@ backend/
 - `cache.rs` — CommonCache + CacheLoader (moka + Redis 双缓存)
 - `config.rs` — 配置读取
 - `text_image.rs` — 文字转图片头像 (ab_glyph 字体渲染)
+
+## 运行和部署
+主要命令可以通过根目录 justfile 运行。
+
+- 服务端命令需要在 backend/base 目录中，loco-rs 框架要求
+- base/config 中存储服务端配置
+- 主要使用 loco 作为工具，且需要在 backend/base 目录下运行
+- db migrate: cargo loco db migrate
+- db reset: cargo loco db reset
+- start: cargo loco start

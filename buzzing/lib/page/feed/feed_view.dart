@@ -1,14 +1,11 @@
 import 'package:buzzing/models/const.dart';
-import 'package:buzzing/widget/feedcard.dart';
 import 'package:buzzing/widget/sticker.dart';
-import 'package:buzzing/page/im/im_logic.dart';
 import 'package:buzzing/controller/im.dart';
-import 'package:buzzing/controller/event.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/models/model.dart';
 import 'package:flutter/material.dart';
 import 'package:buzzing/res/styles.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class FeedPage extends StatelessWidget {
   @override
@@ -19,7 +16,6 @@ class FeedPage extends StatelessWidget {
         child: Column(mainAxisAlignment: MainAxisAlignment.start, children: [
           Container(
               width: 260,
-//              height: 200,
               color: PageStyle.c_F0F0F0,
               child: Wrap(children: genSticker())),
           Expanded(
@@ -32,14 +28,13 @@ class FeedPage extends StatelessWidget {
   }
 }
 
-class FeedListView extends StatelessWidget {
-  final im = Get.find<ImController>();
-
+class FeedListView extends ConsumerWidget {
   @override
-  Widget build(BuildContext ctx) {
-    return GetBuilder<ImController>(
-        id: ConstKey.KeyFeedList,
-        builder: (c) => ListView.separated(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final im = ref.watch(imProvider);
+    return ListenableBuilder(
+        listenable: im,
+        builder: (ctx, _) => ListView.separated(
               itemCount: im.feedList.length,
               itemBuilder: (context, index) {
                 return Model.feed(im.feedList[index].feed.id, im.entity, () {
@@ -47,6 +42,7 @@ class FeedListView extends StatelessWidget {
                 });
               },
               separatorBuilder: (context, index) => Divider(height: 0.0),
-            ));
+            ),
+          );
   }
 }

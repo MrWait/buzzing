@@ -9,7 +9,7 @@ Flutter 桌面端应用 (支持 Windows/macOS/Linux)，通过 `flutter_rust_brid
 ```
 buzzing/lib/
 ├── main.dart              # 入口 (多窗口支持)
-├── app.dart               # FlinkApp 根组件
+├── app.dart               # BuzzingApp 根组件
 ├── controller/
 │   ├── sdk_controller.dart    # FFI 桥接封装
 │   ├── im.dart                # IM 状态管理

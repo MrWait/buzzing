@@ -608,16 +608,13 @@
 					"\"flutter_macos_permissions\"",
 					"-framework",
 					"\"flutter_webrtc\"",
-					"-framework",
-					"\"open_file_mac\"",
-					"-framework",
-					"\"photo_manager\"",
+
+
 					"-framework",
 					"\"rust_lib_buzzing\"",
 					"-framework",
 					"\"screen_capturer_macos\"",
-					"-framework",
-					"\"screen_retriever_macos\"",
+
 					"-framework",
 					"\"SystemConfiguration\"",
 				);
@@ -769,16 +766,13 @@
 					"\"flutter_macos_permissions\"",
 					"-framework",
 					"\"flutter_webrtc\"",
-					"-framework",
-					"\"open_file_mac\"",
-					"-framework",
-					"\"photo_manager\"",
+
+
 					"-framework",
 					"\"rust_lib_buzzing\"",
 					"-framework",
 					"\"screen_capturer_macos\"",
-					"-framework",
-					"\"screen_retriever_macos\"",
+
 					"-framework",
 					"\"SystemConfiguration\"",
 				);
@@ -818,16 +812,13 @@
 					"\"flutter_macos_permissions\"",
 					"-framework",
 					"\"flutter_webrtc\"",
-					"-framework",
-					"\"open_file_mac\"",
-					"-framework",
-					"\"photo_manager\"",
+
+
 					"-framework",
 					"\"rust_lib_buzzing\"",
 					"-framework",
 					"\"screen_capturer_macos\"",
-					"-framework",
-					"\"screen_retriever_macos\"",
+
 					"-framework",
 					"\"SystemConfiguration\"",
 				);

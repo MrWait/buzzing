@@ -1,6 +1,6 @@
-# Flink (Buzzing) - 项目文档
+# Buzzing - 项目文档
 
-Flink 是一个企业级协作平台（类飞书/钉钉/Slack），包含完整的服务端、SDK、客户端代码。
+Buzzing 是一个企业级协作平台（类飞书/钉钉/Slack），包含完整的服务端、SDK、客户端代码。
 
 ## 文档索引
 

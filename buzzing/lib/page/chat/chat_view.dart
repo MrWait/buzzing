@@ -1,26 +1,25 @@
 import 'package:buzzing/models/const.dart';
-import 'package:buzzing/widget/draft_input.dart';
-import 'package:buzzing/widget/message.dart';
-import 'package:buzzing/controller/im.dart';
-import 'package:buzzing/controller/event.dart';
 import 'package:buzzing/models/model.dart';
+import 'package:buzzing/controller/im.dart';
+import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/utils/loogger_util.dart';
 import 'package:buzzing/widget/message_input.dart';
 import 'package:flutter/material.dart';
 import 'package:buzzing/res/styles.dart';
-import 'package:get/get.dart';
-import 'package:fixnum/fixnum.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ChatPage extends StatelessWidget {
-  final im = Get.find<ImController>();
+class ChatPage extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final im = ref.watch(imProvider);
     return Container(
       color: PageStyle.c_F0F6FF,
       margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
       padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
-      child: Obx(() {
-        var chatId = im.chatId.value;
+      child: ListenableBuilder(
+        listenable: im,
+        builder: (ctx, _) {
+        var chatId = im.chatId;
         var chat = im.getChat(chatId);
         if (chatId == 0) {
           return Column(mainAxisSize: MainAxisSize.max, children: []);
@@ -49,7 +48,6 @@ class ChatPage extends StatelessWidget {
                 ),
               ),
               Expanded(child: MessageView()),
-              // DraftInput(),
               MessageInput(),
             ],
           );
@@ -59,14 +57,13 @@ class ChatPage extends StatelessWidget {
   }
 }
 
-class MessageView extends StatelessWidget {
-  final im = Get.find<ImController>();
-
+class MessageView extends ConsumerWidget {
   @override
-  Widget build(BuildContext ctx) {
-    return GetBuilder<ImController>(
-      id: ConstKey.KeyChatMessage,
-      builder: (c) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final im = ref.watch(imProvider);
+    return ListenableBuilder(
+      listenable: im,
+      builder: (ctx, _) {
         L.d("rebuild message view, count: ${im.messagePosList.length}");
         return Container(
           color: PageStyle.c_FDFEFF,

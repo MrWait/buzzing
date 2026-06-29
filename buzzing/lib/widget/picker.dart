@@ -1,75 +1,72 @@
 import 'package:buzzing/models/const.dart';
-import 'package:buzzing/res/strings.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/widget/avatar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:buzzing/models/idl/chat.pb.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/widget/draft_input.dart';
 import 'package:buzzing/widget/message.dart';
 import 'package:buzzing/controller/im.dart';
+import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/utils/loogger_util.dart';
-import 'package:buzzing/controller/event.dart';
 import 'package:buzzing/models/model.dart';
 import 'package:buzzing/res/styles.dart';
-import 'package:get/get.dart';
 import 'package:fixnum/fixnum.dart';
 
 class Picker extends StatefulWidget {
-  String title = "";
-  int scene = 0;
-  Function onSelect;
+  final String title;
+  final int scene;
+  final Function onSelect;
 
   Picker(this.title, this.scene, this.onSelect);
   @override
-  State<StatefulWidget> createState() =>
-      new PickerState(title, scene, onSelect);
+  State<StatefulWidget> createState() => PickerState();
 }
 
 class PickerState extends State<Picker> {
-  String title = "";
-  int scene = 0;
-  Function onSelect;
-
   List<int> selectIds = [1, 2, 4];
-  PickerState(this.title, this.scene, this.onSelect);
+
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-        title: Text(title),
-        content: Text(scene.toString()),
+        title: Text(widget.title),
+        content: Text(widget.scene.toString()),
         actions: <Widget>[
-          TextButton(child: Text(StrRes.cancel), onPressed: () => Get.back()),
+          TextButton(child: Text(t.cancel), onPressed: () => Navigator.of(context).pop()),
           TextButton(
-              child: Text(StrRes.ok),
+              child: Text(t.ok),
               onPressed: () {
                 if (this.selectIds.length > 0) {
                   var ids = this.selectIds;
-                  onSelect(ids);
+                  widget.onSelect(ids);
                 }
-                Get.back();
+                Navigator.of(context).pop();
               }),
         ]);
   }
 }
 
-class Selector extends StatelessWidget {
-  SelectorController ctl;
+class Selector extends StatefulWidget {
+  final SelectorController ctl;
 
-  Selector(
-      this.ctl, List<String> filters, Function onChanged, bool searchEnable) {
-    this.ctl = ctl;
+  Selector(this.ctl, List<String> filters, Function onChanged, bool searchEnable) {
     ctl.filters = filters;
     ctl.onChanged = onChanged;
     ctl.setSearchEnable(searchEnable);
   }
 
+  @override
+  State<Selector> createState() => _SelectorState();
+}
+
+class _SelectorState extends State<Selector> {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -79,12 +76,11 @@ class Selector extends StatelessWidget {
         children: [
           Expanded(
               flex: 1,
-              child: Obx(
-                () => SelectArea(mode: ctl.mode.value, ctl: ctl),
-              )),
+              child: SelectArea(mode: widget.ctl.mode, ctl: widget.ctl),
+              ),
           Expanded(
             flex: 1,
-            child: CandidateArea(ctl: ctl),
+            child: CandidateArea(ctl: widget.ctl),
           )
         ],
       ),
@@ -92,9 +88,11 @@ class Selector extends StatelessWidget {
   }
 }
 
+typedef WidgetBuilder = Widget Function();
+
 class OW extends StatelessWidget {
   final int ver;
-  final WidgetCallback builder;
+  final WidgetBuilder builder;
   OW(this.ver, this.builder);
   @override
   Widget build(BuildContext context) {
@@ -109,40 +107,32 @@ class SelectArea extends StatelessWidget {
   final int mode;
   final SelectorController ctl;
 
-  // mode: 0 for initial; 1: internal contact; 2: external contact; 3: my group
   @override
   Widget build(BuildContext context) {
     Widget w;
     switch (this.mode) {
       case 1:
         w = Container(
-            //width: 100,
-            //height: 200,
             color: Colors.black38,
-            child: GetBuilder<SelectorController>(
-              id: ConstKey.KeyPickerSelect,
-              builder: (c) => ListView.separated(
-                itemCount: ctl.listUsers.value.length,
-                itemBuilder: (context, index) {
-                  var u = ctl.listUsers.value[index];
-                  return SelectItem(
-                      ctl.getSelectState(u.id).value,
-                      u.avatar,
-                      Icon(Icons.account_circle_outlined,
-                          color: Colors.lightBlue),
-                      u.name, (bool? select) async {
-                    c.setSelectState(u.id, select ?? true);
-                  });
-                },
-                separatorBuilder: (context, index) => Divider(height: 0.0),
-              ),
+            child: ListView.separated(
+              itemCount: ctl.listUsers.length,
+              itemBuilder: (context, index) {
+                var u = ctl.listUsers[index];
+                return SelectItem(
+                    ctl.getSelectState(u.id),
+                    u.avatar,
+                    Icon(Icons.account_circle_outlined,
+                        color: Colors.lightBlue),
+                    u.name, (bool? select) async {
+                  ctl.setSelectState(u.id, select ?? true);
+                });
+              },
+              separatorBuilder: (context, index) => Divider(height: 0.0),
             ));
       case 2:
         w = GestureDetector(
-          child: Container(width: 100, height: 44, child: Text(StrRes.search)),
-          onTap: () {
-            //ctl.mode.value = 0;
-          },
+          child: Container(width: 100, height: 44, child: Text(t.search)),
+          onTap: () {},
         );
       default:
         w = GestureDetector(
@@ -150,15 +140,17 @@ class SelectArea extends StatelessWidget {
             GestureDetector(
               child: Container(height: 44, child: Text("Internal Contact")),
               onTap: () {
-                ctl.mode.value = 1;
+                ctl.mode = 1;
                 ctl.getInternalContact();
+                ctl.notifyListeners();
               },
             ),
             GestureDetector(
               child: Container(height: 44, child: Text("External Contact")),
               onTap: () {
-                ctl.mode.value = 2;
+                ctl.mode = 2;
                 ctl.getExternalContact();
+                ctl.notifyListeners();
               },
             ),
             GestureDetector(
@@ -167,17 +159,18 @@ class SelectArea extends StatelessWidget {
                   child: Text("My Group"),
                 ),
                 onTap: () {
-                  ctl.mode.value = 3;
+                  ctl.mode = 3;
                   ctl.getMyGroup();
+                  ctl.notifyListeners();
                 }),
           ]),
           onTap: () {
-            ctl.mode.value = 1;
+            ctl.mode = 1;
+            ctl.notifyListeners();
           },
         );
     }
     return Container(
-        //height: 300,
         child: Column(
       children: [
         Container(
@@ -234,108 +227,96 @@ class CandidateArea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
     return Container(
         color: Colors.black12,
-        child: GetBuilder<SelectorController>(
-            id: ConstKey.KeyPickerCandidate,
-            builder: (c) => ListView.separated(
-                itemCount: ctl.selectedUsers.value.length,
-                itemBuilder: (context, index) {
-                  var u = ctl.selectedUsers.value[index];
-                  return Container(
-                      height: 44,
-                      child: Row(children: [
-                        Avatar(
-                            u.avatar,
-                            Icon(Icons.account_circle_outlined,
-                                color: Colors.lightBlue)),
-                        Text(u.name),
-                        Spacer(),
-                        GestureDetector(
-                          child: Icon(Icons.close, color: Colors.black26),
-                          onTap: () {
-                            c.setSelectState(u.id, false);
-                          },
-                        ),
-                      ]));
-                },
-                separatorBuilder: (context, index) => Divider(height: 0.0))));
+        child: ListView.separated(
+            itemCount: ctl.selectedUsers.length,
+            itemBuilder: (context, index) {
+              var u = ctl.selectedUsers[index];
+              return Container(
+                  height: 44,
+                  child: Row(children: [
+                    Avatar(
+                        u.avatar,
+                        Icon(Icons.account_circle_outlined,
+                            color: Colors.lightBlue)),
+                    Text(u.name),
+                    Spacer(),
+                    GestureDetector(
+                      child: Icon(Icons.close, color: Colors.black26),
+                      onTap: () {
+                        ctl.setSelectState(u.id, false);
+                      },
+                    ),
+                  ]));
+            },
+            separatorBuilder: (context, index) => Divider(height: 0.0)));
   }
 }
 
-class SelectorController extends GetxController {
-  var im = Get.find<ImController>();
+class SelectorController extends ChangeNotifier {
+  final ImController im;
+  SelectorController({required this.im});
   List<String> filters = [];
   var search = TextEditingController();
   Function? onChanged;
 
-  Rx<List<User>> listUsers = Rx([]);
-  Rx<List<User>> selectedUsers = Rx([]);
-  Map<Int64, Rx<bool>> selectState = {};
-  var searchEnable = false.obs;
-  var mode = 0.obs;
-  var ver = 0.obs;
+  List<User> listUsers = [];
+  List<User> selectedUsers = [];
+  Map<Int64, bool> selectState = {};
+  bool searchEnable = false;
+  int mode = 0;
+  int ver = 0;
 
-  Rx<bool> getSelectState(Int64 id) {
+  bool getSelectState(Int64 id) {
     if (!selectState.containsKey(id)) {
-      selectState[id] = false.obs;
+      selectState[id] = false;
     }
     return selectState[id]!;
   }
 
   void setSelectState(Int64 id, bool state) {
-    ver.value += 1;
-    if (!selectState.containsKey(id)) {
-      selectState[id] = state.obs;
-    }
-    selectState[id]!.value = state;
-
-    listUsers.value.add(User.create());
-    listUsers.value.removeLast();
+    ver += 1;
+    selectState[id] = state;
 
     if (!state) {
-      selectedUsers.value.removeWhere((item) {
+      selectedUsers.removeWhere((item) {
         return item.id == id;
       });
     } else {
-      for (var u in listUsers.value) {
+      for (var u in listUsers) {
         if (u.id == id) {
-          selectedUsers.value.add(u);
+          selectedUsers.add(u);
         }
       }
     }
 
-    var ids = List<Int64>.from(selectedUsers.value.map((u) => u.id));
+    var ids = List<Int64>.from(selectedUsers.map((u) => u.id));
     if (this.onChanged != null) {
       this.onChanged!(ids);
     }
-    update([ConstKey.KeyPickerCandidate, ConstKey.KeyPickerSelect]);
+    notifyListeners();
   }
 
-  @override
-  void onInit() {
-    // TODO: implement onInit
+  void init() {
     L.d("SelectorController init");
-    super.onInit();
   }
 
-  @override
-  void onClose() {
-    // TODO: implement onClose
-    super.onClose();
+  void close() {
     L.d("SelectorController close");
   }
 
   void setSearchEnable(bool enable) {
-    searchEnable.value = enable;
+    searchEnable = enable;
+    notifyListeners();
   }
 
   void reset() {
-    selectedUsers.value.clear();
-    listUsers.value.clear();
-    mode.value = 0;
+    selectedUsers.clear();
+    listUsers.clear();
+    mode = 0;
     selectState.clear();
+    notifyListeners();
   }
 
   void getInternalContact() {
@@ -343,11 +324,11 @@ class SelectorController extends GetxController {
       var list = await im.getDeptInfo(Int64(0));
       L.d("get list info: ${list}");
       if (list != null) {
-        listUsers.value.clear();
-        listUsers.value.addAll(list.users.values);
+        listUsers.clear();
+        listUsers.addAll(list.users.values);
       }
-      L.d("list users: ${listUsers.value}");
-      update([ConstKey.KeyPickerCandidate, ConstKey.KeyPickerSelect]);
+      L.d("list users: ${listUsers}");
+      notifyListeners();
     });
   }
 
@@ -360,32 +341,19 @@ class SelectorController extends GetxController {
   }
 }
 
-class ImChatCreater extends StatelessWidget {
-  ImChatCreaterController controller = Get.put(ImChatCreaterController());
-  SelectorController select = Get.put(SelectorController());
-  ImChatCreater() {
-    //L.d("ImChatCreater init");
-    //controller.reset();
-    //select.reset();
-  }
-
+class ImChatCreater extends ConsumerWidget {
   @override
-  StatelessElement createElement() {
-    // TODO: implement createElement
-    L.d("ImChatCreater create element");
+  Widget build(BuildContext context, WidgetRef ref) {
+    final im = ref.watch(imProvider);
+    final controller = ImChatCreaterController(im: im);
+    final select = SelectorController(im: im);
     controller.reset();
     select.reset();
-    return super.createElement();
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return AlertDialog(
         content: Column(
           children: [
             Container(
                 height: 40,
-                //color: Colors.lightGreen,
                 child: Row(
                   children: [
                     Text("Name"),
@@ -398,13 +366,10 @@ class ImChatCreater extends StatelessWidget {
                 )),
             Container(
                 height: 40,
-                //color: Colors.lightBlue,
                 child: Row(
                   children: [Text("Avatar")],
                 )),
             Expanded(
-                //height: 400,
-                //color: Colors.grey,
                 flex: 1,
                 child: Row(
                   children: [
@@ -414,7 +379,6 @@ class ImChatCreater extends StatelessWidget {
                         height: 1500,
                         width: 600,
                         color: Colors.black26,
-                        //flex: 1,
                         child: Selector(select, ["all"], (ids) {
                           controller.updateSelected(ids);
                         }, true)),
@@ -428,7 +392,7 @@ class ImChatCreater extends StatelessWidget {
               onPressed: () {
                 controller.reset();
                 select.reset();
-                Get.back();
+                Navigator.of(context).pop();
               }),
           TextButton(
               child: Text("OK"),
@@ -436,25 +400,23 @@ class ImChatCreater extends StatelessWidget {
                 controller.reset();
                 select.reset();
                 controller.createChat();
-                Get.back();
+                Navigator.of(context).pop();
               }),
         ]);
   }
 }
 
-class ImChatCreaterController extends GetxController {
-  var im = Get.find<ImController>();
+class ImChatCreaterController {
+  final ImController im;
+  ImChatCreaterController({required this.im});
   var chatNameInputCtrl = TextEditingController();
   var selectSearchCtrl = TextEditingController();
 
-  var avatar = "".obs;
+  String avatar = "";
   List<Int64> userIds = [];
 
-  @override
-  void onInit() {
-    // TODO: implement onInit
+  void init() {
     L.d("ImChatCreaterController init");
-    super.onInit();
   }
 
   void reset() {
@@ -477,10 +439,7 @@ class ImChatCreaterController extends GetxController {
     L.d("update selected: ${ids}");
   }
 
-  @override
-  void onClose() {
-    // TODO: implement onClose
+  void close() {
     L.w("chat creater controller close");
-    super.onClose();
   }
 }

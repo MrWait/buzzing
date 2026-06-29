@@ -8,7 +8,7 @@ SDK 是嵌入在 Flutter 进程中运行的 Rust 库，负责本地缓存、网�
 
 ```
 sdk/
-├── flink/           # SDK 入口 + FFI 桥接
+├── buzzing/           # SDK 入口 + FFI 桥接
 ├── service/         # Trait 层定义
 ├── app-account/     # 用户/账户实现
 ├── app-chat/        # 聊天/消息/Feed 实现
@@ -22,7 +22,7 @@ sdk/
 ├── base-runtime/    # Tokio 运行时管理
 ├── base-util/       # 工具函数
 ├── proto/           # Protobuf 生成代码
-└── flink-cli/       # CLI 调试工具
+└── buzzing-cli/       # CLI 调试工具
 ```
 
 ## Trait 层 (`service/src/`)
@@ -38,16 +38,16 @@ sdk/
 | `BizCalendar` | 日历操作 | 本地日历缓存 |
 | `BizTodo` | 任务操作 | 本地任务缓存 |
 
-## FFI 桥接 (`flink/`)
+## FFI 桥接 (`buzzing/`)
 
 Dart 通过 `flutter_rust_bridge` 调用以下函数：
 
 | 函数 | 说明 |
 |------|------|
-| `flink_init(param)` | 初始化 SDK |
-| `flink_invoke(param)` | 发送命令 (fire-and-forget) |
-| `flink_reg_push_handler(sink)` | 注册推送流 |
-| `flink_reg_invoke_handler(sink)` | 注册调用结果流 |
+| `buzzing_init(param)` | 初始化 SDK |
+| `buzzing_invoke(param)` | 发送命令 (fire-and-forget) |
+| `buzzing_reg_push_handler(sink)` | 注册推送流 |
+| `buzzing_reg_invoke_handler(sink)` | 注册调用结果流 |
 
 Dart 侧使用 `Channel` 模式：通过 seq 编号匹配异步请求-响应。
 

@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:buzzing/models/model.dart';
 import 'package:buzzing/utils/data_persistence.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:get/get.dart';
 import 'package:rxdart/rxdart.dart';
 
 class UpgradeManager {
@@ -23,7 +22,6 @@ class UpgradeManager {
 
   void laterUpdate() {
     isNowIgnoreUpdate = true;
-    Get.back();
   }
 
   getAppInfo() async {
