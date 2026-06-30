@@ -6,6 +6,7 @@ use service::account::DeviceInfo;
 static DB_NAME: &str = "global.db";
 
 pub(crate) fn init_db(device_info: &DeviceInfo) -> Result<Connection> {
+    std::fs::create_dir_all(&device_info.storage_path)?;
     let conn = DbConn::open(&device_info.storage_path, DB_NAME, None)?;
     init_tables(&conn)?;
     MetaTable::meta(&conn).init_table()?;

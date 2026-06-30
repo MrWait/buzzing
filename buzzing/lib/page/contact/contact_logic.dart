@@ -32,6 +32,8 @@ class ContactController extends ChangeNotifier {
       listUsers.clear();
       listUsers.addAll(list.users.values);
       listUsers.sort((a, b) => a.name.compareTo(b.name));
+      LW("getDeptInfo ok: ${list}");
     }
+    notifyListeners();
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:buzzing/controller/sdk_controller.dart';
 import 'package:buzzing/routes/app_navigator.dart';
@@ -70,6 +71,14 @@ class SplashLogic {
 
       HttpUtil.resetBaseUrl(Config.apiUrl());
       LD("login account: $account");
+      if (account.loginUser != null) {
+        sdk.login(
+          uid: account.loginUser!.user.id,
+          tenantId: account.loginUser!.user.tenantId,
+          token: account.loginUser!.token,
+          unionClientConfig: json.encode(Config.union.config.toJson()),
+        );
+      }
       AppNavigator.startIm(router, account.loginUser);
       return true;
       // pushLogic.

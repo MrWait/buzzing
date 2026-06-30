@@ -14,7 +14,7 @@ Widget PersonalPopup(ImController im, BuildContext context, Int64 id,
     String url, Int64 ver) {
   var user = im.getUser(id);
   var tenant = im.getTenant();
-  L.d("hero popup, get user: ${id}, ${user}");
+  LW("hero popup, get user: ${id}, ${user}");
 
   var tenantName = "Personal";
   if (tenant != null) {

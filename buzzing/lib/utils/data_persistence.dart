@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:buzzing/models/login_certificate.dart';
 import 'package:sp_util/sp_util.dart';
@@ -31,14 +33,14 @@ class DataPersistence {
   }
 
   static List<String> getUnionServerList() {
-    return (SpUtil.getObject(_UNION_SERVER_LIST) as List<dynamic>?)
-            ?.map((e) => e as String)
-            .toList() ??
-        [];
+    final raw = SpUtil.getString(_UNION_SERVER_LIST);
+    if (raw == null || raw.isEmpty) return [];
+    final decoded = json.decode(raw);
+    return (decoded as List<dynamic>).cast<String>();
   }
 
   static Future<bool> putUnionServerList(List<String> servers) {
-    final result = SpUtil.putObject(_UNION_SERVER_LIST, servers);
+    final result = SpUtil.putString(_UNION_SERVER_LIST, json.encode(servers));
     return result ?? Future.value(true);
   }
 

@@ -20,13 +20,14 @@ logger:
     rotation: daily
     format: compact
     max_log_files: 7
+    filename_prefix: backend
 
 # Web server configuration
 server:
   # Port on which the server will listen. the server binding is 0.0.0.0:{PORT}
   port: 5150
   # The UI hostname or IP address that mailers will point to.
-  host: http://localhost
+  host: https://www.buzzing-im.com
   # Out of the box middleware configuration. to disable middleware you can changed the `enable` field to `false` of comment the middleware block
   middlewares:
     # #############################################
