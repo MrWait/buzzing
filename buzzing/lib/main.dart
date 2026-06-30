@@ -4,6 +4,7 @@ import "dart:async";
 import "dart:math";
 import "dart:convert";
 
+import 'package:buzzing/utils/loogger_util.dart';
 import 'package:buzzing/page/screenshot/screenshot_view.dart';
 import 'package:buzzing/utils/config/config.dart';
 import 'package:buzzing/page/error_page.dart';
@@ -30,7 +31,7 @@ Future<Null> main(List<String> args) async {
   if (args.firstOrNull == 'multi_window') {
     WidgetsFlutterBinding.ensureInitialized();
     await windowManager.ensureInitialized();
-    print("statr new window: ${args}");
+    LD("statr new window: ${args}");
     await windowManager.waitUntilReadyToShow();
 
     //final windowId = int.parse(args[1]);
@@ -85,9 +86,9 @@ Future<Null> main(List<String> args) async {
       Config.init(() => runApp(ProviderScope(child: BuzzingApp(channel: channel))));
     },
     (Object error, StackTrace stackTrace) {
-      print("Error from outside framework");
-      print("Error: $error");
-      print("StackTrace: $stackTrace");
+      LD("Error from outside framework");
+      LD("Error: $error");
+      LD("StackTrace: $stackTrace");
     },
   );
 }
@@ -212,7 +213,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 if (snap.error != null) {
                   // An error has been encountered, so give an appropriate response and
                   // pass the error details to an unobstructive tooltip.
-                  debugPrint(snap.error.toString());
+                  LD(snap.error.toString());
                   return Tooltip(
                     message: snap.error.toString(),
                     child: Text('Unknown OS', style: style),

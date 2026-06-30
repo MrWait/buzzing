@@ -6,12 +6,14 @@ var defaultLogger = DefaultLogger();
 
 var L = Logger(printer: defaultLogger);
 
+typedef LogFn = void Function(String message, int level, String? error, String? backtrace);
+
 class DefaultLogger extends LogPrinter {
   final logger = Logger.defaultPrinter();
-  Function? logFn;
+  LogFn? logFn;
+
   @override
   List<String> log(LogEvent event) {
-    // TODO: implement log
     if (logFn != null) {
       var stackTrace = event.stackTrace;
       if (event.error != null && event.stackTrace == null) {
@@ -23,13 +25,11 @@ class DefaultLogger extends LogPrinter {
         event.error?.toString(),
         stackTrace.toString(),
       );
-      return [];
-    } else {
-      return logger.log(event);
     }
+    return logger.log(event);
   }
 
-  void setLogFn(Function fn) {
+  void setLogFn(LogFn fn) {
     logFn = fn;
   }
 }

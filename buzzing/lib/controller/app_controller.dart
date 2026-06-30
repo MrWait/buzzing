@@ -76,10 +76,10 @@ class AppController {
     }
 
     mainChannel.setMethodCallHandler((call) async {
-      print("handle sub window event: ${call}");
+      LD("handle sub window event: ${call}");
       var argument = call.arguments as String;
       var arg = jsonDecode(argument) as Map<String, dynamic>;
-      print("arg: ${arg}");
+      LD("arg: ${arg}");
       switch (call.method) {
         case "sub_window_close":
           {
@@ -136,7 +136,7 @@ class AppController {
 
     arguments['app'] = tag;
     var arg = jsonEncode(arguments);
-    print("new window arg: ${arg}");
+    LD("new window arg: ${arg}");
 
     final controller = await WindowController.create(
       WindowConfiguration(hiddenAtLaunch: false, arguments: arg),

@@ -11,7 +11,8 @@ import 'im_provider.dart';
 import 'app_state_provider.dart';
 
 final loginLogicProvider = Provider.autoDispose<LoginLogic>((ref) {
-  final logic = LoginLogic();
+  final sdk = ref.watch(sdkProvider);
+  final logic = LoginLogic(sdk: sdk);
   logic.init();
   ref.onDispose(() => logic.dispose());
   return logic;

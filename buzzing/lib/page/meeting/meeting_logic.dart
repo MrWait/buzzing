@@ -778,7 +778,7 @@ class SimpleWebSocket {
   send(data) {
     if (_socket != null) {
       _socket.add(data);
-      print('send: $data');
+      LD('send: $data');
     }
   }
 
@@ -793,7 +793,7 @@ class SimpleWebSocket {
       HttpClient client = HttpClient(context: SecurityContext());
       client.badCertificateCallback =
           (X509Certificate cert, String host, int port) {
-            print(
+            LD(
               'SimpleWebSocket: Allow self-signed certificate => $host:$port. ',
             );
             return true;
@@ -830,14 +830,14 @@ Future<Map> getTurnCredential(String host, int port) async {
   HttpClient client = HttpClient(context: SecurityContext());
   client
       .badCertificateCallback = (X509Certificate cert, String host, int port) {
-    print('getTurnCredential: Allow self-signed certificate => $host:$port. ');
+    LD('getTurnCredential: Allow self-signed certificate => $host:$port. ');
     return true;
   };
   var url = 'https://$host:$port/api/turn?service=turn&username=flutter-webrtc';
   var request = await client.getUrl(Uri.parse(url));
   var response = await request.close();
   var responseBody = await response.transform(Utf8Decoder()).join();
-  print('getTurnCredential:response => $responseBody.');
+  LD('getTurnCredential:response => $responseBody.');
   Map data = JsonDecoder().convert(responseBody);
   return data;
 }
