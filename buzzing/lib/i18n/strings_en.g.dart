@@ -1738,6 +1738,24 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 
 	/// en: 'Meeting'
 	String get meeting => 'Meeting';
+
+	/// en: 'Server Configuration'
+	String get serverConfig => 'Server Configuration';
+
+	/// en: 'Server Address'
+	String get serverAddress => 'Server Address';
+
+	/// en: 'Port'
+	String get port => 'Port';
+
+	/// en: 'Add Server'
+	String get addServer => 'Add Server';
+
+	/// en: 'Please enter the server address'
+	String get plsInputServerAddress => 'Please enter the server address';
+
+	/// en: 'Please enter the port'
+	String get plsInputPort => 'Please enter the port';
 }
 
 /// The flat map containing all translations for locale <en>.
@@ -2316,6 +2334,12 @@ extension on Translations {
 			'comingMeeting' => 'Coming Meeting',
 			'historyMeeting' => 'History Meeting',
 			'meeting' => 'Meeting',
+			'serverConfig' => 'Server Configuration',
+			'serverAddress' => 'Server Address',
+			'port' => 'Port',
+			'addServer' => 'Add Server',
+			'plsInputServerAddress' => 'Please enter the server address',
+			'plsInputPort' => 'Please enter the port',
 			_ => null,
 		};
 	}

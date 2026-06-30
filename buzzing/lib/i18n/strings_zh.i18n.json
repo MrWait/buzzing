@@ -564,5 +564,11 @@
   "scheduleMeeting": "预约会议",
   "comingMeeting": "即将到来",
   "historyMeeting": "历史会议",
-  "meeting": "会议"
+  "meeting": "会议",
+  "serverConfig": "服务器配置",
+  "serverAddress": "服务器地址",
+  "port": "端口",
+  "addServer": "添加服务器",
+  "plsInputServerAddress": "请输入服务器地址",
+  "plsInputPort": "请输入端口"
 }

@@ -24,9 +24,37 @@ class DataPersistence {
   static const _SCREEN_PWD = 'screenPassword';
   static const _ENABLED_BIOMETRIC = 'enableBiometric';
   static const _CURRENT_UNION_SERVER = "currentUnionServer";
+  static const _UNION_SERVER_LIST = "unionServerList";
 
   static String unionKey(String union) {
     return "UNION_SERVER_" + union;
+  }
+
+  static List<String> getUnionServerList() {
+    return (SpUtil.getObject(_UNION_SERVER_LIST) as List<dynamic>?)
+            ?.map((e) => e as String)
+            .toList() ??
+        [];
+  }
+
+  static Future<bool> putUnionServerList(List<String> servers) {
+    final result = SpUtil.putObject(_UNION_SERVER_LIST, servers);
+    return result ?? Future.value(true);
+  }
+
+  static Future<bool> addUnionToList(String server, int port) {
+    final entry = "$server:$port";
+    final list = getUnionServerList();
+    if (list.contains(entry)) return Future.value(true);
+    list.add(entry);
+    return putUnionServerList(list);
+  }
+
+  static Future<bool> removeUnionFromList(String server, int port) {
+    final entry = "$server:$port";
+    final list = getUnionServerList();
+    list.remove(entry);
+    return putUnionServerList(list);
   }
 
   DataPersistence._();
