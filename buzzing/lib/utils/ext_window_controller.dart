@@ -1,3 +1,4 @@
+import 'package:buzzing/utils/loogger_util.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
@@ -5,7 +6,7 @@ import 'package:window_manager/window_manager.dart';
 extension WindowControllerExtension on WindowController {
   Future<void> doCustomInitialize() async {
     return await setWindowMethodHandler((call) async {
-      print("handle custom invoke: ${call}");
+      LD("handle custom invoke: ${call}");
       switch (call.method) {
         case 'window_center':
           return await windowManager.center();

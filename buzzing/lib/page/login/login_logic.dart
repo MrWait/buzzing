@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:buzzing/controller/sdk_controller.dart';
 import 'package:buzzing/models/model.dart';
 import 'package:buzzing/utils/net/apis.dart';
 import 'package:buzzing/utils/config/config.dart';
@@ -20,6 +23,9 @@ enum LoginType {
 }
 
 class LoginLogic extends ChangeNotifier {
+  final SdkController sdk;
+  LoginLogic({required this.sdk});
+
   var phoneCtrl = TextEditingController();
   var emailCtrl = TextEditingController();
   var pwdCtrl = TextEditingController();
@@ -253,6 +259,12 @@ class LoginLogic extends ChangeNotifier {
   void loginUser(LoginUser user, GoRouter router) {
     loginAccount!.loginUser = user;
     DataPersistence.putAccount(loginAccount!);
+    sdk.login(
+      uid: user.user.id,
+      tenantId: user.user.tenantId,
+      token: user.token,
+      unionClientConfig: json.encode(Config.union.config.toJson()),
+    );
     AppNavigator.startIm(router, user);
   }
 

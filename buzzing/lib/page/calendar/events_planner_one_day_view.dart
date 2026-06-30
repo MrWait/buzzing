@@ -1,3 +1,4 @@
+import 'package:buzzing/utils/loogger_util.dart';
 import 'package:flutter/material.dart';
 import 'package:infinite_calendar_view/infinite_calendar_view.dart';
 import 'package:intl/intl.dart';
@@ -68,8 +69,8 @@ class _EventsPlannerOneDayViewState extends State<EventsPlannerOneDayView> {
                   description: event.description,
                   color: event.color,
                   textColor: event.textColor,
-                  onTap: () => print("tap ${event.uniqueId}"),
-                  onTapDown: (details) => print("tapdown ${event.uniqueId}"),
+                  onTap: () => LD("tap ${event.uniqueId}"),
+                  onTapDown: (details) => LD("tapdown ${event.uniqueId}"),
                 );
               },
             ),

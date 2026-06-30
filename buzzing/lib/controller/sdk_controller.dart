@@ -138,7 +138,7 @@ class SdkController {
       log.error = error;
     }
     if (backtrace != null) {
-      //log.backtrace = backtrace;
+      log.backtrace = backtrace;
     }
 
     invokeWithoutAck(Command.SDK_WRITE_LOG, log.writeToBuffer());
@@ -155,16 +155,18 @@ class SdkController {
     buzzingInvoke(param: req.writeToBuffer().toList());
   }
 
-  Future<void> login(
-      $fixnum.Int64? uid, String token, String locale, String config) async {
+  Future<void> login({
+    required $fixnum.Int64 uid,
+    required $fixnum.Int64 tenantId,
+    required String token,
+    required String unionClientConfig,
+  }) async {
     LD("call login");
-    if (uid == null) {
-      return;
-    }
     SdkLoginUserRequest req = SdkLoginUserRequest.create();
     req.userId = uid;
+    req.tenantId = tenantId;
     req.accessToken = token;
-    req.unionClientConfig = config;
+    req.unionClientConfig = unionClientConfig;
     var data = await invokeAsync(Command.USER_LOGIN, req.writeToBuffer());
     LD("invoke login return ${data}");
     LD("call login finish");

@@ -44,22 +44,19 @@ class AppState {
 class AppStateNotifier extends Notifier<AppState> {
   @override
   AppState build() {
-    _init();
-    return const AppState(
-      languageIndex: 0,
-    );
+    final index = DataPersistence.getLanguage() ?? 0;
+    _applyLocale(index);
+    return AppState(languageIndex: index);
   }
 
-  Future<void> _init() async {
-    final index = DataPersistence.getLanguage() ?? 0;
-    state = state.copyWith(languageIndex: index);
+  void _applyLocale(int index) {
     switch (index) {
       case 1:
         LocaleSettings.setLocale(AppLocale.zh);
       case 2:
         LocaleSettings.setLocale(AppLocale.en);
       default:
-        break;
+        LocaleSettings.useDeviceLocale();
     }
   }
 

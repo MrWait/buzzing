@@ -41,3 +41,6 @@ client_macos_fix_pod:
 
 client_gen_slang:
     cd buzzing && dart run slang
+
+client_gen_pb:
+    cd buzzing && python3

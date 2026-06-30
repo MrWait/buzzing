@@ -109,4 +109,4 @@
 | 27 | 删除 `get` 依赖 | pubspec.yaml | ✅ 已完成 |
 | 28 | 删除 `lib/routes/app_pages.dart`/`app_routes.dart` | 保留路径常量即可 | ✅ 已完成 |
 | 29 | 删除 `lib/res/strings.dart` `StrRes` | 完成 slang 替换后清理 | ✅ 已完成 |
-| 30 | `flutter analyze` 全绿 | 验证无 GetX 残留 | ⚠️ 无 GetX 残留，其余为预存错误 |
+| 30 | `flutter analyze` 全绿 | 验证无 GetX 残留 | ✅ 已完成 — 仅剩预存错误（welcome_page.dart redux/rive） |

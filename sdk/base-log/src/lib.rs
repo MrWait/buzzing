@@ -8,7 +8,7 @@ mod ulog;
 
 // use ulog::LogLayer;
 static LOG: OnceLock<WorkerGuard> = OnceLock::new();
-const LOG_PREFIX: &str = "apps.log";
+const LOG_PREFIX: &str = "buzzing.sdk.log";
 
 pub fn init_log(path: &str) {
     if path.is_empty() {
