@@ -603,6 +603,12 @@ class TranslationsZh with BaseTranslations<AppLocale, Translations> implements T
 	@override String get comingMeeting => '即将到来';
 	@override String get historyMeeting => '历史会议';
 	@override String get meeting => '会议';
+	@override String get serverConfig => '服务器配置';
+	@override String get serverAddress => '服务器地址';
+	@override String get port => '端口';
+	@override String get addServer => '添加服务器';
+	@override String get plsInputServerAddress => '请输入服务器地址';
+	@override String get plsInputPort => '请输入端口';
 }
 
 /// The flat map containing all translations for locale <zh>.
@@ -1181,6 +1187,12 @@ extension on TranslationsZh {
 			'comingMeeting' => '即将到来',
 			'historyMeeting' => '历史会议',
 			'meeting' => '会议',
+			'serverConfig' => '服务器配置',
+			'serverAddress' => '服务器地址',
+			'port' => '端口',
+			'addServer' => '添加服务器',
+			'plsInputServerAddress' => '请输入服务器地址',
+			'plsInputPort' => '请输入端口',
 			_ => null,
 		};
 	}

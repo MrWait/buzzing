@@ -35,3 +35,9 @@ cjson:
 
 init_data:
     cd utils && NODE_TLS_REJECT_UNAUTHORIZED=0 node init.js
+
+client_macos_fix_pod:
+    cd buzzing/macos && export LANG=en_US.UTF-8 && export LC_ALL=en_US.UTF-8 && pod install --repo-update
+
+client_gen_slang:
+    cd buzzing && dart run slang

@@ -3,7 +3,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/res/styles.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
-import 'package:buzzing/utils/config/config.dart';
 import 'package:buzzing/widget/button.dart';
 import 'package:buzzing/widget/code_input_box.dart';
 import 'package:buzzing/widget/debounce_button.dart';
@@ -12,7 +11,6 @@ import 'package:buzzing/widget/pwd_input_box.dart';
 import 'package:buzzing/widget/touch_close_keyboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:buzzing/i18n/strings.g.dart';
 
@@ -40,7 +38,7 @@ class TenantBrief extends StatelessWidget {
       );
     }
 
-    tenantName += "(" + user!.tenant.id.toString() + ")";
+    tenantName += "(" + user.tenant.id.toString() + ")";
     return Container(
       child: Row(
         children: [
@@ -53,37 +51,83 @@ class TenantBrief extends StatelessWidget {
 }
 
 class LoginPage extends ConsumerWidget {
-  Widget tenant_selector(BuildContext context, LoginLogic logic) {
-    return SingleChildScrollView(
-      child: Container(
-        height: 1.sh,
-        child: Stack(
-          children: [
-            Positioned(
-              top: 110.h,
-              left: 40.w,
-              child: GestureDetector(
-                onTap: () => logic.backToLogin(),
-                child: Text(t.goBack, style: PageStyle.ts_000000_17sp),
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final logic = ref.watch(loginLogicProvider);
+    return ListenableBuilder(
+      listenable: logic,
+      builder: (ctx, _) {
+        return Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 720,
+              child: Row(
+                children: [
+                  SizedBox(width: 340, child: _BrandPanel()),
+                  SizedBox(
+                    width: 380,
+                    child: logic.loginMode == 2
+                        ? _TenantPanel(logic: logic)
+                        : _FormPanel(logic: logic),
+                  ),
+                ],
               ),
             ),
-            Positioned(
-              top: 260.h,
-              left: 40.w,
-              child: Container(
-                width: 420.w,
-                height: 100.h,
-                child: ListView.builder(
-                  itemCount: logic.loginAccount?.account?.users.length ?? 0,
-                  itemBuilder: (context, index) {
-                    final user = logic.loginAccount?.account?.users[index];
-                    return GestureDetector(
-                      onTap: () => logic.loginUser(user!, GoRouter.of(context)),
-                      behavior: HitTestBehavior.translucent,
-                      child: TenantBrief(user!),
-                    );
-                  },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _BrandPanel extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFF0F5FF), Color(0xFFE8F0FF)],
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: PageStyle.c_3370FF,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Center(
+                child: Text(
+                  "B",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
+              ),
+            ),
+            SizedBox(height: 24),
+            Text(
+              "Buzzing",
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1F1F1F),
+              ),
+            ),
+            SizedBox(height: 12),
+            Text(
+              t.welcomeHint,
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF666666),
               ),
             ),
           ],
@@ -91,48 +135,42 @@ class LoginPage extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget login_controller(BuildContext context, LoginLogic logic) {
+class _FormPanel extends StatelessWidget {
+  final LoginLogic logic;
+  const _FormPanel({required this.logic});
+
+  @override
+  Widget build(BuildContext context) {
     return TouchCloseSoftKeyboard(
-      child: Scaffold(
-        body: SingleChildScrollView(
-          child: Container(
-            height: 1.sh,
-            child: Stack(
-              children: [
-                Positioned(
-                  top: 136.h,
-                  left: 40.w,
-                  child: GestureDetector(
-                    onDoubleTap: () => logic.toServerConfig(),
-                    behavior: HitTestBehavior.translucent,
-                    child: Text(
-                      t.welcomeUse,
-                      style: PageStyle.ts_171A1D_32_semibold,
+      child: Container(
+        color: Colors.white,
+        child: Center(
+          child: SizedBox(
+            width: 340,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 60),
+                  Text(
+                    t.welcomeUse,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1F1F1F),
                     ),
                   ),
-                ),
-                Positioned(
-                  top: 210.h,
-                  left: 40.w,
-                  child: GestureDetector(
-                    onDoubleTap: () => logic.toServerConfig(),
-                    behavior: HitTestBehavior.translucent,
-                    child: Text(
-                      "<- " + Config.apiUrl(),
-                      style: PageStyle.ts_171A1D_17,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 260.h,
-                  left: 40.w,
-                  width: 295.w,
-                  child: PhoneInputBox(
+                  SizedBox(height: 32),
+                  _UnionSelector(logic: logic),
+                  SizedBox(height: 20),
+                  PhoneInputBox(
                     controller: logic.phoneCtrl,
                     labelStyle: PageStyle.ts_171A1D_14,
-                    textStyle: PageStyle.ts_171A1D0_opacity40p_17,
-                    hintStyle: PageStyle.ts_171A1D_17,
+                    textStyle: PageStyle.ts_171A1D_17,
+                    hintStyle: PageStyle.ts_171A1D0_opacity40p_17,
                     codeStyle: PageStyle.ts_171A1D_17,
                     arrowColor: PageStyle.c_000000,
                     clearBtnColor: PageStyle.c_000000_opacity40p,
@@ -141,12 +179,8 @@ class LoginPage extends ConsumerWidget {
                     showClearBtn: logic.showAccountCleanBtn,
                     inputWay: InputWay.phone,
                   ),
-                ),
-                Positioned(
-                  top: 345.h,
-                  left: 40.w,
-                  width: 295.w,
-                  child: logic.isPasswordLogin
+                  SizedBox(height: 16),
+                  logic.isPasswordLogin
                       ? PwdInputBox(
                           controller: logic.pwdCtrl,
                           labelStyle: PageStyle.ts_171A1D_14,
@@ -165,135 +199,301 @@ class LoginPage extends ConsumerWidget {
                           textStyle: PageStyle.ts_171A1D_17,
                           onClickCodeBtn: logic.getVerificationCode,
                         ),
-                ),
-                Positioned(
-                  top: 419.h,
-                  left: 40.w,
-                  child: GestureDetector(
+                  SizedBox(height: 8),
+                  GestureDetector(
                     onTap: logic.switchLoginType,
-                    behavior: HitTestBehavior.translucent,
                     child: Text(
-                      logic.isPasswordLogin
-                          ? t.useSMSLogin
-                          : t.usePwdLogin,
-                      style: PageStyle.ts_0089FF_12,
+                      logic.isPasswordLogin ? t.useSMSLogin : t.usePwdLogin,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: PageStyle.c_3370FF,
+                      ),
                     ),
                   ),
-                ),
-                Positioned(
-                  top: 520.h,
-                  left: 40.w,
-                  width: 295.w,
-                  child: DebounceButton(
-                    builder: (context, onTap) {
-                      return Button(
+                  SizedBox(height: 32),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: DebounceButton(
+                      builder: (context, onTap) {
+                        return Button(
                           enabled: logic.enabledLoginButton,
                           text: t.login,
-                          textStyle: PageStyle.ts_171A1D_32_semibold,
+                          textStyle: PageStyle.ts_FFFFFF_16sp,
+                          color: PageStyle.c_3370FF,
+                          disabledColor: PageStyle.c_3370FF.withOpacity(0.4),
+                          radius: 8,
                           onTap: onTap,
-                      );
-                    },
-                    duration: Duration(milliseconds: 200),
-                    onTap: () async { logic.login(context); },
+                        );
+                      },
+                      duration: Duration(milliseconds: 200),
+                      onTap: () async { logic.login(context); },
+                    ),
                   ),
-                ),
-                Positioned(
-                  bottom: 60.h,
-                  width: 375.w,
-                  child: Row(
+                  SizedBox(height: 24),
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.max,
                     children: [
                       GestureDetector(
                         onTap: () => logic.forgetPassword(),
-                        behavior: HitTestBehavior.translucent,
                         child: Text(
                           t.forgetPwd,
-                          style: PageStyle.ts_0089FF_12,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: PageStyle.c_3370FF,
+                          ),
                         ),
                       ),
                       Container(
-                        width: 1.w,
-                        height: 15.h,
+                        width: 1,
+                        height: 12,
                         color: PageStyle.c_A2A3A5,
-                        margin: EdgeInsets.symmetric(horizontal: 12.w),
+                        margin: EdgeInsets.symmetric(horizontal: 12),
                       ),
                       GestureDetector(
                         onTap: () => logic.register(),
-                        behavior: HitTestBehavior.translucent,
                         child: Text(
                           logic.index == 0
                               ? t.phoneRegister
                               : t.emailRegister,
-                          style: PageStyle.ts_0089FF_12,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: PageStyle.c_3370FF,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                  SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
         ),
       ),
     );
   }
+}
 
-  Widget server_selector(BuildContext context, LoginLogic logic) {
-    return Container(
-      height: 1.sh,
-      child: Stack(
-        children: [
-          Positioned(
-            top: 260.h,
-            left: 40.w,
-            width: 295.w,
-            child: TextField(controller: logic.serverCtl),
-          ),
-          Positioned(
-            top: 300.h,
-            left: 40.w,
-            width: 295.w,
-            child: TextField(controller: logic.portCtl),
-          ),
-          Positioned(
-            top: 400.h,
-            left: 40.w,
-            child: DebounceButton(
-              duration: Duration(microseconds: 200),
-              builder: (conttext, onTap) {
-                return Button(
-                  text: "Connect",
-                  textStyle: PageStyle.ts_171A1D0_opacity40p_17,
-                  onTap: onTap,
-                );
-              },
-              onTap: () async => logic.connectToServer(),
+class _UnionSelector extends StatefulWidget {
+  final LoginLogic logic;
+  const _UnionSelector({required this.logic});
+
+  @override
+  State<_UnionSelector> createState() => _UnionSelectorState();
+}
+
+class _UnionSelectorState extends State<_UnionSelector> {
+  final _key = GlobalKey<State>();
+
+  String _displayText() {
+    if (widget.logic.currentUnionEntry.isNotEmpty) {
+      return widget.logic.currentUnionEntry;
+    }
+    return t.serverConfig;
+  }
+
+  Future<void> _showMenu() async {
+    final renderBox = _key.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final offset = renderBox.localToGlobal(Offset.zero);
+
+    final items = <PopupMenuEntry<String>>[
+      ...widget.logic.unionList.map((entry) => PopupMenuItem<String>(
+        value: entry,
+        child: Text(entry),
+      )),
+      if (widget.logic.unionList.isNotEmpty)
+        const PopupMenuDivider(),
+      PopupMenuItem<String>(
+        value: "__add__",
+        child: Row(
+          children: [
+            Icon(Icons.add, size: 18, color: PageStyle.c_3370FF),
+            SizedBox(width: 8),
+            Text(
+              t.addServer,
+              style: TextStyle(color: PageStyle.c_3370FF),
             ),
+          ],
+        ),
+      ),
+    ];
+
+    final result = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(offset.dx, offset.dy + renderBox.size.height, renderBox.size.width, 0),
+        Offset.zero & MediaQuery.of(context).size,
+      ),
+      items: items,
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    );
+
+    if (result == "__add__") {
+      _showAddServerDialog();
+    } else if (result != null) {
+      widget.logic.selectUnion(result);
+    }
+  }
+
+  Future<void> _showAddServerDialog() async {
+    final serverCtrl = TextEditingController();
+    final portCtrl = TextEditingController(text: "5150");
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t.addServer),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: serverCtrl,
+              decoration: InputDecoration(
+                labelText: t.serverAddress,
+                hintText: t.plsInputServerAddress,
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 12),
+            TextField(
+              controller: portCtrl,
+              decoration: InputDecoration(
+                labelText: t.port,
+                hintText: t.plsInputPort,
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(t.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(t.confirmLogin),
           ),
         ],
       ),
     );
-  }
 
-  Widget loginStage(BuildContext context, LoginLogic logic, int mode) {
-    switch (mode) {
-      case 1:
-        return login_controller(context, logic);
-      case 2:
-        return tenant_selector(context, logic);
-      default:
-        return server_selector(context, logic);
+    if (result == true) {
+      final server = serverCtrl.text.trim();
+      if (server.isNotEmpty) {
+        final port = int.tryParse(portCtrl.text.trim()) ?? 5150;
+        widget.logic.dialogServerCtrl.text = server;
+        widget.logic.dialogPortCtrl.text = port.toString();
+        await widget.logic.onAddServer();
+      }
     }
+    serverCtrl.dispose();
+    portCtrl.dispose();
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final logic = ref.watch(loginLogicProvider);
+  Widget build(BuildContext context) {
     return Container(
-      child: ListenableBuilder(
-        listenable: logic,
-        builder: (ctx, _) => Container(child: loginStage(context, logic, logic.loginMode)),
+      key: _key,
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Color(0xFFE5E6E8), width: 1),
+        ),
+      ),
+      child: InkWell(
+        onTap: _showMenu,
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            children: [
+              Icon(Icons.dns_outlined, size: 16, color: Color(0xFF666666)),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _displayText(),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: widget.logic.currentUnionEntry.isNotEmpty
+                        ? Color(0xFF1F1F1F)
+                        : Color(0xFF999999),
+                  ),
+                ),
+              ),
+              Icon(Icons.arrow_drop_down, color: Color(0xFF999999)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TenantPanel extends StatelessWidget {
+  final LoginLogic logic;
+  const _TenantPanel({required this.logic});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      child: Center(
+        child: SizedBox(
+          width: 300,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GestureDetector(
+                onTap: () => logic.backToLogin(),
+                child: Row(
+                  children: [
+                    Icon(Icons.arrow_back, size: 18, color: PageStyle.c_3370FF),
+                    SizedBox(width: 4),
+                    Text(t.goBack, style: TextStyle(color: PageStyle.c_3370FF, fontSize: 14)),
+                  ],
+                ),
+              ),
+              SizedBox(height: 24),
+              Text(
+                t.welcomeUse,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1F1F1F),
+                ),
+              ),
+              SizedBox(height: 24),
+              ...List.generate(
+                logic.loginAccount?.account?.users.length ?? 0,
+                (index) {
+                  final user = logic.loginAccount?.account?.users[index];
+                  return Card(
+                    margin: EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: PageStyle.c_3370FF,
+                        child: Text(
+                          user?.user.name.isNotEmpty == true
+                              ? user!.user.name[0]
+                              : "?",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                      title: Text(user?.user.name ?? ""),
+                      subtitle: Text(user?.tenant.name ?? ""),
+                      trailing: Icon(Icons.chevron_right),
+                      onTap: () => logic.loginUser(user!, GoRouter.of(context)),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
