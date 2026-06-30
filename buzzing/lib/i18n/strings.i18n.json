@@ -564,5 +564,11 @@
   "scheduleMeeting": "Schedule Meeting",
   "comingMeeting": "Coming Meeting",
   "historyMeeting": "History Meeting",
-  "meeting": "Meeting"
+  "meeting": "Meeting",
+  "serverConfig": "Server Configuration",
+  "serverAddress": "Server Address",
+  "port": "Port",
+  "addServer": "Add Server",
+  "plsInputServerAddress": "Please enter the server address",
+  "plsInputPort": "Please enter the port"
 }

@@ -24,13 +24,12 @@ class LoginLogic extends ChangeNotifier {
   var emailCtrl = TextEditingController();
   var pwdCtrl = TextEditingController();
   var codeCtrl = TextEditingController();
-  var serverCtl = TextEditingController();
-  var portCtl = TextEditingController();
+
   var phoneFocusNode = FocusNode();
   var emailFocusNode = FocusNode();
   var showAccountCleanBtn = false;
   var showPwdClearBtn = false;
-  var loginMode = 0;
+  var loginMode = 1;
   var obscureText = true;
   var agreedProtocol = true;
   var enabledLoginButton = false;
@@ -38,6 +37,13 @@ class LoginLogic extends ChangeNotifier {
   var areaCode = "+86";
   var loginType = LoginType.password;
   LoginAccount? loginAccount;
+
+  // union selector state
+  final dialogServerCtrl = TextEditingController();
+  final dialogPortCtrl = TextEditingController(text: "5150");
+  var showUnionDropdown = false;
+  var unionList = <String>[];
+  var currentUnionEntry = "";
 
   static final _emailRegExp = RegExp(r'^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$');
 
@@ -69,8 +75,11 @@ class LoginLogic extends ChangeNotifier {
     emailCtrl.dispose();
     pwdCtrl.dispose();
     codeCtrl.dispose();
+    dialogServerCtrl.dispose();
+    dialogPortCtrl.dispose();
     phoneFocusNode.dispose();
     emailFocusNode.dispose();
+    super.dispose();
   }
 
   void login(BuildContext context) async {
@@ -132,21 +141,41 @@ class LoginLogic extends ChangeNotifier {
         (phoneCtrl.text.isNotEmpty || emailCtrl.text.isNotEmpty);
   }
 
-  void toServerConfig() {
-    loginMode = 0;
+  void toggleUnionDropdown() {
+    showUnionDropdown = !showUnionDropdown;
     notifyListeners();
   }
 
-  Future<void> connectToServer() async {
-    var server = serverCtl.text;
-    if (server.isEmpty) {
-      return;
-    }
-    var port = int.parse(portCtl.text);
-    if (port == 0) {
-      port = 80;
-    }
-    L.d("connect to server, ${server} ${port}");
+  void closeUnionDropdown() {
+    showUnionDropdown = false;
+    notifyListeners();
+  }
+
+  Future<void> selectUnion(String entry) async {
+    showUnionDropdown = false;
+    final parts = entry.split(":");
+    final server = parts[0];
+    final port = parts.length > 1 ? int.tryParse(parts[1]) ?? 80 : 80;
+    await _connectToServer(server, port);
+    notifyListeners();
+  }
+
+  void openAddServer() {
+    showUnionDropdown = false;
+    dialogServerCtrl.text = "";
+    dialogPortCtrl.text = "5150";
+    notifyListeners();
+  }
+
+  Future<void> onAddServer() async {
+    final server = dialogServerCtrl.text.trim();
+    if (server.isEmpty) return;
+    final port = int.tryParse(dialogPortCtrl.text.trim()) ?? 5150;
+    await _connectToServer(server, port);
+    notifyListeners();
+  }
+
+  Future<void> _connectToServer(String server, int port) async {
     var union = DataPersistence.getUnion(server);
     if (union == null) {
       union = Union.empty();
@@ -160,20 +189,25 @@ class LoginLogic extends ChangeNotifier {
       if (config != null) {
         union.setConfig(config);
         DataPersistence.putUnion(union);
+        DataPersistence.addUnionToList(server, port);
         DataPersistence.putCurrentUnionServer(server);
       }
     }
-    if (union != null) {
+    if (union.config.union.isNotEmpty) {
       L.d("set api url");
       Config.union = union;
+      currentUnionEntry = "$server:$port";
       HttpUtil.resetBaseUrl(Config.apiUrl());
+      _refreshUnionList();
     } else {
       L.d("sync config error");
       return;
     }
-
     loginMode = 1;
-    notifyListeners();
+  }
+
+  void _refreshUnionList() {
+    unionList = DataPersistence.getUnionServerList();
   }
 
   void switchTab(index) {
@@ -193,10 +227,19 @@ class LoginLogic extends ChangeNotifier {
 
   void openCountryCodePicker() async {}
   void forgetPassword() {}
+
   void initData() {
-    if (Config.currentUnion.isNotEmpty &&
-        Config.union.server == Config.currentUnion) {
-      loginMode = 1;
+    _refreshUnionList();
+    final saved = DataPersistence.getCurrentUnionServer();
+    if (saved != null && saved.isNotEmpty) {
+      currentUnionEntry = saved;
+      final union = DataPersistence.getUnion(saved);
+      if (union != null) {
+        Config.union = union;
+        currentUnionEntry = "${union.server}:${union.port}";
+        HttpUtil.resetBaseUrl(Config.apiUrl());
+        loginMode = 1;
+      }
     }
   }
 
