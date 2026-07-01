@@ -26,5 +26,7 @@ pub async fn get_by_ids(
         .map(|user| users::UserModel(user).into())
         .collect();
 
+    debug!("user get by ids, resp: {resp:?}");
+
     Ok((0, resp.encode_to_vec()))
 }

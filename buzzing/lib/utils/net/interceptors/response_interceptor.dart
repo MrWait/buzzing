@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:buzzing/common/net/code.dart';
 import 'package:buzzing/common/net/result_data.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 
 class ResponseInterceptors extends InterceptorsWrapper {
   @override

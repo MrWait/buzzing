@@ -3,7 +3,7 @@ import 'dart:io';
 import "dart:math";
 import "dart:convert";
 
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/page/screenshot/screenshot_view.dart';
 import 'package:buzzing/utils/config/config.dart';
 import 'package:buzzing/page/error_page.dart';
@@ -73,7 +73,7 @@ class VcWindowState extends State<VcWindow> with WindowListener {
     });
 
     channel.setMethodCallHandler((call) async {
-      LD("sub window call handler: ${call}");
+      L.d("sub window call handler: ${call}");
       switch (call.method) {
         case 'close':
           break;
@@ -91,7 +91,7 @@ class VcWindowState extends State<VcWindow> with WindowListener {
   @override
   void dispose() async {
     // TODO: implement dispose
-    LD("sub window dispose");
+    L.d("sub window dispose");
     windowManager.removeListener(this);
     await windowController.close();
     var channel = WindowMethodChannel("Main");
@@ -112,7 +112,7 @@ class VcWindowState extends State<VcWindow> with WindowListener {
 
   @override
   void onWindowClose() {
-    LD("sub window close");
+    L.d("sub window close");
     var channel = WindowMethodChannel("Main");
     Future.delayed(Duration.zero, () async {
       await channel.invokeMethod("sub_window_close", jsonEncode({"id": id}));
@@ -134,10 +134,10 @@ void startVcWindow(
   final channel = WindowMethodChannel('VcWindow');
   /*
   windowController.setWindowMethodHandler((call) async {
-    LD("handle sub window call: ${call}");
+    L.d("handle sub window call: ${call}");
     switch (call.method) {
       case "window_close":
-        LD("sub window closed");
+        L.d("sub window closed");
         var channel = WindowMethodChannel("Main");
         await channel.invokeMethod("sub_window_close", {"id": id});
         break;
@@ -154,5 +154,5 @@ void startVcWindow(
       id: id,
     ),
   );
-  LD("run end");
+  L.d("run end");
 }

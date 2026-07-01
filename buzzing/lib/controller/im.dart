@@ -15,7 +15,7 @@ import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/idl/feed.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/sdk.pb.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/widget/feedcard.dart';
 import 'package:buzzing/res/styles.dart';
 import 'package:flutter/material.dart';
@@ -65,7 +65,7 @@ class ImController extends ChangeNotifier {
   LoginUser loginUser = LoginUser.create();
 
   void onClose() {
-    LW("im logic close");
+    L.w("im logic close");
   }
 
   void onTextChanged() {
@@ -108,10 +108,7 @@ class ImController extends ChangeNotifier {
         'fontWeight': 'bold',
         'mention': true,
       });
-    quillController.document.compose(
-      delta,
-      ChangeSource.local,
-    );
+    quillController.document.compose(delta, ChangeSource.local);
 
     quillController.updateSelection(
       TextSelection.collapsed(offset: offset - 1 + mentionText.length),
@@ -238,13 +235,13 @@ class ImController extends ChangeNotifier {
       }
       return 1;
     });
-    LD("feed list: ${feedList}");
+    L.d("feed list: ${feedList}");
     notifyListeners();
     return msgIds;
   }
 
   void updateMessage(List<Int64>? referIds, List<Int64> curMsgIds) {
-    LD(
+    L.d(
       "update message, referIds: ${referIds}, curMsgIds: ${curMsgIds}, : ${entity.messages.keys}",
     );
     if (referIds != null) {
@@ -263,7 +260,7 @@ class ImController extends ChangeNotifier {
           );
         }
       });
-      LD("messagePosList: ${messagePosList}");
+      L.d("messagePosList: ${messagePosList}");
       messagePosList.sort((l, r) {
         if (l.pos < r.pos) {
           return -1;
@@ -328,7 +325,7 @@ class ImController extends ChangeNotifier {
   }
 
   void enterChat(Int64 id) {
-    LD("enter chat ${id}, cur: ${chatId}");
+    L.d("enter chat ${id}, cur: ${chatId}");
     if (chatId != id) {
       messagePosList.clear();
       chatId = id;
@@ -336,31 +333,31 @@ class ImController extends ChangeNotifier {
       if (chat != null) {
         preloadMessage(chatId, chat.lastMessagePos, 30);
       } else {
-        LW("chat not exists: ${id}");
+        L.w("chat not exists: ${id}");
       }
     }
   }
 
   void onPushFeedList(List<int> data) {
     var push = PushFeedList.fromBuffer(data);
-    LD("sdk push feed list, ver: ${ver}, ${push}");
+    L.d("sdk push feed list, ver: ${ver}, ${push}");
     mergeEntity(push.entity);
   }
 
   void onPushMessages(List<int> data) {
     var push = PushMessages.fromBuffer(data);
-    LD("sdk push message list, ${push}");
+    L.d("sdk push message list, ${push}");
     mergeEntity(push.entity);
   }
 
   void onInit() {
-    LW("init im logic");
+    L.w("init im logic");
 
     sdk.regPushCallback(Command.PUSH_FEED_LIST.value, onPushFeedList);
     sdk.regPushCallback(Command.PUSH_MESSAGES.value, onPushMessages);
     ev.stream.where((e) => e == GlobalEvent.logined).listen((_) {
       Future.delayed(Duration.zero, () async {
-        LD("sdk logined, fetch feed");
+        L.d("sdk logined, fetch feed");
         await fetchFeed();
       });
     });
@@ -378,10 +375,10 @@ class ImController extends ChangeNotifier {
     );
     if (result.data != null) {
       var resp = PullFeedListResponse.fromBuffer(result.data!);
-      LD("fetch feed from sdk success: $resp");
+      L.d("fetch feed from sdk success: $resp");
       mergeEntity(resp.entity);
     } else {
-      LD("pull feed list error");
+      L.d("pull feed list error");
     }
   }
 
@@ -392,7 +389,7 @@ class ImController extends ChangeNotifier {
   void mergeEntity(Entity src) {
     var feedLen = src.feeds.length;
     var msgLen = src.messages.length;
-    LD(
+    L.d(
       "merge entity, chatId: ${chatId}, feeds: ${src.feeds.keys}, messages: ${src.messages.keys}",
     );
     var currentMsgIds = <Int64>[];
@@ -416,7 +413,7 @@ class ImController extends ChangeNotifier {
   Future<void> loadMessage(Int64 chatId, int pos, int count) async {
     var chat = entity.chats[chatId];
     if (chat == null) {
-      LD("chat not exists: ${chatId}");
+      L.d("chat not exists: ${chatId}");
       return;
     }
 
@@ -435,10 +432,10 @@ class ImController extends ChangeNotifier {
     );
     if (result.data != null) {
       var resp = GetMessageByRangeResponse.fromBuffer(result.data!);
-      LD("get message from sdk success: ${resp}");
+      L.d("get message from sdk success: ${resp}");
       mergeEntity(resp.entity);
     } else {
-      LE("load message error");
+      L.e("load message error");
     }
   }
 
@@ -454,7 +451,7 @@ class ImController extends ChangeNotifier {
     );
     if (result.data != null) {
       var resp = SendMessageResponse.fromBuffer(result.data!);
-      LD("send message success: ${resp}");
+      L.d("send message success: ${resp}");
     }
   }
 
@@ -484,7 +481,7 @@ class ImController extends ChangeNotifier {
     } else {
       text = jsonEncode(delta.toJson());
     }
-    LD("send message, text: ${text}, type: $msgType, summary: $summary");
+    L.d("send message, text: ${text}, type: $msgType, summary: $summary");
     if (chatId == 0) {
       return;
     }
@@ -509,7 +506,7 @@ class ImController extends ChangeNotifier {
       });
       imInputCtrl.clear();
     } else {
-      LW("chat not exists");
+      L.w("chat not exists");
     }
   }
 
@@ -518,7 +515,7 @@ class ImController extends ChangeNotifier {
       return;
     }
     Future.delayed(Duration.zero, () async {
-      LD("start load message, ${chatId}, ${pos}, ${count}");
+      L.d("start load message, ${chatId}, ${pos}, ${count}");
       await loadMessage(chatId, pos, count);
     });
   }
@@ -527,6 +524,7 @@ class ImController extends ChangeNotifier {
     var req = GetDeptRequest.create();
     req.id = id;
     if (id == 0) {
+      L.d("fallback to loginUser: ${loginUser}");
       req.id = loginUser.tenant.rootDepartmentId;
       req.tenantId = loginUser.tenant.id;
     }

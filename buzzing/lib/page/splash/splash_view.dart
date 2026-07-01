@@ -6,7 +6,7 @@ import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/res/styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:buzzing/utils/screen_ext.dart';
 import 'package:go_router/go_router.dart';
 
 class SplashPage extends ConsumerStatefulWidget {

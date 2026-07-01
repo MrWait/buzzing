@@ -1,6 +1,6 @@
 import 'package:buzzing/res/styles.dart';
 import 'package:buzzing/utils/extension.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:flutter/material.dart';
 import 'package:infinite_calendar_view/infinite_calendar_view.dart';
 import 'package:intl/intl.dart';
@@ -92,7 +92,7 @@ class EventsPlannerDraggableEventsView extends StatelessWidget {
         description: event.description,
         color: isDarkMode ? event.color.onPastel : event.color,
         textColor: isDarkMode ? event.textColor.pastel : event.textColor,
-        onTap: () => LD("tap ${event.uniqueId}"),
+        onTap: () => L.d("tap ${event.uniqueId}"),
       ),
     );
   }

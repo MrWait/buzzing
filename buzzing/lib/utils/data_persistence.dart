@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:buzzing/models/login_certificate.dart';
 import 'package:sp_util/sp_util.dart';
 import 'package:uuid/uuid.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/models/model.dart';
 
 class DataPersistence {
@@ -77,7 +77,7 @@ class DataPersistence {
       try {
         account = LoginAccount.fromJson(m!);
       } catch (e) {
-        LD("get account error: ${e}");
+        L.d("get account error: ${e}");
         return null;
       }
     }

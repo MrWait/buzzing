@@ -1,6 +1,6 @@
 import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/utils/screen_ext.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class Button extends StatelessWidget {
   const Button({

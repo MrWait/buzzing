@@ -1,6 +1,6 @@
 import 'package:buzzing/utils/net/interceptors/log_interceptor.dart';
 import 'package:flutter/material.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 
 class ErrorPage extends StatefulWidget {
   final String errorMessage;
@@ -27,7 +27,7 @@ class ErrorPageState extends State<ErrorPage> {
           sErrorName, details.exception.runtimeType.toString());
       LogsInterceptors.addLogic(sErrorStack, map);
     } catch (e) {
-      LE(e);
+      L.e(e);
     }
   }
 

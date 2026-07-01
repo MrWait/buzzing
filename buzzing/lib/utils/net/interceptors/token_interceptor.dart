@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:buzzing/common/config/config.dart';
 import 'package:buzzing/common/local/local_storage.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 
 class TokenInterceptors extends InterceptorsWrapper {
   String? _token;

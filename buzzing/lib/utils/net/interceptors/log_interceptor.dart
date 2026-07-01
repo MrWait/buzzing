@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:buzzing/utils/config/config.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 
 class LogsInterceptors extends InterceptorsWrapper {
   static List<Map?> sHttpResponses = [];
@@ -14,11 +14,11 @@ class LogsInterceptors extends InterceptorsWrapper {
   void onRequest(
       RequestOptions options, RequestInterceptorHandler handler) async {
     if (Config.DEBUG!) {
-      LD("Request url: ${options.path} ${options.method}");
+      L.d("Request url: ${options.path} ${options.method}");
       options.headers.forEach((k, v) => options.headers[k] == v ?? "");
-      LD("Request header: " + options.headers.toString());
+      L.d("Request header: " + options.headers.toString());
       if (options.data != null) {
-        LD("Request param: " + options.data.toString());
+        L.d("Request param: " + options.data.toString());
       }
     }
     try {
@@ -37,7 +37,7 @@ class LogsInterceptors extends InterceptorsWrapper {
       }
       addLogic(sHttpRequest, map);
     } catch (e) {
-      LD(e);
+      L.d(e);
     }
     return super.onRequest(options, handler);
   }
@@ -45,7 +45,7 @@ class LogsInterceptors extends InterceptorsWrapper {
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
     if (Config.DEBUG!) {
-      LD("Response param: " + response.toString());
+      L.d("Response param: " + response.toString());
     }
     /*
     switch (response.data) {
@@ -57,7 +57,7 @@ class LogsInterceptors extends InterceptorsWrapper {
             addLogic(sResponsesHttpUrl, response.requestOptions.uri.toString());
             addLogic(sHttpResponses, data);
           } catch (e) {
-            LD(e);
+            L.d(e);
           }
         }
         break;
@@ -69,7 +69,7 @@ class LogsInterceptors extends InterceptorsWrapper {
             addLogic(sResponsesHttpUrl, response.requestOptions.uri.toString());
             addLogic(sHttpResponses, data);
           } catch (e) {
-            LD(e);
+            L.d(e);
           }
         }
     }
@@ -80,8 +80,8 @@ class LogsInterceptors extends InterceptorsWrapper {
   @override
   void onError(DioError err, ErrorInterceptorHandler handler) {
     if (Config.DEBUG!) {
-      LD('Request error: ' + err.toString());
-      LD('Request error info: ' + (err.response?.toString() ?? ""));
+      L.d('Request error: ' + err.toString());
+      L.d('Request error info: ' + (err.response?.toString() ?? ""));
     }
     try {
       addLogic(sHttpErrorUrl, err.requestOptions.path);
@@ -89,7 +89,7 @@ class LogsInterceptors extends InterceptorsWrapper {
       errors["error"] = err.message;
       addLogic(sHttpError, errors);
     } catch (e) {
-      LD(e);
+      L.d(e);
     }
     return super.onError(err, handler);
   }

@@ -8,7 +8,7 @@ import 'package:buzzing/routes/app_navigator.dart';
 import 'package:buzzing/res/styles.dart';
 import 'package:buzzing/utils/net/apis.dart';
 import 'package:buzzing/utils/data_persistence.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/widget/im_widget.dart';
 import 'package:buzzing/widget/loading_view.dart';
