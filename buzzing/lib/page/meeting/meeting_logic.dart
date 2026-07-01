@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:buzzing/controller/app_controller.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/utils/net/apis.dart';
 import 'package:buzzing/utils/net/http_util.dart';
 import 'package:buzzing/models/login_certificate.dart';
@@ -131,16 +131,17 @@ class MeetingLogic extends ChangeNotifier {
     return showDialog<bool?>(
       context: context,
       builder: (context) {
+        final tt2 = Theme.of(context).textTheme;
         return AlertDialog(
           title: Text("title"),
           content: Text("accept?"),
           actions: <Widget>[
             MaterialButton(
-              child: Text("Reject", style: PageStyle.ts_F44038_13sp),
+              child: Text("Reject", style: tt2.bodyMedium?.copyWith(fontSize: 13, color: Theme.of(context).colorScheme.error)),
               onPressed: () => Navigator.of(context).pop(false),
             ),
             MaterialButton(
-              child: Text("Accept", style: PageStyle.ts_898989_13sp),
+              child: Text("Accept", style: tt2.bodyMedium?.copyWith(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
               onPressed: () => Navigator.of(context).pop(true),
             ),
           ],

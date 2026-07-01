@@ -1,6 +1,6 @@
 import 'package:buzzing/models/const.dart';
 import 'package:buzzing/i18n/strings.g.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/widget/header_bar.dart';
@@ -15,9 +15,10 @@ import 'contact_logic.dart';
 class ContactPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final contactController = ref.watch(contactLogicProvider);
     return Scaffold(
-      backgroundColor: PageStyle.c_FFFFFF,
+      backgroundColor: cs.surface,
       body: Row(
         children: [
           NaviBar(),
@@ -54,26 +55,28 @@ class ContactPage extends ConsumerWidget {
 class ContactList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     final contactController = ref.watch(contactLogicProvider);
     var tenant = contactController.getTenant();
     return Container(
       width: 260,
-      color: PageStyle.c_F0F0F0,
+      color: cs.surfaceVariant,
       child: Column(
         children: [
           Container(
             alignment: Alignment.topLeft,
-            color: PageStyle.c_F0F0F0,
-            child: Text(t.contacts, style: PageStyle.ts_000000_14sp),
+            color: cs.surfaceVariant,
+            child: Text(t.contacts, style: tt.bodyMedium),
           ),
           Container(
             alignment: Alignment.topLeft,
-            child: Text("${tenant.name}", style: PageStyle.ts_000000_13sp),
+            child: Text("${tenant.name}", style: tt.bodyMedium?.copyWith(fontSize: 13)),
           ),
           GestureDetector(
             child: Container(
               alignment: Alignment.topLeft,
-              child: Text(t.internalContacts, style: PageStyle.ts_000000_13sp),
+              child: Text(t.internalContacts, style: tt.bodyMedium?.copyWith(fontSize: 13)),
             ),
             onTap: () async {
               L.w("start getDeptInfo");
@@ -84,17 +87,17 @@ class ContactList extends ConsumerWidget {
           ),
           Container(
             alignment: Alignment.topLeft,
-            child: Text(t.externalContacts, style: PageStyle.ts_000000_13sp),
+            child: Text(t.externalContacts, style: tt.bodyMedium?.copyWith(fontSize: 13)),
           ),
           Container(
             alignment: Alignment.topLeft,
-            child: Text(t.starContacts, style: PageStyle.ts_000000_13sp),
+            child: Text(t.starContacts, style: tt.bodyMedium?.copyWith(fontSize: 13)),
           ),
           Container(
             alignment: Alignment.topLeft,
             child: Text(
               t.newFriendApplication,
-              style: PageStyle.ts_000000_13sp,
+              style: tt.bodyMedium?.copyWith(fontSize: 13),
             ),
           ),
         ],

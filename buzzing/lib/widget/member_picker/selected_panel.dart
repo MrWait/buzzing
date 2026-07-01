@@ -1,5 +1,5 @@
 import 'package:buzzing/models/idl/entity.pb.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/widget/member_picker/controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -12,35 +12,37 @@ class SelectedPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Column(
       children: [
-        _buildHeader(),
-        Expanded(child: _buildList()),
+        _buildHeader(cs, tt),
+        Expanded(child: _buildList(cs, tt)),
       ],
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(ColorScheme cs, TextTheme tt) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: PageStyle.c_EEEEEE)),
+        border: Border(bottom: BorderSide(color: cs.surfaceVariant)),
       ),
       child: Row(
         children: [
           Text(
             'Selected (${ctl.selectedMembers.length})',
-            style: PageStyle.ts_666666_13sp,
+            style: tt.bodyMedium?.copyWith(fontSize: 13, color: cs.onSurfaceVariant),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildList() {
+  Widget _buildList(ColorScheme cs, TextTheme tt) {
     if (ctl.selectedMembers.isEmpty) {
       return Center(
-        child: Text('No members selected', style: PageStyle.ts_999999_14sp),
+        child: Text('No members selected', style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
       );
     }
     return ListView.builder(
@@ -53,6 +55,8 @@ class SelectedPanel extends StatelessWidget {
   }
 
   Widget _buildSelectedItem(BuildContext context, User user) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -63,12 +67,12 @@ class SelectedPanel extends StatelessWidget {
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             visualDensity: VisualDensity.compact,
           ),
-          _buildAvatar(user),
+          _buildAvatar(cs, tt, user),
           SizedBox(width: 8),
           Expanded(
             child: Text(
               user.name,
-              style: PageStyle.ts_333333_14sp,
+              style: tt.bodyMedium,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -77,19 +81,19 @@ class SelectedPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatar(User user) {
+  Widget _buildAvatar(ColorScheme cs, TextTheme tt, User user) {
     if (user.avatar.isEmpty) {
       return Container(
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: PageStyle.c_418AE5,
+          color: cs.primary,
           borderRadius: BorderRadius.circular(4),
         ),
         alignment: Alignment.center,
         child: Text(
           user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-          style: PageStyle.ts_FFFFFF_12sp,
+          style: tt.bodySmall?.copyWith(color: cs.onPrimary),
         ),
       );
     }

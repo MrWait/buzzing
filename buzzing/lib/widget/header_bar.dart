@@ -5,7 +5,7 @@ import 'package:buzzing/widget/profile.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:flutter_popup/flutter_popup.dart';
 import 'package:flutter/material.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,6 +13,7 @@ class HeaderBar extends ConsumerWidget {
   final double height = 44;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final im = ref.watch(imProvider);
     return GestureDetector(
         onPanStart: (details) {
@@ -23,17 +24,17 @@ class HeaderBar extends ConsumerWidget {
               child: Container(
                   alignment: Alignment.centerLeft,
                   height: height,
-                  color: PageStyle.c_F0F0F0,
+                  color: cs.surfaceVariant,
                   child: ListenableBuilder(
                       listenable: im,
                       builder: (ctx, _) => ProfilePopup(im, context, im.userId,
                           im.avatar, im.getUserVer(im.userId))))),
           Container(
             width: height,
-            child: Icon(Icons.query_builder, color: Colors.lightBlue),
+            child: Icon(Icons.query_builder, color: cs.primary),
           ),
           Container(
-              color: PageStyle.c_F0F0F0,
+              color: cs.surfaceVariant,
               height: height,
               width: 120,
               child: Column(children: [
@@ -46,22 +47,22 @@ class HeaderBar extends ConsumerWidget {
           Expanded(
               child: Container(
                   height: height,
-                  color: PageStyle.c_F0F0F0,
+                  color: cs.surfaceVariant,
                   child: Row(children: [
                     Spacer(),
                     GestureDetector(
-                      child: Icon(Icons.minimize, color: Colors.lightBlue),
+                      child: Icon(Icons.minimize, color: cs.primary),
                       onTap: () {
                         windowManager.minimize();
                       },
                     ),
                     GestureDetector(
-                        child: Icon(Icons.maximize, color: Colors.lightBlue),
+                        child: Icon(Icons.maximize, color: cs.primary),
                         onTap: () {
                           windowManager.maximize();
                         }),
                     GestureDetector(
-                      child: Icon(Icons.close, color: Colors.lightBlue),
+                      child: Icon(Icons.close, color: cs.primary),
                       onTap: () {
                         windowManager.close();
                       },
@@ -74,6 +75,7 @@ class HeaderBar extends ConsumerWidget {
 class HeaderBarWindows extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     if (Platform.isWindows) {
       return GestureDetector(
         onPanStart: (details) {
@@ -84,12 +86,12 @@ class HeaderBarWindows extends StatelessWidget {
             Expanded(
                 child: Container(
                     height: 26,
-                    color: PageStyle.c_F0F0F0,
+                    color: cs.surfaceVariant,
                     child: Row(children: [
                       Spacer(),
-                      Icon(Icons.minimize, color: Colors.lightBlue),
-                      Icon(Icons.maximize, color: Colors.lightBlue),
-                      Icon(Icons.close, color: Colors.lightBlue),
+                      Icon(Icons.minimize, color: cs.primary),
+                      Icon(Icons.maximize, color: cs.primary),
+                      Icon(Icons.close, color: cs.primary),
                     ]))),
           ],
         ),
@@ -116,9 +118,9 @@ Widget MainPopup(BuildContext context) {
         child: Text("Create Chat"),
       )
     ]),
-    child: const Icon(
+    child: Icon(
       Icons.add,
-      color: Colors.lightBlue,
+      color: Theme.of(context).colorScheme.primary,
     ),
   );
 }

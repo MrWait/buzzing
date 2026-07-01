@@ -13,7 +13,7 @@ import 'package:buzzing/widget/message.dart';
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/models/model.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:flutter_popup/flutter_popup.dart';
 import 'package:intl/intl.dart';
 import 'package:fixnum/fixnum.dart';
@@ -50,8 +50,9 @@ class ScheduleCreator extends ConsumerWidget {
                         TextField(
                           controller: ctl.titleCtrl,
                           decoration: InputDecoration(
-                              hintText: "Input Title",
-                              hintStyle: PageStyle.ts_ADADAD_10sp),
+                            hintText: "Input Title",
+                            hintStyle: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                          ),
                         ),
                         TextField(
                           controller: ctl.userSearchCtrl,
@@ -59,8 +60,9 @@ class ScheduleCreator extends ConsumerWidget {
                             await ctl.searchUser(val);
                           },
                           decoration: InputDecoration(
-                              hintText: "Add Contact",
-                              hintStyle: PageStyle.ts_ADADAD_10sp),
+                            hintText: "Add Contact",
+                            hintStyle: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                          ),
                         ),
                         Container(
                           height: 20,
@@ -77,8 +79,9 @@ class ScheduleCreator extends ConsumerWidget {
                             await ctl.searchUser(val);
                           },
                           decoration: InputDecoration(
-                              hintText: "Add Describe",
-                              hintStyle: PageStyle.ts_ADADAD_10sp),
+                            hintText: "Add Describe",
+                            hintStyle: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                          ),
                         ),
                         Row(children: [
                           Flexible(

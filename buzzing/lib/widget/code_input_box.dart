@@ -1,5 +1,5 @@
 import 'package:buzzing/i18n/strings.g.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/widget/verify_code_send_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -31,7 +31,7 @@ class CodeInputBox extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
           border: BorderDirectional(
-              bottom: BorderSide(color: Color(0xFFD8D8D8), width: 1.h))),
+              bottom: BorderSide(color: Theme.of(context).colorScheme.outline, width: 1.h))),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -72,10 +72,13 @@ class CodeInputBox extends StatelessWidget {
         ),
       );
 
-  Widget _codeTextBtn() => GestureDetector(
+  Widget _codeTextBtn(BuildContext context, ColorScheme cs) {
+    final tt = Theme.of(context).textTheme;
+    return GestureDetector(
         onTap: onClickCodeBtn,
         behavior: HitTestBehavior.translucent,
         child:
-            Text(t.getVerificationCode, style: PageStyle.ts_0089FF_16sp),
+            Text(t.getVerificationCode, style: tt.labelLarge),
       );
+  }
 }

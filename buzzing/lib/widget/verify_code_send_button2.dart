@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:buzzing/i18n/strings.g.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:dart_date/dart_date.dart';
 
@@ -79,7 +79,9 @@ class _VerifyCodeSendButtonState extends State<VerifyCodeSendButton2> {
   }
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    return GestureDetector(
         onTap: () async {
           if (_isEnabled) {
             final success = await widget.onTapCallback.call();
@@ -92,6 +94,7 @@ class _VerifyCodeSendButtonState extends State<VerifyCodeSendButton2> {
         },
         behavior: HitTestBehavior.translucent,
         child: Text(_isEnabled ? t.getVerificationCode : '$_second s',
-            style: PageStyle.ts_0089FF_16sp),
+            style: tt.labelLarge),
       );
-}
+    }
+  }

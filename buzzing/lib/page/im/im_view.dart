@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:buzzing/page/chat/chat_view.dart';
 import 'package:buzzing/page/feed/feed_view.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/widget/header_bar.dart';
 import 'package:buzzing/widget/navigate_bar.dart';
 import 'package:flutter/material.dart';
@@ -11,8 +11,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class ImPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final bt = Theme.of(context).extension<BuzzingTheme>()!;
     return Scaffold(
-      backgroundColor: PageStyle.c_DCEBFE,
+      backgroundColor: bt.mentionBg,
       body: Row(children: [
         NaviBar(),
         Expanded(

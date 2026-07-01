@@ -3,7 +3,7 @@ import 'package:buzzing/models/model.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/page/calendar/events_view_bar.dart';
 import 'package:buzzing/provider/page_providers.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/widget/button.dart';
 import 'package:buzzing/widget/calendar_creator.dart';
 import 'package:buzzing/widget/code_input_box.dart';
@@ -29,9 +29,10 @@ import "calendar_navigator.dart";
 class CalendarPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final ctl = ref.watch(calendarLogicProvider);
     return Scaffold(
-      backgroundColor: PageStyle.c_FFFFFF,
+      backgroundColor: cs.surface,
       body: Row(children: [
         NaviBar(),
         Expanded(
@@ -118,10 +119,12 @@ class CalendarDeck extends ConsumerWidget {
 class CalendarList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final bt = Theme.of(context).extension<BuzzingTheme>()!;
     final ctl = ref.watch(calendarLogicProvider);
     return Container(
       width: 260,
-      color: PageStyle.c_F1F7FF,
+      color: bt.mentionBg,
       child: ListView.builder(
         itemCount: ctl.calendarList.length,
         itemBuilder: (context, index) {

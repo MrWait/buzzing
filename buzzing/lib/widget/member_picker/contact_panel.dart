@@ -1,5 +1,5 @@
 import 'package:buzzing/models/idl/entity.pb.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/widget/member_picker/controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -12,33 +12,35 @@ class ContactPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Container(
       decoration: BoxDecoration(
-        border: Border(right: BorderSide(color: PageStyle.c_EEEEEE)),
+        border: Border(right: BorderSide(color: cs.surfaceVariant)),
       ),
       child: Column(
         children: [
-          _buildSearchBar(),
-          Expanded(child: _buildBody(context)),
+          _buildSearchBar(cs, tt),
+          Expanded(child: _buildBody(context, cs, tt)),
         ],
       ),
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(ColorScheme cs, TextTheme tt) {
     return Container(
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: PageStyle.c_EEEEEE)),
+        border: Border(bottom: BorderSide(color: cs.surfaceVariant)),
       ),
       child: TextField(
         onChanged: ctl.search,
         decoration: InputDecoration(
           hintText: 'Search members...',
-          hintStyle: PageStyle.ts_999999_14sp,
-          prefixIcon: Icon(Icons.search, color: PageStyle.c_999999, size: 20),
+          hintStyle: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+          prefixIcon: Icon(Icons.search, color: cs.onSurfaceVariant, size: 20),
           filled: true,
-          fillColor: PageStyle.c_F5F5F5,
+          fillColor: cs.surfaceVariant,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
             borderSide: BorderSide.none,
@@ -50,19 +52,19 @@ class ContactPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildBody(BuildContext context) {
+  Widget _buildBody(BuildContext context, ColorScheme cs, TextTheme tt) {
     if (ctl.searching) {
-      return _buildSearchResults();
+      return _buildSearchResults(cs, tt);
     }
     if (ctl.atRoot) {
-      return _buildRootView();
+      return _buildRootView(cs, tt);
     }
-    return _buildDeptView(context);
+    return _buildDeptView(context, cs, tt);
   }
 
-  Widget _buildSearchResults() {
+  Widget _buildSearchResults(ColorScheme cs, TextTheme tt) {
     if (ctl.searchResults.isEmpty) {
-      return Center(child: Text('No results', style: PageStyle.ts_999999_14sp));
+      return Center(child: Text('No results', style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant)));
     }
     return ListView.builder(
       itemCount: ctl.searchResults.length,
@@ -73,40 +75,40 @@ class ContactPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildRootView() {
+  Widget _buildRootView(ColorScheme cs, TextTheme tt) {
     return ListView(
       children: [
-        _buildOrgEntry(),
+        _buildOrgEntry(cs, tt),
       ],
     );
   }
 
-  Widget _buildOrgEntry() {
+  Widget _buildOrgEntry(ColorScheme cs, TextTheme tt) {
     return GestureDetector(
       onTap: () => ctl.enterOrgRoot(),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Icon(Icons.account_tree_outlined, size: 20, color: PageStyle.c_666666),
+            Icon(Icons.account_tree_outlined, size: 20, color: cs.onSurfaceVariant),
             SizedBox(width: 10),
-            Text('Contacts', style: PageStyle.ts_333333_14sp),
+            Text('Contacts', style: tt.bodyMedium),
             Spacer(),
-            Icon(Icons.chevron_right, size: 20, color: PageStyle.c_999999),
+            Icon(Icons.chevron_right, size: 20, color: cs.onSurfaceVariant),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDeptView(BuildContext context) {
+  Widget _buildDeptView(BuildContext context, ColorScheme cs, TextTheme tt) {
     return Column(
       children: [
-        _buildNavigationBar(),
+        _buildNavigationBar(cs, tt),
         Expanded(
           child: ListView(
             children: [
-              ...ctl.currentDepts.map((dept) => _buildDeptItem(dept)),
+              ...ctl.currentDepts.map((dept) => _buildDeptItem(cs, tt, dept)),
               ...ctl.currentMembers.map((user) => _buildUserItem(context, user)),
             ],
           ),
@@ -115,23 +117,23 @@ class ContactPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildNavigationBar() {
+  Widget _buildNavigationBar(ColorScheme cs, TextTheme tt) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: PageStyle.c_EEEEEE)),
+        border: Border(bottom: BorderSide(color: cs.surfaceVariant)),
       ),
       child: Row(
         children: [
           GestureDetector(
             onTap: () => ctl.goBack(),
-            child: Icon(Icons.arrow_back, size: 18, color: PageStyle.c_666666),
+            child: Icon(Icons.arrow_back, size: 18, color: cs.onSurfaceVariant),
           ),
           SizedBox(width: 8),
           Expanded(
             child: Text(
               ctl.currentDeptName,
-              style: PageStyle.ts_333333_14sp.copyWith(fontWeight: FontWeight.w500),
+              style: tt.titleSmall,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -140,19 +142,19 @@ class ContactPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildDeptItem(Department dept) {
+  Widget _buildDeptItem(ColorScheme cs, TextTheme tt, Department dept) {
     return GestureDetector(
       onTap: () => ctl.enterDept(dept.id),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            Icon(Icons.folder_outlined, size: 20, color: PageStyle.c_666666),
+            Icon(Icons.folder_outlined, size: 20, color: cs.onSurfaceVariant),
             SizedBox(width: 10),
             Expanded(
-              child: Text(dept.name, style: PageStyle.ts_333333_14sp),
+              child: Text(dept.name, style: tt.bodyMedium),
             ),
-            Icon(Icons.chevron_right, size: 18, color: PageStyle.c_999999),
+            Icon(Icons.chevron_right, size: 18, color: cs.onSurfaceVariant),
           ],
         ),
       ),
@@ -160,6 +162,9 @@ class ContactPanel extends StatelessWidget {
   }
 
   Widget _buildUserItem(BuildContext context, User user) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final bt = Theme.of(context).extension<BuzzingTheme>()!;
     var selected = ctl.isSelected(user.id);
     var excluded = ctl.isExcluded(user.id);
     var enabled = !excluded;
@@ -167,7 +172,7 @@ class ContactPanel extends StatelessWidget {
       onTap: enabled ? () => ctl.toggleSelect(user) : null,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        color: selected ? PageStyle.c_F0F6FF : null,
+        color: selected ? bt.mentionBg : null,
         child: Row(
           children: [
             enabled
@@ -178,13 +183,13 @@ class ContactPanel extends StatelessWidget {
                     visualDensity: VisualDensity.compact,
                   )
                 : SizedBox(width: 40),
-            _buildAvatar(user),
+            _buildAvatar(cs, tt, user),
             SizedBox(width: 8),
             Expanded(
               child: Text(
                 user.name,
-                style: PageStyle.ts_333333_14sp.copyWith(
-                  color: enabled ? null : PageStyle.c_999999,
+                style: tt.bodyMedium?.copyWith(
+                  color: enabled ? null : cs.onSurfaceVariant,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -195,19 +200,19 @@ class ContactPanel extends StatelessWidget {
     );
   }
 
-  Widget _buildAvatar(User user) {
+  Widget _buildAvatar(ColorScheme cs, TextTheme tt, User user) {
     if (user.avatar.isEmpty) {
       return Container(
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: PageStyle.c_418AE5,
+          color: cs.primary,
           borderRadius: BorderRadius.circular(4),
         ),
         alignment: Alignment.center,
         child: Text(
           user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-          style: PageStyle.ts_FFFFFF_12sp,
+          style: tt.bodySmall?.copyWith(color: cs.onPrimary),
         ),
       );
     }
