@@ -1,7 +1,7 @@
 import 'package:buzzing/models/const.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/i18n/strings.g.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/widget/button.dart';
 import 'package:buzzing/widget/code_input_box.dart';
 import 'package:buzzing/widget/debounce_button.dart';
@@ -21,9 +21,11 @@ import 'meeting_logic.dart';
 class MeetingPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     final ctl = ref.watch(meetingLogicProvider);
     return Scaffold(
-      backgroundColor: PageStyle.c_FFFFFF,
+      backgroundColor: cs.surface,
       body: Row(
         children: [
           NaviBar(),
@@ -38,10 +40,10 @@ class MeetingPage extends ConsumerWidget {
                       Container(
                         height: 1.sh,
                         width: 260,
-                        color: PageStyle.c_A2A3A5,
+                        color: cs.onSurfaceVariant,
                         child: Column(
                           children: [
-                            Text("Meeting", style: PageStyle.ts_000000_14sp),
+                            Text("Meeting", style: tt.bodyMedium),
                             TextButton(
                               child: Text(t.createMeeting),
                               onPressed: () {
@@ -83,7 +85,7 @@ class MeetingPage extends ConsumerWidget {
                               Container(height: 500, child: MeetingView()),
                             ],
                           ),
-                          color: PageStyle.c_EAEAEA,
+                          color: cs.surfaceVariant,
                         ),
                       ),
                     ],
@@ -102,6 +104,7 @@ class MeetingView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ctl = ref.watch(meetingLogicProvider);
+    final cs = Theme.of(context).colorScheme;
     return ListenableBuilder(
       listenable: ctl,
       builder: (ctx, _) => Scaffold(
@@ -127,7 +130,7 @@ class MeetingView extends ConsumerWidget {
                       child: const Icon(Icons.call_end),
                       tooltip: "Hangup",
                       onPressed: ctl.hangUp,
-                      backgroundColor: PageStyle.c_F44038,
+                      backgroundColor: cs.error,
                     ),
                     FloatingActionButton(
                       child: const Icon(Icons.mic_off),
@@ -155,7 +158,7 @@ class MeetingView extends ConsumerWidget {
                             height: MediaQuery.of(context).size.height,
                             child: RTCVideoView(ctl.remoteRenderer),
                             decoration: BoxDecoration(
-                              color: PageStyle.c_03091C,
+                              color: cs.onSurface,
                             ),
                           ),
                         ),
@@ -174,7 +177,7 @@ class MeetingView extends ConsumerWidget {
                               mirror: true,
                             ),
                             decoration: BoxDecoration(
-                              color: PageStyle.c_03091C,
+                              color: cs.onSurface,
                             ),
                           ),
                         ),
@@ -196,6 +199,7 @@ class MeetingView extends ConsumerWidget {
   }
 
   Widget buildRow(BuildContext context, MeetingLogic ctl, peer) {
+    final cs = Theme.of(context).colorScheme;
     var self = (peer['id'] == ctl.uid);
     return ListBody(
       children: <Widget>[
@@ -214,7 +218,7 @@ class MeetingView extends ConsumerWidget {
                 IconButton(
                   icon: Icon(
                     self ? Icons.close : Icons.videocam,
-                    color: self ? Colors.grey : Colors.black,
+                    color: self ? Colors.grey : cs.onSurface,
                   ),
                   onPressed: () => ctl.invitePeer(context, peer['id'], false),
                   tooltip: "Video Calling",
@@ -222,7 +226,7 @@ class MeetingView extends ConsumerWidget {
                 IconButton(
                   icon: Icon(
                     self ? Icons.close : Icons.screen_share,
-                    color: self ? Colors.grey : Colors.black,
+                    color: self ? Colors.grey : cs.onSurface,
                   ),
                   onPressed: () => ctl.invitePeer(context, peer['id'], true),
                   tooltip: "Screen Sharing",

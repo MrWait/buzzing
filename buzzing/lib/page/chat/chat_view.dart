@@ -5,15 +5,17 @@ import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/widget/message_input.dart';
 import 'package:flutter/material.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ChatPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final bt = Theme.of(context).extension<BuzzingTheme>()!;
     final im = ref.watch(imProvider);
     return Container(
-      color: PageStyle.c_F0F6FF,
+      color: bt.mentionBg,
       margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
       padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
       child: ListenableBuilder(
@@ -37,7 +39,7 @@ class ChatPage extends ConsumerWidget {
             mainAxisSize: MainAxisSize.max,
             children: [
               Container(
-                color: PageStyle.c_F0F6FF,
+                color: bt.mentionBg,
                 height: 44.0,
                 child: Row(
                   children: [
@@ -60,13 +62,14 @@ class ChatPage extends ConsumerWidget {
 class MessageView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final im = ref.watch(imProvider);
     return ListenableBuilder(
       listenable: im,
       builder: (ctx, _) {
         L.d("rebuild message view, count: ${im.messagePosList.length}");
         return Container(
-          color: PageStyle.c_FDFEFF,
+          color: cs.surface,
           child: SelectionArea(
             child: ListView.separated(
               controller: im.msgCtrl,

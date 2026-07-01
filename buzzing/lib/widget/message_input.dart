@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:buzzing/utils/screencapture_pc.dart';
 import 'package:flutter/material.dart';
 import 'package:buzzing/widget/button.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart';
@@ -13,6 +13,8 @@ import 'package:flutter_macos_permissions/flutter_macos_permissions.dart';
 class MessageInput extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     final im = ref.watch(imProvider);
     return Container(
       height: 150,
@@ -63,7 +65,7 @@ class MessageInput extends ConsumerWidget {
                     Button(
                       enabled: true,
                       text: "SC",
-                      textStyle: PageStyle.ts_171A1D_17,
+                      textStyle: tt.bodyLarge?.copyWith(fontSize: 17),
                       onTap: () async {
                         if (Platform.isMacOS) {
                           var granted =
@@ -75,38 +77,38 @@ class MessageInput extends ConsumerWidget {
                     Button(
                       enabled: true,
                       text: "E",
-                      textStyle: PageStyle.ts_171A1D_17,
+                      textStyle: tt.bodyLarge?.copyWith(fontSize: 17),
                       onTap: () async {},
                     ),
                     Button(
                       enabled: true,
                       text: "@",
-                      textStyle: PageStyle.ts_171A1D_17,
+                      textStyle: tt.bodyLarge?.copyWith(fontSize: 17),
                       onTap: () async {
                       },
                     ),
                     Button(
                       enabled: true,
                       text: "C",
-                      textStyle: PageStyle.ts_171A1D_17,
+                      textStyle: tt.bodyLarge?.copyWith(fontSize: 17),
                       onTap: () async {},
                     ),
                     Button(
                       enabled: true,
                       text: "+",
-                      textStyle: PageStyle.ts_171A1D_17,
+                      textStyle: tt.bodyLarge?.copyWith(fontSize: 17),
                       onTap: () async {},
                     ),
                     Button(
                       enabled: true,
                       text: "P",
-                      textStyle: PageStyle.ts_171A1D_17,
+                      textStyle: tt.bodyLarge?.copyWith(fontSize: 17),
                       onTap: () async {},
                     ),
                     Button(
                       enabled: true,
                       text: "Send",
-                      textStyle: PageStyle.ts_171A1D_17,
+                      textStyle: tt.bodyLarge?.copyWith(fontSize: 17),
                       onTap: () {
                         im.onSendMessage("");
                       },
@@ -128,13 +130,14 @@ class MentionEmbedBuilder extends EmbedBuilder {
 
   @override
   Widget build(BuildContext context, EmbedContext embedContext) {
+    final cs = Theme.of(context).colorScheme;
     final text = embedContext.node.value as String? ?? '';
     return Text(
       text,
       style: TextStyle(
-        color: Colors.blue,
+        color: cs.primary,
         fontWeight: FontWeight.normal,
-        backgroundColor: Colors.blue.withOpacity(0.1),
+        backgroundColor: cs.primary.withValues(alpha: 0.1),
       ),
     );
   }
@@ -155,6 +158,7 @@ class MentionPopup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Positioned(
       width: 160,
       child: Container(
@@ -177,7 +181,7 @@ class MentionPopup extends StatelessWidget {
                   onTap: () {
                     if (onTap != null) onTap!(name);
                   },
-                  hoverColor: PageStyle.c_898989,
+                  hoverColor: cs.onSurfaceVariant,
                 );
               },
             ),

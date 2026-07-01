@@ -9,7 +9,6 @@ import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/sdk.pb.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/widget/feedcard.dart';
-import 'package:buzzing/res/styles.dart';
 
 import 'package:fixnum/fixnum.dart';
 

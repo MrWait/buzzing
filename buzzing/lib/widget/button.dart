@@ -1,4 +1,4 @@
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/utils/screen_ext.dart';
 import 'package:flutter/material.dart';
 
@@ -27,16 +27,18 @@ class Button extends StatelessWidget {
   final EdgeInsetsGeometry? margin;
   final bool enabled;
 
-  Color? get _backgroundColor => enabled
-      ? color ?? PageStyle.c_0089FF
-      : disabledColor ?? PageStyle.c_0089FF_opacity40p;
+  Color _backgroundColor(ColorScheme cs) => enabled
+      ? color ?? cs.primary
+      : disabledColor ?? cs.primary.withValues(alpha: 0.4);
 
-  TextStyle? get _textStyle => enabled
-      ? textStyle ?? PageStyle.ts_FFFFFF_18sp_semibold
-      : disabledTtextStyle ?? PageStyle.ts_FFFFFF_18sp_semibold;
+  TextStyle _textStyle(ColorScheme cs, TextTheme tt) => enabled
+      ? textStyle ?? tt.titleLarge!.copyWith(color: cs.onPrimary)
+      : disabledTtextStyle ?? tt.titleLarge!.copyWith(color: cs.onPrimary);
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Container(
         margin: margin,
         child: Material(
@@ -44,22 +46,23 @@ class Button extends StatelessWidget {
           child: Ink(
               height: height ?? 44.h,
               decoration: BoxDecoration(
-                  color: _backgroundColor,
+                  color: _backgroundColor(cs),
                   borderRadius: BorderRadius.circular(radius)),
               child: InkWell(
                   onTap: enabled ? onTap : null,
                   borderRadius: BorderRadius.circular(radius),
                   child: Container(
                       alignment: Alignment.center,
-                      child: Text(text, style: _textStyle)))),
+                      child: Text(text, style: _textStyle(cs, tt))))),
         ));
   }
 }
 
-Widget NaviButton(Function()? onTap, IconData? icon) {
+Widget NaviButton(BuildContext context, Function()? onTap, IconData? icon) {
+  final cs = Theme.of(context).colorScheme;
   return GestureDetector(
       onTap: onTap ?? () => {},
       behavior: HitTestBehavior.translucent,
       child: Container(
-          height: 44, width: 44, child: Icon(icon, color: Colors.lightBlue)));
+          height: 44, width: 44, child: Icon(icon, color: cs.primary)));
 }

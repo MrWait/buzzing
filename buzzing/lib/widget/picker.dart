@@ -1,7 +1,7 @@
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/provider/im_provider.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/widget/member_picker/controller.dart';
 import 'package:buzzing/widget/member_picker/member_picker.dart';
 import 'package:flutter/material.dart';
@@ -37,6 +37,8 @@ class _ImChatCreaterState extends ConsumerState<ImChatCreater> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return AlertDialog(
       content: SizedBox(
         width: 640,
@@ -44,14 +46,14 @@ class _ImChatCreaterState extends ConsumerState<ImChatCreater> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Create Group', style: PageStyle.ts_171A1D_18sp),
+            Text('Create Group', style: tt.titleLarge),
             SizedBox(height: 16),
             TextField(
               controller: _ctl.chatNameInputCtrl,
               decoration: InputDecoration(
                 labelText: 'Group Name',
                 hintText: 'Enter group name',
-                hintStyle: PageStyle.ts_999999_14sp,
+                hintStyle: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
               ),
             ),
             SizedBox(height: 16),
@@ -66,7 +68,7 @@ class _ImChatCreaterState extends ConsumerState<ImChatCreater> {
               ],
             ),
             SizedBox(height: 16),
-            Text('Members', style: PageStyle.ts_333333_14sp),
+            Text('Members', style: tt.bodyMedium),
             SizedBox(height: 8),
             Expanded(
               child: ListenableBuilder(
@@ -107,15 +109,16 @@ class _ImChatCreaterState extends ConsumerState<ImChatCreater> {
   }
 
   Widget _buildAvatarPreview() {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       width: 48,
       height: 48,
       decoration: BoxDecoration(
-        color: PageStyle.c_418AE5,
+        color: cs.primary,
         borderRadius: BorderRadius.circular(8),
       ),
       alignment: Alignment.center,
-      child: Icon(Icons.group, size: 28, color: Colors.white),
+      child: Icon(Icons.group, size: 28, color: cs.onPrimary),
     );
   }
 }

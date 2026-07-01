@@ -1,4 +1,4 @@
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:infinite_calendar_view/src/controller/events_controller.dart';
 import 'package:intl/intl.dart';
@@ -41,8 +41,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
 
   @override
   Widget build(BuildContext context) {
-    var color = PageStyle.c_2576FC;
-    //darkMode ? Colors.white : Theme.of(context).colorScheme.onPrimary;
+    var color = Theme.of(context).colorScheme.primary;
     return AppBar(
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,11 +123,9 @@ class EventPlanerHeader extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    var color = PageStyle.c_2576FC;
-    //darkMode ? Colors.white : Theme.of(context).colorScheme.onPrimary;
+    var color = Theme.of(context).colorScheme.primary;
     return AppBar(
       title: Row(
-        //crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextButton(
             child: Text("Today"),

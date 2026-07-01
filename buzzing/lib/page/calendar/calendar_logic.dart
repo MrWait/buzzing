@@ -5,7 +5,6 @@ import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/calendar.pb.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/routes/app_navigator.dart';
-import 'package:buzzing/res/styles.dart';
 import 'package:buzzing/utils/net/apis.dart';
 import 'package:buzzing/utils/data_persistence.dart';
 import 'package:buzzing/utils/logger_util.dart';

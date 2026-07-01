@@ -1,7 +1,7 @@
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/utils/common_utils.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:buzzing/provider/page_providers.dart';
-import 'package:buzzing/res/styles.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/widget/button.dart';
 import 'package:buzzing/widget/code_input_box.dart';
@@ -21,12 +21,14 @@ class TenantBrief extends StatelessWidget {
   TenantBrief(LoginUser user) : user = user;
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     var tenantName = user.tenant.name;
     var tenantAvatar = user.tenant.avatar;
     Widget avatar;
     if (user.tenant.id == 0) {
       tenantName = "Personal";
-      avatar = Icon(Icons.account_circle_outlined, color: Colors.lightBlue);
+      avatar = Icon(Icons.account_circle_outlined, color: cs.primary);
     } else {
       avatar = CircleAvatar(
         backgroundImage: Image(
@@ -43,7 +45,7 @@ class TenantBrief extends StatelessWidget {
       child: Row(
         children: [
           avatar,
-          Text(tenantName, style: PageStyle.ts_0089FF_12),
+          Text(tenantName, style: tt.bodySmall?.copyWith(color: cs.primary)),
         ],
       ),
     );
@@ -83,6 +85,8 @@ class LoginPage extends ConsumerWidget {
 class _BrandPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -99,14 +103,14 @@ class _BrandPanel extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: PageStyle.c_3370FF,
+                color: cs.primary,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Center(
                 child: Text(
                   "B",
                   style: TextStyle(
-                    color: Colors.white,
+                    color: cs.onPrimary,
                     fontSize: 40,
                     fontWeight: FontWeight.bold,
                   ),
@@ -116,19 +120,12 @@ class _BrandPanel extends StatelessWidget {
             SizedBox(height: 24),
             Text(
               "Buzzing",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1F1F1F),
-              ),
+              style: tt.headlineMedium?.copyWith(fontSize: 28),
             ),
             SizedBox(height: 12),
             Text(
               t.welcomeHint,
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF666666),
-              ),
+              style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
             ),
           ],
         ),
@@ -143,9 +140,11 @@ class _FormPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return TouchCloseSoftKeyboard(
       child: Container(
-        color: Colors.white,
+        color: cs.surface,
         child: Center(
           child: SizedBox(
             width: 340,
@@ -157,23 +156,19 @@ class _FormPanel extends StatelessWidget {
                   SizedBox(height: 60),
                   Text(
                     t.welcomeUse,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1F1F1F),
-                    ),
+                    style: tt.headlineMedium?.copyWith(fontSize: 24),
                   ),
                   SizedBox(height: 32),
                   _UnionSelector(logic: logic),
                   SizedBox(height: 20),
                   PhoneInputBox(
                     controller: logic.phoneCtrl,
-                    labelStyle: PageStyle.ts_171A1D_14,
-                    textStyle: PageStyle.ts_171A1D_17,
-                    hintStyle: PageStyle.ts_171A1D0_opacity40p_17,
-                    codeStyle: PageStyle.ts_171A1D_17,
-                    arrowColor: PageStyle.c_000000,
-                    clearBtnColor: PageStyle.c_000000_opacity40p,
+                    labelStyle: tt.bodyMedium!,
+                    textStyle: tt.bodyLarge!.copyWith(fontSize: 17),
+                    hintStyle: tt.bodyLarge!.copyWith(fontSize: 17, color: cs.onSurface.withValues(alpha: 0.4)),
+                    codeStyle: tt.bodyLarge!.copyWith(fontSize: 17),
+                    arrowColor: cs.onSurface,
+                    clearBtnColor: cs.onSurface.withValues(alpha: 0.4),
                     code: logic.areaCode,
                     onAreaCode: () => logic.openCountryCodePicker(),
                     showClearBtn: logic.showAccountCleanBtn,
@@ -183,20 +178,20 @@ class _FormPanel extends StatelessWidget {
                   logic.isPasswordLogin
                       ? PwdInputBox(
                           controller: logic.pwdCtrl,
-                          labelStyle: PageStyle.ts_171A1D_14,
-                          hintStyle: PageStyle.ts_171A1D0_opacity40p_17,
-                          textStyle: PageStyle.ts_171A1D_17,
+                          labelStyle: tt.bodyMedium!,
+                          hintStyle: tt.bodyLarge!.copyWith(fontSize: 17, color: cs.onSurface.withValues(alpha: 0.4)),
+                          textStyle: tt.bodyLarge!.copyWith(fontSize: 17),
                           showClearBtn: logic.showPwdClearBtn,
                           obscureText: logic.obscureText,
                           onClickEyesBtn: () => logic.toggleEye(),
-                          clearBtnColor: PageStyle.c_000000_opacity40p,
-                          eyesBtnColor: PageStyle.c_333333,
+                          clearBtnColor: cs.onSurface.withValues(alpha: 0.4),
+                          eyesBtnColor: cs.onSurface,
                         )
                       : CodeInputBox(
                           controller: logic.codeCtrl,
-                          labelStyle: PageStyle.ts_171A1D_14,
-                          hintStyle: PageStyle.ts_171A1D0_opacity40p_17,
-                          textStyle: PageStyle.ts_171A1D_17,
+                          labelStyle: tt.bodyMedium!,
+                          hintStyle: tt.bodyLarge!.copyWith(fontSize: 17, color: cs.onSurface.withValues(alpha: 0.4)),
+                          textStyle: tt.bodyLarge!.copyWith(fontSize: 17),
                           onClickCodeBtn: logic.getVerificationCode,
                         ),
                   SizedBox(height: 8),
@@ -204,10 +199,7 @@ class _FormPanel extends StatelessWidget {
                     onTap: logic.switchLoginType,
                     child: Text(
                       logic.isPasswordLogin ? t.useSMSLogin : t.usePwdLogin,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: PageStyle.c_3370FF,
-                      ),
+                      style: tt.bodySmall?.copyWith(color: cs.primary),
                     ),
                   ),
                   SizedBox(height: 32),
@@ -219,9 +211,9 @@ class _FormPanel extends StatelessWidget {
                         return Button(
                           enabled: logic.enabledLoginButton,
                           text: t.login,
-                          textStyle: PageStyle.ts_FFFFFF_16sp,
-                          color: PageStyle.c_3370FF,
-                          disabledColor: PageStyle.c_3370FF.withOpacity(0.4),
+                          textStyle: tt.labelLarge?.copyWith(color: cs.onPrimary),
+                          color: cs.primary,
+                          disabledColor: cs.primary.withValues(alpha: 0.4),
                           radius: 8,
                           onTap: onTap,
                         );
@@ -238,16 +230,13 @@ class _FormPanel extends StatelessWidget {
                         onTap: () => logic.forgetPassword(),
                         child: Text(
                           t.forgetPwd,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: PageStyle.c_3370FF,
-                          ),
+                          style: tt.bodySmall?.copyWith(color: cs.primary),
                         ),
                       ),
                       Container(
                         width: 1,
                         height: 12,
-                        color: PageStyle.c_A2A3A5,
+                        color: cs.onSurfaceVariant,
                         margin: EdgeInsets.symmetric(horizontal: 12),
                       ),
                       GestureDetector(
@@ -256,10 +245,7 @@ class _FormPanel extends StatelessWidget {
                           logic.index == 0
                               ? t.phoneRegister
                               : t.emailRegister,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: PageStyle.c_3370FF,
-                          ),
+                          style: tt.bodySmall?.copyWith(color: cs.primary),
                         ),
                       ),
                     ],
@@ -298,6 +284,7 @@ class _UnionSelectorState extends State<_UnionSelector> {
     if (renderBox == null) return;
     final offset = renderBox.localToGlobal(Offset.zero);
 
+    final cs = Theme.of(context).colorScheme;
     final items = <PopupMenuEntry<String>>[
       ...widget.logic.unionList.map((entry) => PopupMenuItem<String>(
         value: entry,
@@ -309,11 +296,11 @@ class _UnionSelectorState extends State<_UnionSelector> {
         value: "__add__",
         child: Row(
           children: [
-            Icon(Icons.add, size: 18, color: PageStyle.c_3370FF),
+            Icon(Icons.add, size: 18, color: cs.primary),
             SizedBox(width: 8),
             Text(
               t.addServer,
-              style: TextStyle(color: PageStyle.c_3370FF),
+              style: TextStyle(color: cs.primary),
             ),
           ],
         ),
@@ -397,11 +384,13 @@ class _UnionSelectorState extends State<_UnionSelector> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Container(
       key: _key,
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Color(0xFFE5E6E8), width: 1),
+          bottom: BorderSide(color: cs.outlineVariant, width: 1),
         ),
       ),
       child: InkWell(
@@ -410,20 +399,19 @@ class _UnionSelectorState extends State<_UnionSelector> {
           padding: EdgeInsets.symmetric(vertical: 10),
           child: Row(
             children: [
-              Icon(Icons.dns_outlined, size: 16, color: Color(0xFF666666)),
+              Icon(Icons.dns_outlined, size: 16, color: cs.onSurfaceVariant),
               SizedBox(width: 8),
               Expanded(
                 child: Text(
                   _displayText(),
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: tt.bodyMedium?.copyWith(
                     color: widget.logic.currentUnionEntry.isNotEmpty
-                        ? Color(0xFF1F1F1F)
-                        : Color(0xFF999999),
+                        ? cs.onSurface
+                        : cs.onSurfaceVariant,
                   ),
                 ),
               ),
-              Icon(Icons.arrow_drop_down, color: Color(0xFF999999)),
+              Icon(Icons.arrow_drop_down, color: cs.onSurfaceVariant),
             ],
           ),
         ),
@@ -438,8 +426,10 @@ class _TenantPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Container(
-      color: Colors.white,
+      color: cs.surface,
       child: Center(
         child: SizedBox(
           width: 300,
@@ -451,20 +441,16 @@ class _TenantPanel extends StatelessWidget {
                 onTap: () => logic.backToLogin(),
                 child: Row(
                   children: [
-                    Icon(Icons.arrow_back, size: 18, color: PageStyle.c_3370FF),
+                    Icon(Icons.arrow_back, size: 18, color: cs.primary),
                     SizedBox(width: 4),
-                    Text(t.goBack, style: TextStyle(color: PageStyle.c_3370FF, fontSize: 14)),
+                    Text(t.goBack, style: tt.bodyMedium?.copyWith(color: cs.primary)),
                   ],
                 ),
               ),
               SizedBox(height: 24),
               Text(
                 t.welcomeUse,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1F1F1F),
-                ),
+                style: tt.headlineMedium?.copyWith(fontSize: 22),
               ),
               SizedBox(height: 24),
               ...List.generate(
@@ -475,12 +461,12 @@ class _TenantPanel extends StatelessWidget {
                     margin: EdgeInsets.only(bottom: 8),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: PageStyle.c_3370FF,
+                        backgroundColor: cs.primary,
                         child: Text(
                           user?.user.name.isNotEmpty == true
                               ? user!.user.name[0]
                               : "?",
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: cs.onPrimary),
                         ),
                       ),
                       title: Text(user?.user.name ?? ""),
