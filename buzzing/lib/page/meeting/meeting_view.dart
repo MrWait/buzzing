@@ -14,7 +14,7 @@ import 'package:buzzing/controller/app_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:buzzing/utils/screen_ext.dart';
 
 import 'meeting_logic.dart';
 

@@ -11,7 +11,7 @@ import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/idl/error.pb.dart';
 import 'package:buzzing/models/idl/sdk.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:fixnum/fixnum.dart' as $fixnum;
@@ -29,7 +29,7 @@ class SdkController {
   final pushCallback = Map<int, Function>();
 
   SdkController({required this.eventBus}) {
-    LW("init sdk controller");
+    L.w("init sdk controller");
     if (!inited) {
       inited = true;
       Future.delayed(Duration(milliseconds: 0), () async {
@@ -41,7 +41,7 @@ class SdkController {
   }
 
   void dispose() {
-    LW("sdk controller close");
+    L.w("sdk controller close");
   }
 
   void regPushCallback(int cmd, Function f) {
@@ -51,9 +51,9 @@ class SdkController {
   void onLogined() {}
 
   void handlePush(Uint8List data) {
-    //LD("receive sdk push data: ${data}");
+    //L.d("receive sdk push data: ${data}");
     var push = SdkPushPacket.fromBuffer(data);
-    LD("sdk push cmd: ${push.command}");
+    L.d("sdk push cmd: ${push.command}");
     final f = pushCallback[push.command];
     if (f != null) {
       f(push.payload);
@@ -61,9 +61,9 @@ class SdkController {
   }
 
   void handleInvokeResponse(Uint8List data) {
-    //LD("receive sdk response data: ${data}");
+    //L.d("receive sdk response data: ${data}");
     var response = InvokeResponse.fromBuffer(data);
-    LD("sdk response seq: ${response.seq}");
+    L.d("sdk response seq: ${response.seq}");
     final ch = invokeCh.remove(response.seq);
     if (ch != null) {
       ch.send(data);
@@ -74,10 +74,10 @@ class SdkController {
     var push_handle = buzzingRegPushHandler();
     Future.delayed(Duration.zero, () async {
       await for (final data in push_handle) {
-        //LD("receive sdk push data: ${data}");
+        //L.d("receive sdk push data: ${data}");
         handlePush(data);
       }
-      LD("push handler finish");
+      L.d("push handler finish");
     });
   }
 
@@ -85,22 +85,22 @@ class SdkController {
     var invoke_handle = buzzingRegInvokeHandler();
     Future.delayed(Duration.zero, () async {
       await for (final data in invoke_handle) {
-        //LD("receive sdk response data: ${data}");
+        //L.d("receive sdk response data: ${data}");
         handleInvokeResponse(data);
       }
-      LD("invoke handler finish");
+      L.d("invoke handler finish");
     });
   }
 
   Future<void> _init() async {
-    LD("call _init");
+    L.d("call _init");
     InitRequest init = InitRequest.create();
     var currentDir = Directory.current.path;
     var userStore = (await getApplicationSupportDirectory()).path;
     var docDir = (await getApplicationDocumentsDirectory()).path;
     var cacheDir = (await getApplicationCacheDirectory()).path;
     var downloadDir = (await getDownloadsDirectory())?.path;
-    LD("${currentDir}  ${userStore}, doc: ${docDir}, cache: ${cacheDir}, download: ${downloadDir}");
+    L.d("${currentDir}  ${userStore}, doc: ${docDir}, cache: ${cacheDir}, download: ${downloadDir}");
     init.appId = "buzzing";
     init.appVersion = "0.1.0";
     init.env = EnvChannel.ENV_DEV;
@@ -113,18 +113,18 @@ class SdkController {
     init.isRelease = false;
     init.deviceModel = "Windows";
     init.deviceId = "123456";
-    LD("init request ${init}");
+    L.d("init request ${init}");
 
-    //LD("get ${greeting}");
+    //L.d("get ${greeting}");
 
     await RustLib.init();
     var ret = await buzzingInit(param: init.writeToBuffer().toList());
-    LD("init ret ${ret}");
+    L.d("init ret ${ret}");
     initSdkPushHandler();
     initSdkInvokeHandler();
     // var data = await invokeAsync(Command.ACK, Uint8List.fromList([7, 8, 9]));
-    //LD("invoke async return ${data}");
-    LD("init finish");
+    //L.d("invoke async return ${data}");
+    L.d("init finish");
   }
 
   void log(String message, int level, String? error, String? backtrace) {
@@ -161,15 +161,15 @@ class SdkController {
     required String token,
     required String unionClientConfig,
   }) async {
-    LD("call login");
+    L.d("call login");
     SdkLoginUserRequest req = SdkLoginUserRequest.create();
     req.userId = uid;
     req.tenantId = tenantId;
     req.accessToken = token;
     req.unionClientConfig = unionClientConfig;
     var data = await invokeAsync(Command.USER_LOGIN, req.writeToBuffer());
-    LD("invoke login return ${data}");
-    LD("call login finish");
+    L.d("invoke login return ${data}");
+    L.d("call login finish");
     userId = uid;
     eventBus.emit(GlobalEvent.logined);
   }
@@ -196,11 +196,11 @@ class SdkController {
         if (resp.status == 200 || resp.status == 0) {
           return (code: resp.status, data: resp.payload);
         } else {
-          LE("invoke sdk response error, ${command}, ${seq}, ${resp.status}");
+          L.e("invoke sdk response error, ${command}, ${seq}, ${resp.status}");
           return (code: resp.status, data: null);
         }
       } else {
-        LE("invoke sdk error, return data null");
+        L.e("invoke sdk error, return data null");
       }
     }
 

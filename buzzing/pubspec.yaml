@@ -37,7 +37,6 @@ dependencies:
   rust_lib_buzzing:
     path: rust_builder
   flutter_rust_bridge: 2.11.1
-  flutter_screenutil: ^5.9.3
   shared_preferences: ^2.2.3
   path: ^1.9.0
   path_provider: ^2.1.3

@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/utils/config/config.dart';
 import 'package:buzzing/utils/upgrade_manager.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 //import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
@@ -51,7 +51,7 @@ class AppController {
   final clientConfigMap = <String, dynamic>{};
 
   void runningBackground(bool run) {
-    LD('App running background: $run');
+    L.d('App running background: $run');
     isRunningBackground = run;
     backgroundSubject.sink.add(run);
     if (!run) {
@@ -76,10 +76,10 @@ class AppController {
     }
 
     mainChannel.setMethodCallHandler((call) async {
-      LD("handle sub window event: ${call}");
+      L.d("handle sub window event: ${call}");
       var argument = call.arguments as String;
       var arg = jsonDecode(argument) as Map<String, dynamic>;
-      LD("arg: ${arg}");
+      L.d("arg: ${arg}");
       switch (call.method) {
         case "sub_window_close":
           {
@@ -136,7 +136,7 @@ class AppController {
 
     arguments['app'] = tag;
     var arg = jsonEncode(arguments);
-    LD("new window arg: ${arg}");
+    L.d("new window arg: ${arg}");
 
     final controller = await WindowController.create(
       WindowConfiguration(hiddenAtLaunch: false, arguments: arg),

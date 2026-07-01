@@ -11,7 +11,7 @@ import 'package:buzzing/models/idl/message.pb.dart';
 import 'package:buzzing/models/idl/user.pb.dart';
 import 'package:buzzing/widget/message.dart';
 import 'package:buzzing/widget/feedcard.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 
 class UnionConfig {
   String union = "";
@@ -303,7 +303,7 @@ class Model {
   static Widget feed(Int64 id, Entity entity, Function onTap) {
     var feed = entity.feeds[id];
     if (feed == null) {
-      LW("feed not exists in entity: ${id}");
+      L.w("feed not exists in entity: ${id}");
       return FeedCard(
         icon: Icons.group,
         title: "Error" + id.toString(),

@@ -4,7 +4,7 @@ import 'package:buzzing/widget/avatar.dart';
 import 'package:flutter_popup/flutter_popup.dart';
 import 'package:flutter/material.dart';
 import 'package:buzzing/res/styles.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fixnum/fixnum.dart';
 

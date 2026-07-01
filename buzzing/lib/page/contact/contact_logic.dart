@@ -7,7 +7,7 @@ import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/idl/feed.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/sdk.pb.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/widget/feedcard.dart';
 import 'package:buzzing/res/styles.dart';
 
@@ -32,7 +32,7 @@ class ContactController extends ChangeNotifier {
       listUsers.clear();
       listUsers.addAll(list.users.values);
       listUsers.sort((a, b) => a.name.compareTo(b.name));
-      LW("getDeptInfo ok: ${list}");
+      //LW("getDeptInfo ok: ${list}");
     }
     notifyListeners();
   }

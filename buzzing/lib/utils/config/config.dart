@@ -4,7 +4,7 @@ import 'package:buzzing/ffi/rust/frb_generated.dart';
 import 'package:buzzing/models/model.dart';
 import 'package:buzzing/utils/data_persistence.dart';
 import 'package:buzzing/utils/net/http_util.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sp_util/sp_util.dart';
