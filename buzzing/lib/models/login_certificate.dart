@@ -3,7 +3,7 @@ import 'dart:ffi';
 
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:fixnum/fixnum.dart' as $fixnum;
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 
 // get all binded users
 class LoginAccount {
@@ -15,7 +15,7 @@ class LoginAccount {
   LoginAccount._();
 
   factory LoginAccount.fromJson(Map<dynamic, dynamic> json) {
-    LD("parse login account: ${json}");
+    L.d("parse login account: ${json}");
     final loginAccount = create();
     loginAccount.account = Account.fromJson(json["account"] ?? '{}');
     if (json["loginUser"] != null) {
@@ -32,7 +32,7 @@ class LoginAccount {
 
     final loginAccount = create();
     loginAccount.account = Account.create()..mergeFromProto3Json(value);
-    LD("login account: ${loginAccount.account}, src: ${value}");
+    L.d("login account: ${loginAccount.account}, src: ${value}");
     return loginAccount;
   }
 

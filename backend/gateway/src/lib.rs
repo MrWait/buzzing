@@ -169,7 +169,7 @@ pub(crate) async fn handle_client_packet(
     ws: bool,
 ) -> Result<(i32, Vec<u8>)> {
     debug!(
-        "start handle cmd: {conn_id} {cmd} {}, user: {}",
+        "start handle client packet, connid: {conn_id} cmd: {cmd} {}, user: {}",
         packet.rid, brief.id
     );
     AppHub::get()?

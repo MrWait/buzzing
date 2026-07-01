@@ -9,7 +9,7 @@ import 'package:buzzing/utils/net/apis.dart';
 import 'package:buzzing/utils/net/http_util.dart';
 import 'package:buzzing/models/login_certificate.dart';
 import 'package:buzzing/utils/data_persistence.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/utils/random_string.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
@@ -778,7 +778,7 @@ class SimpleWebSocket {
   send(data) {
     if (_socket != null) {
       _socket.add(data);
-      LD('send: $data');
+      L.d('send: $data');
     }
   }
 
@@ -793,7 +793,7 @@ class SimpleWebSocket {
       HttpClient client = HttpClient(context: SecurityContext());
       client.badCertificateCallback =
           (X509Certificate cert, String host, int port) {
-            LD(
+            L.d(
               'SimpleWebSocket: Allow self-signed certificate => $host:$port. ',
             );
             return true;
@@ -830,14 +830,14 @@ Future<Map> getTurnCredential(String host, int port) async {
   HttpClient client = HttpClient(context: SecurityContext());
   client
       .badCertificateCallback = (X509Certificate cert, String host, int port) {
-    LD('getTurnCredential: Allow self-signed certificate => $host:$port. ');
+    L.d('getTurnCredential: Allow self-signed certificate => $host:$port. ');
     return true;
   };
   var url = 'https://$host:$port/api/turn?service=turn&username=flutter-webrtc';
   var request = await client.getUrl(Uri.parse(url));
   var response = await request.close();
   var responseBody = await response.transform(Utf8Decoder()).join();
-  LD('getTurnCredential:response => $responseBody.');
+  L.d('getTurnCredential:response => $responseBody.');
   Map data = JsonDecoder().convert(responseBody);
   return data;
 }

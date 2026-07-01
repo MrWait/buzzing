@@ -8,7 +8,7 @@ import 'package:buzzing/utils/net/http_util.dart';
 import 'package:buzzing/models/login_certificate.dart';
 import 'package:buzzing/routes/app_navigator.dart';
 import 'package:buzzing/utils/data_persistence.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/widget/im_widget.dart';
@@ -89,7 +89,7 @@ class LoginLogic extends ChangeNotifier {
   }
 
   void login(BuildContext context) async {
-    LD('start login');
+    L.d('start login');
     if (index == 0 &&
         !CommonUtils.isPhoneNumber(areaCode, phoneCtrl.text)) {
       IMWidget.showToast(t.plsInputRightPhone);
@@ -100,7 +100,7 @@ class LoginLogic extends ChangeNotifier {
       return;
     }
     LoadingView.singleton.wrap(context: context, asyncFunction: () async {
-      LD("start login");
+      L.d("start login");
       var suc = await _login();
       if (suc) {
       }
@@ -113,13 +113,13 @@ class LoginLogic extends ChangeNotifier {
           await Apis.login(mobile: phoneCtrl.text, password: pwdCtrl.text);
       account.server = Config.union.config.union;
       await DataPersistence.putAccount(account);
-      LD("login success, account: ${account}");
+      L.d("login success, account: ${account}");
       loginAccount = account;
       loginMode = 2;
       notifyListeners();
       return true;
     } catch (e) {
-      LD('login e: ${e}');
+      L.d('login e: ${e}');
     } finally {}
     return false;
   }

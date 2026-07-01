@@ -7,7 +7,7 @@ import 'package:buzzing/utils/config/config.dart';
 import 'package:buzzing/utils/data_persistence.dart';
 import 'package:buzzing/models/login_certificate.dart';
 import 'package:buzzing/utils/net/http_util.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:go_router/go_router.dart';
 
 class SplashLogic {
@@ -58,10 +58,10 @@ class SplashLogic {
       }
 
       var now = DateTime.now().millisecondsSinceEpoch;
-      LD("splash check account: $account, now: $now");
+      L.d("splash check account: $account, now: $now");
       if (account.loginUser != null) {
         if (account.loginUser!.tokenExpire < now) {
-          LD("token expire, need relogin");
+          L.d("token expire, need relogin");
           DataPersistence.removeAccount();
           return false;
         } else {
@@ -70,7 +70,7 @@ class SplashLogic {
       }
 
       HttpUtil.resetBaseUrl(Config.apiUrl());
-      LD("login account: $account");
+      L.d("login account: $account");
       if (account.loginUser != null) {
         sdk.login(
           uid: account.loginUser!.user.id,
@@ -84,7 +84,7 @@ class SplashLogic {
       // pushLogic.
     } catch (e) {
       // TODO
-      LD(e);
+      L.d(e);
       return false;
     }
   }

@@ -5,7 +5,7 @@ import 'package:buzzing/widget/avatar.dart';
 import 'package:flutter_popup/flutter_popup.dart';
 import 'package:flutter/material.dart';
 import 'package:buzzing/res/styles.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:go_router/go_router.dart';
@@ -14,7 +14,7 @@ Widget PersonalPopup(ImController im, BuildContext context, Int64 id,
     String url, Int64 ver) {
   var user = im.getUser(id);
   var tenant = im.getTenant();
-  LW("hero popup, get user: ${id}, ${user}");
+  L.w("hero popup, get user: ${id}, ${user}");
 
   var tenantName = "Personal";
   if (tenant != null) {

@@ -14,11 +14,10 @@ import 'package:buzzing/widget/phone_input_box.dart';
 import 'package:buzzing/widget/pwd_input_box.dart';
 import 'package:buzzing/widget/schedule_creator.dart';
 import 'package:buzzing/widget/touch_close_keyboard.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_popup/flutter_popup.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'calendar_logic.dart';
 import 'events_planner_draggable_events_view.dart';

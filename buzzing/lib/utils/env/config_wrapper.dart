@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:buzzing/utils/config/config.dart';
 import 'package:buzzing/utils/env/env_config.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 
 class ConfigWrapper extends StatelessWidget {
   ConfigWrapper({Key? key, this.config, this.child});
@@ -9,7 +9,7 @@ class ConfigWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Config.DEBUG = this.config?.debug;
-    LD("ConfigWrapper build ${Config.DEBUG}");
+    L.d("ConfigWrapper build ${Config.DEBUG}");
     return new _InheritedConfig(config: this.config, child: this.child!);
   }
 

@@ -3,7 +3,7 @@ import 'package:buzzing/res/styles.dart';
 import 'package:buzzing/widget/verify_code_send_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:buzzing/utils/screen_ext.dart';
 
 class CodeInputBox extends StatelessWidget {
   const CodeInputBox({

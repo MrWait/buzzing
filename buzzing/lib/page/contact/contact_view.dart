@@ -6,7 +6,7 @@ import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/widget/header_bar.dart';
 import 'package:buzzing/widget/navigate_bar.dart';
 import 'package:buzzing/widget/profile.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -76,7 +76,7 @@ class ContactList extends ConsumerWidget {
               child: Text(t.internalContacts, style: PageStyle.ts_000000_13sp),
             ),
             onTap: () async {
-              LW("start getDeptInfo");
+              L.w("start getDeptInfo");
               contactController.mode = 1;
               contactController.notifyListeners();
               await contactController.getDeptInfo();
@@ -121,7 +121,7 @@ class ContactDetail extends ConsumerWidget {
               height: 44,
               child: Row(
                 children: [
-                  //ProfilePopup(im, context, u.id, u.avatar, im.getUserVer(u.id)),
+                  ProfilePopup(im, context, u.id, u.avatar, im.getUserVer(u.id)),
                   Text(u.name),
                 ],
               ),

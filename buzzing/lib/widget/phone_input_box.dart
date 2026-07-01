@@ -2,7 +2,7 @@ import 'package:buzzing/res/images.dart';
 import 'package:buzzing/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:buzzing/utils/screen_ext.dart';
 
 enum InputWay { phone, email }
 

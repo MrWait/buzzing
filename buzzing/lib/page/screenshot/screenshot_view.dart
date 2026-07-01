@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:convert';
 
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:flutter/material.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
@@ -128,7 +128,7 @@ class _ScreenshotOverlayState extends State<ScreenshotOverlay> {
 
       return img.encodePng(cropped);
     } catch (e) {
-      LD('裁剪图像失败: $e');
+      L.d('裁剪图像失败: $e');
       return null;
     }
   }
@@ -136,7 +136,7 @@ class _ScreenshotOverlayState extends State<ScreenshotOverlay> {
   // 保存图像（这里简化处理，实际项目中可保存到文件）
   void _saveImage(Uint8List imageData) {
     // 实现保存逻辑，例如使用image_gallery_saver或直接写入文件
-    LD('截图已保存，大小: ${imageData.lengthInBytes} bytes');
+    L.d('截图已保存，大小: ${imageData.lengthInBytes} bytes');
   }
 
   @override

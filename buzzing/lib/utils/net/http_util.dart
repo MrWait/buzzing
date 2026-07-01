@@ -4,7 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:buzzing/utils/config/config.dart';
 import 'package:buzzing/models/model.dart';
 import 'package:buzzing/widget/im_widget.dart';
-import 'package:buzzing/utils/loogger_util.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/i18n/strings.g.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
@@ -34,7 +34,7 @@ class HttpUtil {
         }
         return handler.next(options);
       }, onResponse: (response, handler) {
-        LD("response: ${response}");
+        L.d("response: ${response}");
         return handler.next(response);
       }, onError: (DioError e, handler) {
         return handler.next(e);
@@ -68,7 +68,7 @@ class HttpUtil {
         onSendProgress: onSendProgress,
         onReceiveProgress: onReceiveProgress,
       );
-      LD("return data: ${result.data}");
+      L.d("return data: ${result.data}");
       return result.data!;
       var resp = ApiResp.fromJson(Map<String, dynamic>());
       if (resp.code == 0) {
