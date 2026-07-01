@@ -12,3 +12,4 @@ Buzzing 是一个企业级协作平台（类飞书/钉钉/Slack），包含完�
 | [客户端](client.md) | Flutter 客户端页面、状态管理、路由 |
 | [协议与 API](protocol.md) | Protobuf 协议、命令枚举、数据流 |
 | [数据库](database.md) | 数据库表结构、关系说明 |
+| [主题设计系统](theme.md) | 颜色/字体/ThemeExtension 设计方案 |

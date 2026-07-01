@@ -7,7 +7,7 @@ import 'package:buzzing/models/idl/calendar.pb.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/routes/app_navigator.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/utils/net/apis.dart';
 import 'package:buzzing/utils/data_persistence.dart';
 import 'package:buzzing/utils/logger_util.dart';
@@ -27,16 +27,19 @@ import 'calendar_logic.dart';
 class CalendarNavigator extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final bt = Theme.of(context).extension<BuzzingTheme>()!;
     final ctl = ref.watch(calendarLogicProvider);
     return Container(
       height: 280,
       width: 260,
       //padding: EdgeInsets.symmetric(horizontal: 10),
-      color: PageStyle.c_F0F0F0,
+      color: cs.surfaceVariant,
       child: Column(children: [
         Row(
           children: [
-            Text(ctl.currentMonth, style: PageStyle.ts_000000_13sp),
+            Text(ctl.currentMonth, style: tt.bodyMedium?.copyWith(fontSize: 13)),
             Spacer(),
             TextButton(
               child: Text("<"),
@@ -51,12 +54,12 @@ class CalendarNavigator extends ConsumerWidget {
         Expanded(
             child: Container(
           child: CalendarCarousel<Event>(
-            todayBorderColor: PageStyle.c_10CC64,
+            todayBorderColor: bt.success,
             onDayPressed: (date, events) {},
             daysHaveCircularBorder: true,
             showOnlyCurrentMonthDate: false,
             weekendTextStyle: TextStyle(color: Colors.red),
-            thisMonthDayBorderColor: PageStyle.c_898989,
+            thisMonthDayBorderColor: cs.onSurfaceVariant,
             weekFormat: false,
             //height: 420,
             showHeader: false,

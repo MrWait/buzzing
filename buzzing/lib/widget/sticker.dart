@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:buzzing/res/styles.dart';
 
 class StickerWidget extends StatelessWidget {
   late IconData icon;

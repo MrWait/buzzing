@@ -110,3 +110,47 @@
 | 28 | 删除 `lib/routes/app_pages.dart`/`app_routes.dart` | 保留路径常量即可 | ✅ 已完成 |
 | 29 | 删除 `lib/res/strings.dart` `StrRes` | 完成 slang 替换后清理 | ✅ 已完成 |
 | 30 | `flutter analyze` 全绿 | 验证无 GetX 残留 | ✅ 已完成 — 仅剩预存错误（welcome_page.dart redux/rive） |
+
+---
+
+# 主题设计系统
+
+**目标**：从 `PageStyle` 48 个 hex 常量 + ~80 个 TextStyle 迁移至 Material 3 `ColorScheme` + `TextTheme` + `ThemeExtension`
+
+**文档**：`docs/theme.md`
+
+## Phase 1 — 基础设施
+
+| # | 任务 | 方案 | 状态 |
+|---|------|------|------|
+| 1 | 创建 `BuzzingTheme` (ThemeExtension) + `AppTheme.light`/`dark` (ThemeData) | `lib/res/theme.dart` 重写 | ✅ 已完成 |
+| 2 | 配置 `MaterialApp.router` 添加 `theme:` / `darkTheme:` / `themeMode:` | `app.dart` | ✅ 已完成 |
+| 3 | 连接 `AppState.theme` 字段 | 死字段激活 | ✅ 已完成 |
+
+## Phase 2 — 替换 PageStyle 颜色引用
+
+| # | 任务 | 方案 | 状态 |
+|---|------|------|------|
+| 4 | `c_FFFFFF` → `colorScheme.surface` | 全局替换 | ✅ 已完成 |
+| 5 | `c_3370FF` / `c_1D6BED` → `colorScheme.primary` | 全局替换 | ✅ 已完成 |
+| 6 | `c_F0F0F0` / `c_F5F5F5` / `c_EAEAEA` → `colorScheme.surfaceVariant` | 全局替换 | ✅ 已完成 |
+| 7 | `c_D8D8D8` / `c_C7C7C8` → `colorScheme.outline` | 全局替换 | ✅ 已完成 |
+| 8 | `c_666666` / `c_898989` / `c_959595` → `colorScheme.onSurfaceVariant` | 全局替换 | ✅ 已完成 |
+| 9 | `c_10CC64` / `c_FFC563` / `c_E8F2FF` → `BuzzingTheme.xxx` | 全局替换 | ✅ 已完成 |
+| 10 | `c_03091C` / `c_24292E` → `BuzzingTheme.headerBg`/`navBarBg` | 全局替换 | ✅ 已完成 |
+| 11 | `c_000000_opacityXXp` → `colorScheme` 或 `BuzzingTheme` | 全局替换 | ✅ 已完成 |
+
+## Phase 3 — 替换 TextStyle 引用
+
+| # | 任务 | 方案 | 状态 |
+|---|------|------|------|
+| 12 | `ts_XXXXXX_XXsp` → 内联 `TextStyle(fontSize: ..., color: cs.xxx)` | 未用 TextTheme 槽位（颜色+字号的固定组合不匹配槽位语义） | ✅ 已完成 |
+| 13 | `BuzzingConstant` 字号常量 | 随 `styles.dart` 删除自动清除 | ✅ 已完成 |
+
+## Phase 4 — 清理
+
+| # | 任务 | 方案 | 状态 |
+|---|------|------|------|
+| 14 | 删除 `lib/res/styles.dart` | 移除 PageStyle/BuzzingColors/BuzzingConstant | ✅ 已完成 |
+| 15 | 清理死 import | 移除 7 个文件中残余的 `import 'styles.dart'` | ✅ 已完成 |
+| 16 | `flutter analyze` 验证 | 确认编译通过 | ✅ 已完成 |

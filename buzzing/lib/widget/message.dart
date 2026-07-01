@@ -6,7 +6,7 @@ import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart';
@@ -49,22 +49,21 @@ class MessageWidget extends ConsumerWidget {
   }
 
   Widget renderMsg(context, ImController im) {
+    final cs = Theme.of(context).colorScheme;
+    final bt = Theme.of(context).extension<BuzzingTheme>()!;
     if (simple) {
       return Container(
-        //color: PageStyle.c_71BCFF,
         padding: EdgeInsets.all(2),
         child: Row(
           children: [
             Container(
-              color: PageStyle.c_EB84CA,
+              color: Color(0xFFeb84ca),
               width: 40,
-              //                height: 40,
             ),
-            //Spacer(),
             Expanded(
               child: Container(
                 alignment: Alignment.topLeft,
-                color: PageStyle.c_E8F2FF,
+                color: bt.mentionBg,
                 padding: EdgeInsets.all(2),
                 child: Text(text, textAlign: TextAlign.left),
               ),
@@ -75,7 +74,6 @@ class MessageWidget extends ConsumerWidget {
     } else {
       return IntrinsicHeight(
         child: Container(
-          //color: PageStyle.c_71BCFF,
           padding: EdgeInsets.all(2),
           child: Row(
             children: [
@@ -85,9 +83,7 @@ class MessageWidget extends ConsumerWidget {
                 child: Column(
                   children: [
                     Container(
-                      //color: PageStyle.c_EB84CA,
                       alignment: Alignment.topCenter,
-                      //                      width: 40,
                       height: 40,
                       child: ListenableBuilder(
                         listenable: im,
@@ -115,7 +111,6 @@ class MessageWidget extends ConsumerWidget {
                           Text(
                             name,
                             textAlign: TextAlign.left,
-                            //textScaleFactor: 1.5,
                           ),
                           Text(desc, textAlign: TextAlign.left),
                           Text(time, textAlign: TextAlign.left),
@@ -125,7 +120,7 @@ class MessageWidget extends ConsumerWidget {
                       // msg
                       Container(
                         alignment: Alignment.topLeft,
-                        color: PageStyle.c_E8F2FF,
+                        color: bt.mentionBg,
                         padding: EdgeInsets.all(2),
                         child: Text(text, textAlign: TextAlign.left),
                       ),
@@ -212,6 +207,8 @@ class MessageBox extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final bt = Theme.of(context).extension<BuzzingTheme>()!;
     final im = ref.watch(imProvider);
     Widget render;
     switch (msg.tpy) {
@@ -305,7 +302,7 @@ class MessageBox extends ConsumerWidget {
                     // msg
                     Container(
                       alignment: Alignment.topLeft,
-                      color: PageStyle.c_E8F2FF,
+                      color: bt.mentionBg,
                       padding: EdgeInsets.all(2),
                       child: render,
                     ),

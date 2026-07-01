@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 
 class BottomNaviBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final bt = Theme.of(context).extension<BuzzingTheme>()!;
     return Container(
-        color: PageStyle.c_10CC64,
+        color: bt.success,
         width: 44.0,
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           Text("L", textAlign: TextAlign.center),

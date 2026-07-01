@@ -4,24 +4,25 @@ import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/models/model.dart';
 import 'package:flutter/material.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class FeedPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
         width: 260,
         margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
         child: Column(mainAxisAlignment: MainAxisAlignment.start, children: [
           Container(
               width: 260,
-              color: PageStyle.c_F0F0F0,
+              color: cs.surfaceVariant,
               child: Wrap(children: genSticker())),
           Expanded(
               child: Container(
             width: 260,
-            color: PageStyle.c_D8D8D8,
+            color: cs.outline,
             child: FeedListView(),
           ))
         ]));

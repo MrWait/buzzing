@@ -3,7 +3,7 @@ import 'package:buzzing/page/splash/splash_logic.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/res/images.dart';
 import 'package:buzzing/i18n/strings.g.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:buzzing/utils/screen_ext.dart';
@@ -19,6 +19,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
     final logic = ref.watch(splashLogicProvider);
     if (!_initialized) {
       _initialized = true;
@@ -41,7 +42,7 @@ class _SplashPageState extends ConsumerState<SplashPage> {
             top: 673.h,
             width: 375.w,
             child: Center(
-              child: Text(t.welcomeUse, style: PageStyle.ts_333333_16sp),
+              child: Text(t.welcomeUse, style: tt.bodyLarge),
             ),
           ),
         ],

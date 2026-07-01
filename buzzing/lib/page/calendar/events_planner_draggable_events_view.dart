@@ -1,4 +1,4 @@
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/utils/extension.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:flutter/material.dart';
@@ -45,11 +45,11 @@ class EventsPlannerDraggableEventsView extends StatelessWidget {
       daysHeaderParam: DaysHeaderParam(
         daysHeaderVisibility: daysShowed != 1,
         dayHeaderTextBuilder: (day) => DateFormat("E d").format(day),
-        daysHeaderColor: PageStyle.c_A2C9F8,
+        daysHeaderColor: Color(0xFFA2C9F8),
         topLeftCellBuilder: (day) => Center(
           child: Text(
             DateFormat("MMM").format(day),
-            style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+            style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold),
           ),
         ),
       ),
@@ -67,7 +67,7 @@ class EventsPlannerDraggableEventsView extends StatelessWidget {
       isToday: isToday,
       foregroundColor:
           //isDarkMode ? Theme.of(context).colorScheme.primary : null,
-          Colors.blueAccent,
+          Theme.of(context).colorScheme.primary,
     );
   }
 

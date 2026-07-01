@@ -13,6 +13,7 @@ import 'button.dart';
 class NaviBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final im = ref.watch(imProvider);
     var padding = 0.0;
     if (Platform.isMacOS) {
@@ -23,7 +24,7 @@ class NaviBar extends ConsumerWidget {
           windowManager.startDragging();
         },
         child: Container(
-            color: Colors.black12,
+            color: cs.onSurface.withValues(alpha: 0.12),
             width: 64.0,
             child:
                 Column(mainAxisAlignment: MainAxisAlignment.start, children: [
@@ -38,22 +39,22 @@ class NaviBar extends ConsumerWidget {
                   height: 40,
                   child: Icon(
                     Icons.search_rounded,
-                    color: Colors.lightBlue,
+                    color: cs.primary,
                   )),
               Container(height: 40, child: MainPopup(context)),
-              NaviButton(() {
+              NaviButton(context, () {
                 final router = GoRouter.of(context);
                 router.go(AppRoute.IM);
               }, Icons.message),
-              NaviButton(() {
+              NaviButton(context, () {
                 final router = GoRouter.of(context);
                 router.go(AppRoute.CALENDAR);
               }, Icons.calendar_month),
-              NaviButton(() {
+              NaviButton(context, () {
                 final router = GoRouter.of(context);
                 router.go(AppRoute.MEETING);
               }, Icons.video_call),
-              NaviButton(() {
+              NaviButton(context, () {
                 final router = GoRouter.of(context);
                 router.go(AppRoute.CONTACT);
               }, Icons.contact_page),

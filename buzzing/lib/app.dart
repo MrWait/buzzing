@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:buzzing/provider/app_state_provider.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/widget/app_view.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +28,12 @@ class BuzzingApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final appState = ref.watch(appStateProvider);
+    final themeMode = switch (appState.theme) {
+      1 => ThemeMode.light,
+      2 => ThemeMode.dark,
+      _ => ThemeMode.system,
+    };
     Future.delayed(Duration(milliseconds: 0), () async {
       return;
     });
@@ -34,6 +42,9 @@ class BuzzingApp extends ConsumerWidget {
         debugShowCheckedModeBanner: true,
         routerConfig: router,
         builder: builder,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: themeMode,
         localizationsDelegates: [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,

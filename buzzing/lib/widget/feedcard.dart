@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 
 // icon, title, msg, icon
 class FeedCard extends StatelessWidget {
@@ -14,6 +14,7 @@ class FeedCard extends StatelessWidget {
         onTap = onTap;
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       height: 54,
       width: 260,
@@ -24,7 +25,7 @@ class FeedCard extends StatelessWidget {
               Container(
                   height: 54,
                   width: 54,
-                  color: PageStyle.c_F0F0F0,
+                  color: cs.surfaceVariant,
                   child: Icon(icon, color: Colors.cyan)),
               Column(children: [
                 Expanded(

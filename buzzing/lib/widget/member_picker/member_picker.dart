@@ -1,6 +1,6 @@
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
-import 'package:buzzing/res/styles.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/widget/member_picker/contact_panel.dart';
 import 'package:buzzing/widget/member_picker/controller.dart';
 import 'package:buzzing/widget/member_picker/selected_panel.dart';
@@ -31,10 +31,11 @@ class MemberPickerPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       height: height,
       decoration: BoxDecoration(
-        border: Border.all(color: PageStyle.c_EEEEEE),
+        border: Border.all(color: cs.surfaceVariant),
         borderRadius: BorderRadius.circular(6),
       ),
       clipBehavior: Clip.antiAlias,
@@ -108,10 +109,11 @@ class _MemberPickerState extends State<MemberPicker> {
   }
 
   Widget _buildFooter() {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: PageStyle.c_EEEEEE)),
+        border: Border(top: BorderSide(color: cs.surfaceVariant)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
