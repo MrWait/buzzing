@@ -1,5 +1,6 @@
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/i18n/strings.g.dart';
+import 'package:buzzing/routes/app_routes.dart';
 import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/widget/avatar.dart';
 import 'package:flutter_popup/flutter_popup.dart';
@@ -57,7 +58,10 @@ Widget PersonalPopup(ImController im, BuildContext context, Int64 id,
               alignment: Alignment.centerLeft,
               child: Text(t.mySetting),
             ),
-            onTap: () {},
+            onTap: () {
+              Navigator.of(context).pop();
+              context.push(AppRoute.SETTINGS);
+            },
           ),
           GestureDetector(
             child: Container(

@@ -13,6 +13,7 @@ abstract class AppRoute {
   static const CONTACT = "/contact";
   static const CALENDAR = "/calendar";
   static const MEETING = "/meeting";
+  static const SETTINGS = "/settings";
 }
 
 extension RoutesExtention on String {

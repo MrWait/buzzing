@@ -5,6 +5,7 @@ import 'package:buzzing/page/contact/contact_view.dart';
 import 'package:buzzing/page/im/im_view.dart';
 import 'package:buzzing/page/login/login_view.dart';
 import 'package:buzzing/page/meeting/meeting_view.dart';
+import 'package:buzzing/page/setting/settings_page.dart';
 import 'package:buzzing/page/splash/splash_view.dart';
 import 'package:buzzing/routes/app_routes.dart';
 import 'package:flutter/material.dart';
@@ -63,6 +64,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           ctx,
           state,
           MeetingPage(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoute.SETTINGS,
+        pageBuilder: (ctx, state) => _noTransitionPage(
+          ctx,
+          state,
+          SettingsPage(),
         ),
       ),
     ],
