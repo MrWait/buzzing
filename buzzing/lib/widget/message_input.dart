@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:buzzing/utils/screencapture_pc.dart';
 import 'package:flutter/material.dart';
-import 'package:buzzing/widget/button.dart';
 import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,111 +13,79 @@ class MessageInput extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
     final im = ref.watch(imProvider);
     return Container(
-      height: 150,
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: cs.outlineVariant)),
+      ),
       child: ListenableBuilder(
         listenable: im,
-        builder: (ctx, _) => Scaffold(
-          floatingActionButton: im.showMentionPopup
-              ? MentionPopup(
-                  candidates: im.candidates,
-                  layerLink: im.layerLink,
-                  onTap: im.insertMention,
-                  offset: im.popuppOffset,
-                )
-              : null,
-          body: Column(
-            children: [
-              CompositedTransformTarget(
-                link: im.layerLink,
-                child: QuillEditor.basic(
-                  controller: im.quillController,
-                  config: QuillEditorConfig(
-                    minHeight: 100,
-                    maxHeight: 100,
-                    embedBuilders: [
-                      ...FlutterQuillEmbeds.editorBuilders(),
-                      MentionEmbedBuilder(),
-                    ],
-                  ),
-                ),
+        builder: (ctx, _) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (im.showMentionPopup)
+              MentionPopup(
+                candidates: im.candidates,
+                layerLink: im.layerLink,
+                onTap: im.insertMention,
+                offset: im.popuppOffset,
               ),
-              Container(
-                height: 32,
-                child: Row(
-                  spacing: 4,
-                  children: [
-                    Expanded(
-                      child: QuillSimpleToolbar(
-                        controller: im.quillController,
-                        config: QuillSimpleToolbarConfig(
-                          showRedo: false,
-                          showUndo: false,
-                          multiRowsDisplay: false,
-                          embedButtons: FlutterQuillEmbeds.toolbarButtons(),
-                        ),
-                      ),
-                    ),
-                    Container(width: 50),
-                    Button(
-                      enabled: true,
-                      text: "SC",
-                      textStyle: tt.bodyLarge?.copyWith(fontSize: 17),
-                      onTap: () async {
-                        if (Platform.isMacOS) {
-                          var granted =
-                              await FlutterMacosPermissions.requestScreenRecording();
-                        }
-                        await captureScreen(null);
-                      },
-                    ),
-                    Button(
-                      enabled: true,
-                      text: "E",
-                      textStyle: tt.bodyLarge?.copyWith(fontSize: 17),
-                      onTap: () async {},
-                    ),
-                    Button(
-                      enabled: true,
-                      text: "@",
-                      textStyle: tt.bodyLarge?.copyWith(fontSize: 17),
-                      onTap: () async {
-                      },
-                    ),
-                    Button(
-                      enabled: true,
-                      text: "C",
-                      textStyle: tt.bodyLarge?.copyWith(fontSize: 17),
-                      onTap: () async {},
-                    ),
-                    Button(
-                      enabled: true,
-                      text: "+",
-                      textStyle: tt.bodyLarge?.copyWith(fontSize: 17),
-                      onTap: () async {},
-                    ),
-                    Button(
-                      enabled: true,
-                      text: "P",
-                      textStyle: tt.bodyLarge?.copyWith(fontSize: 17),
-                      onTap: () async {},
-                    ),
-                    Button(
-                      enabled: true,
-                      text: "Send",
-                      textStyle: tt.bodyLarge?.copyWith(fontSize: 17),
-                      onTap: () {
-                        im.onSendMessage("");
-                      },
-                    ),
+            CompositedTransformTarget(
+              link: im.layerLink,
+              child: QuillEditor.basic(
+                controller: im.quillController,
+                config: QuillEditorConfig(
+                  minHeight: 80,
+                  maxHeight: 120,
+                  embedBuilders: [
+                    ...FlutterQuillEmbeds.editorBuilders(),
+                    MentionEmbedBuilder(),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+            Container(
+              height: 36,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: [
+                  _ToolbarBtn(icon: Icons.attach_file, onTap: () async {}),
+                  _ToolbarBtn(icon: Icons.emoji_emotions_outlined, onTap: () async {}),
+                  _ToolbarBtn(icon: Icons.alternate_email, onTap: () async {}),
+                  const Spacer(),
+                  _ToolbarBtn(
+                    icon: Icons.send,
+                    color: cs.primary,
+                    onTap: () => im.onSendMessage(""),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+class _ToolbarBtn extends StatelessWidget {
+  final IconData icon;
+  final Color? color;
+  final VoidCallback onTap;
+
+  const _ToolbarBtn({required this.icon, this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.translucent,
+      child: Container(
+        width: 32,
+        height: 32,
+        alignment: Alignment.center,
+        child: Icon(icon, size: 20, color: color ?? cs.onSurfaceVariant),
       ),
     );
   }
@@ -158,7 +125,6 @@ class MentionPopup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Positioned(
       width: 160,
       child: Container(
@@ -176,12 +142,14 @@ class MentionPopup extends StatelessWidget {
               itemCount: candidates.length,
               itemBuilder: (context, index) {
                 final name = candidates[index];
-                return ListTile(
-                  title: Text(name),
+                return InkWell(
                   onTap: () {
                     if (onTap != null) onTap!(name);
                   },
-                  hoverColor: cs.onSurfaceVariant,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    child: Text(name),
+                  ),
                 );
               },
             ),

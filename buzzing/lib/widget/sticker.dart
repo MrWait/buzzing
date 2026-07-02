@@ -8,12 +8,13 @@ class StickerWidget extends StatelessWidget {
         name = name;
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
         height: 60,
         width: 40,
         child: Column(
           children: [
-            Icon(icon, color: Colors.purple),
+            Icon(icon, color: cs.primary),
             Text("Name", textAlign: TextAlign.center),
           ],
         ));

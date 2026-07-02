@@ -1,11 +1,11 @@
 import 'dart:io';
 
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/widget/picker.dart';
 import 'package:buzzing/widget/profile.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:flutter_popup/flutter_popup.dart';
 import 'package:flutter/material.dart';
-import 'package:buzzing/res/theme.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -103,6 +103,7 @@ class HeaderBarWindows extends StatelessWidget {
 }
 
 Widget MainPopup(BuildContext context) {
+  final cs = Theme.of(context).colorScheme;
   return CustomPopup(
     content: Column(mainAxisSize: MainAxisSize.min, children: [
       GestureDetector(
@@ -115,12 +116,12 @@ Widget MainPopup(BuildContext context) {
               });
         },
         behavior: HitTestBehavior.translucent,
-        child: Text("Create Chat"),
+        child: Text(t.createGroup),
       )
     ]),
     child: Icon(
       Icons.add,
-      color: Theme.of(context).colorScheme.primary,
+      color: cs.primary,
     ),
   );
 }

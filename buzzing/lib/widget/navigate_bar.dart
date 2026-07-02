@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/routes/app_routes.dart';
 import 'package:buzzing/widget/header_bar.dart';
 import 'package:buzzing/widget/personal.dart';
@@ -13,6 +14,7 @@ import 'button.dart';
 class NaviBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final bt = Theme.of(context).extension<BuzzingTheme>()!;
     final cs = Theme.of(context).colorScheme;
     final im = ref.watch(imProvider);
     var padding = 0.0;
@@ -24,7 +26,7 @@ class NaviBar extends ConsumerWidget {
           windowManager.startDragging();
         },
         child: Container(
-            color: cs.onSurface.withValues(alpha: 0.12),
+            color: bt.navBarBg,
             width: 64.0,
             child:
                 Column(mainAxisAlignment: MainAxisAlignment.start, children: [
@@ -33,8 +35,12 @@ class NaviBar extends ConsumerWidget {
               ),
               ListenableBuilder(
                   listenable: im,
-                  builder: (ctx, _) => PersonalPopup(im, context, im.userId, im.avatar,
-                      im.getUserVer(im.userId))),
+                  builder: (ctx, _) => PersonalPopup(
+                    im: im,
+                    id: im.userId,
+                    url: im.avatar,
+                    ver: im.getUserVer(im.userId),
+                  )),
               Container(
                   height: 40,
                   child: Icon(

@@ -40,9 +40,9 @@ final meetingLogicProvider = Provider.autoDispose<MeetingLogic>((ref) {
 });
 
 final contactLogicProvider = Provider.autoDispose<ContactController>((ref) {
-  final sdk = ref.watch(sdkProvider);
   final im = ref.watch(imProvider);
-  final logic = ContactController(sdk: sdk, im: im);
+  final logic = ContactController(im: im);
+  Future.microtask(() => logic.enterOrgRoot());
   return logic;
 });
 

@@ -1,5 +1,5 @@
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
-import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/widget/member_picker/controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -31,7 +31,7 @@ class SelectedPanel extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            'Selected (${ctl.selectedMembers.length})',
+            t.selectedNum.replaceAll('%s', '${ctl.selectedMembers.length}'),
             style: tt.bodyMedium?.copyWith(fontSize: 13, color: cs.onSurfaceVariant),
           ),
         ],

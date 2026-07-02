@@ -1,4 +1,5 @@
 import 'package:buzzing/controller/im.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/widget/avatar.dart';
 import 'package:flutter_popup/flutter_popup.dart';
@@ -9,6 +10,7 @@ import 'package:fixnum/fixnum.dart';
 
 Widget ProfilePopup(ImController im, BuildContext context, Int64 id,
     String url, Int64 ver) {
+  final cs = Theme.of(context).colorScheme;
   var user = im.getUser(id);
   L.d("profile popup, get user: ${id}, ${user}");
   return CustomPopup(
@@ -20,9 +22,9 @@ Widget ProfilePopup(ImController im, BuildContext context, Int64 id,
         children: [
           Avatar(
             url,
-            Icon(Icons.account_circle_outlined, color: Colors.lightBlue),
+            Icon(Icons.account_circle_outlined, color: cs.primary),
           ),
-          Row(children: [Text("Name: "), Text(user?.name ?? "")]),
+          Row(children: [Text(user?.name ?? "")]),
           GestureDetector(
             onTap: () async {
               var chatId = await im.createP2PChat(id);
@@ -32,7 +34,7 @@ Widget ProfilePopup(ImController im, BuildContext context, Int64 id,
               Navigator.of(context).pop();
             },
             behavior: HitTestBehavior.translucent,
-            child: Text("Send Message"),
+            child: Text(t.sendMessage),
           ),
         ],
       ),
