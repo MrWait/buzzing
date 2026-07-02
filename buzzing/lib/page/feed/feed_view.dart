@@ -1,49 +1,44 @@
-import 'package:buzzing/models/const.dart';
-import 'package:buzzing/widget/sticker.dart';
 import 'package:buzzing/controller/im.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/provider/im_provider.dart';
-import 'package:buzzing/models/model.dart';
+import 'package:buzzing/widget/feedcard.dart';
 import 'package:flutter/material.dart';
-import 'package:buzzing/res/theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class FeedPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-        width: 260,
-        margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
-        child: Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-          Container(
-              width: 260,
-              color: cs.surfaceVariant,
-              child: Wrap(children: genSticker())),
-          Expanded(
-              child: Container(
-            width: 260,
-            color: cs.outline,
-            child: FeedListView(),
-          ))
-        ]));
-  }
-}
-
-class FeedListView extends ConsumerWidget {
+class FeedPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     final im = ref.watch(imProvider);
-    return ListenableBuilder(
+
+    return Container(
+      width: 300,
+      color: cs.surfaceVariant,
+      child: ListenableBuilder(
         listenable: im,
-        builder: (ctx, _) => ListView.separated(
-              itemCount: im.feedList.length,
-              itemBuilder: (context, index) {
-                return Model.feed(im.feedList[index].feed.id, im.entity, () {
-                  im.enterChat(im.feedList[index].feed.id);
-                });
-              },
-              separatorBuilder: (context, index) => Divider(height: 0.0),
-            ),
+        builder: (ctx, _) {
+          if (im.feedList.isEmpty) {
+            return Center(
+              child: Text(
+                '暂无对话',
+                style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+              ),
+            );
+          }
+          return ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              for (var m in im.feedList)
+                ConversationItem(
+                  model: m,
+                  selected: m.feed.id == im.chatId,
+                  onTap: () => im.enterChat(m.feed.id),
+                ),
+            ],
           );
+        },
+      ),
+    );
   }
 }

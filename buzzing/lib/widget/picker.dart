@@ -1,7 +1,7 @@
 import 'package:buzzing/controller/im.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/provider/im_provider.dart';
-import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/widget/member_picker/controller.dart';
 import 'package:buzzing/widget/member_picker/member_picker.dart';
 import 'package:flutter/material.dart';
@@ -46,13 +46,13 @@ class _ImChatCreaterState extends ConsumerState<ImChatCreater> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Create Group', style: tt.titleLarge),
+            Text(t.createGroup, style: tt.titleLarge),
             SizedBox(height: 16),
             TextField(
               controller: _ctl.chatNameInputCtrl,
               decoration: InputDecoration(
-                labelText: 'Group Name',
-                hintText: 'Enter group name',
+                labelText: t.groupName,
+                hintText: t.createGroupNameHint,
                 hintStyle: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
               ),
             ),
@@ -63,12 +63,12 @@ class _ImChatCreaterState extends ConsumerState<ImChatCreater> {
                 SizedBox(width: 12),
                 OutlinedButton(
                   onPressed: () {},
-                  child: Text('Change'),
+                  child: Text(t.edit),
                 ),
               ],
             ),
             SizedBox(height: 16),
-            Text('Members', style: tt.bodyMedium),
+            Text(t.groupMember, style: tt.bodyMedium),
             SizedBox(height: 8),
             Expanded(
               child: ListenableBuilder(
@@ -91,7 +91,7 @@ class _ImChatCreaterState extends ConsumerState<ImChatCreater> {
             _memberCtl.reset();
             Navigator.of(context).pop();
           },
-          child: Text('Cancel'),
+          child: Text(t.cancel),
         ),
         ElevatedButton(
           onPressed: () {
@@ -102,7 +102,7 @@ class _ImChatCreaterState extends ConsumerState<ImChatCreater> {
               navigator.pop();
             });
           },
-          child: Text('Create'),
+          child: Text(t.completeCreation),
         ),
       ],
     );

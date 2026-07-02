@@ -10,7 +10,6 @@ import 'package:buzzing/models/idl/sdk.pb.dart';
 import 'package:buzzing/models/idl/message.pb.dart';
 import 'package:buzzing/models/idl/user.pb.dart';
 import 'package:buzzing/widget/message.dart';
-import 'package:buzzing/widget/feedcard.dart';
 import 'package:buzzing/utils/logger_util.dart';
 
 class UnionConfig {
@@ -252,81 +251,20 @@ class Model {
   static Widget messageBox(Int64 id, Int64 userId, Entity entity) {
     var msg = entity.messages[id];
     if (msg != null) {
-      var desc = "(" + msg.pos.toString() + ", " + msg.id.toString() + ")";
-      var user = entity.users[msg.fromId];
-      var avatar = "";
-      var name = "";
-      if (user != null) {
-        return MessageBox(msg: msg, user: user);
-      }
-
-      return MessageWidget(
-        icon: "M",
-        desc: desc,
-        simple: false,
-        text: msg.summary,
-        avatar: avatar,
-        userId: userId,
-        name: name,
-      );
-    } else {
-      return MessageWidget(simple: true, text: "Error", userId: 0);
+      var user = entity.users[msg.fromId] ?? User();
+      return MessageBox(msg: msg, user: user);
     }
-  }
-
-  static Widget message(Int64 id, Int64 userId, Entity entity) {
-    var msg = entity.messages[id];
-    if (msg != null) {
-      var desc = "(" + msg.pos.toString() + ", " + msg.id.toString() + ")";
-      var avatar = "";
-      var name = "";
-      var user = entity.users[msg.fromId];
-      if (user != null) {
-        avatar = user.avatar;
-        name = user.name;
-      }
-
-      return MessageWidget(
-        icon: "M",
-        desc: desc,
-        simple: false,
-        text: msg.summary,
-        avatar: avatar,
-        userId: userId,
-        name: name,
-      );
-    } else {
-      return MessageWidget(simple: true, text: "Error", userId: 0);
-    }
+    var fallbackUser = entity.users[userId] ?? User();
+    return MessageBox(msg: Message(), user: fallbackUser);
   }
 
   static Widget feed(Int64 id, Entity entity, Function onTap) {
     var feed = entity.feeds[id];
     if (feed == null) {
       L.w("feed not exists in entity: ${id}");
-      return FeedCard(
-        icon: Icons.group,
-        title: "Error" + id.toString(),
-        onTap: () {},
-      );
+      return Container();
     }
-    var msg = entity.messages[feed.referId];
-    var m = feed.rankTimeMs.toString();
-    if (msg != null) {
-      m = m + ", " + msg.summary;
-    }
-
-    var title = "";
-    var chat = entity.chats[feed.id];
-    if (chat != null) {
-      title = chat.name;
-    }
-
-    if (title.length == 0) {
-      title = "[" + id.toString() + "]";
-    }
-
-    return FeedCard(icon: Icons.group, title: title, msg: m, onTap: onTap);
+    return Container();
   }
 }
 
