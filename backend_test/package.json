@@ -1,0 +1,16 @@
+{
+  "name": "buzzing-backend-test",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --test test/**/*.test.js",
+    "test:smoke": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --test test/smoke/*.test.js",
+    "test:business": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --test test/user/*.test.js test/im/*.test.js test/calendar/*.test.js test/setting/*.test.js"
+  },
+  "dependencies": {
+    "json-bigint": "^1.0.0",
+    "protobufjs": "^7.4.0",
+    "ws": "^8.18.0"
+  }
+}

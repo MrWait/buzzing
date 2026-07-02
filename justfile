@@ -34,7 +34,7 @@ cidl:
 clib:
     cd buzzing && python3 util.py -c lib -t debug -i ../sdk
 
-# 客户端生成 debug 模式 SDK
+# 客户端生成 release 模式 SDK
 cdeploy:
     cd buzzing && python3 util.py -c lib -t release -i ../sdk
 
@@ -46,9 +46,13 @@ cbuild:
 cjson:
     cd buzzing && flutter packages pub run build_runner build
 
-# 使用脚本初始化用户数据，包括账户、租户、部门等，用于快速生成测试数据
+# 初始化用户数据（账户、租户、部门）。默认 init.json，可用 -s 指定文件
 init_data:
     cd utils && NODE_TLS_REJECT_UNAUTHORIZED=0 node init.js
+
+# 使用测试租户数据初始化
+init_data_test:
+    cd utils && NODE_TLS_REJECT_UNAUTHORIZED=0 node init.js -s ./init_test.json
 
 # 修复 macos 端 pod 版本问题
 client_macos_fix_pod:
@@ -61,3 +65,11 @@ client_gen_slang:
 # SDK 集成测试 (编译 Rust 库 + 运行 dart 测试)
 sdk_test:
     cd buzzing/sdk_test && bash run.sh
+
+# 后端业务测试 (需要服务端运行中)
+backend_test:
+    cd backend_test && npm run test:business
+
+# 后端 smoke 测试 (连通性 + 登录流程)
+backend_test_smoke:
+    cd backend_test && npm run test:smoke

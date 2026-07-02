@@ -1,7 +1,10 @@
 const axios = require('axios');
 const { readFileSync } = require('fs');
-const source = require('./init.json');
-// const source = require('./test.json');
+const { resolve } = require('path');
+
+const srcArgIdx = process.argv.indexOf('-s');
+const srcFile = srcArgIdx !== -1 ? process.argv[srcArgIdx + 1] : './init.json';
+const source = JSON.parse(readFileSync(resolve(__dirname, srcFile), 'utf-8'));
 const jsonbig = require('json-bigint');
 const proto = require('./proto.js');
 const protobuf = require('protobufjs')
