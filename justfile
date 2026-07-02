@@ -57,3 +57,7 @@ client_macos_fix_pod:
 # 客户端生成多语言代码
 client_gen_slang:
     cd buzzing && dart run slang
+
+# SDK 集成测试 (编译 Rust 库 + 运行 dart 测试)
+sdk_test:
+    cd buzzing/sdk_test && bash run.sh

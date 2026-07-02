@@ -1,0 +1,112 @@
+# Contact business interface test spec
+# Covers user & dept related commands from command.proto
+
+version: 1.0
+module: contact
+commands:
+  - USER_GET_BY_IDS (1300)
+  - DEPT_GET_BY_ID (1350)
+
+precondition_flow:
+  description: >
+    测试启动时执行以下流程：
+    1. 从默认 union server (https://www.buzzing-im.com:5150) 下载 client config (GET /config/client)
+    2. 通过手机号密码登录 (POST /api/accounts/login)
+    3. 选择非 personal 身份 (tenant.id != 0)
+    4. 调用 SDK login (Command.USER_LOGIN, 1001)
+    5. 保存 union config、account、loginUser、token 到 store/session.json
+    6. 再次运行时先检查 session.json，校验 token 未过期后直接复用
+
+default_credentials:
+  server: "https://www.buzzing-im.com:5150"
+  phone: "10011110002"
+  password: "123456"
+  identity: "non-personal (tenant.id != 0)"
+
+session_persistence:
+  file: store/session.json
+  fields:
+    - server / port / unionConfig
+    - account (Account protobuf JSON)
+    - loginUser (LoginUser protobuf JSON, 含 user / token / tenant / tokenExpire)
+
+token_expiry_check:
+  description: 通过 LoginUser.tokenExpire (ms epoch) 与本地时间比较，过期则重新走完整流程
+
+groups:
+  - name: User Queries
+    id: user_queries
+    cases:
+      - id: USER_SINGLE_KNOWN
+        description: 查询单个已知用户 (已登录用户)，校验返回字段完整性
+        command: USER_GET_BY_IDS
+        input: { ids: ["<loggedInUserId>"] }
+        asserts:
+          - resp.status == 200
+          - resp.users.length == 1
+          - users[0].id == loggedInUserId
+          - users[0].name is not empty
+          - users[0].tenantId >= 1
+
+      - id: USER_EMPTY_IDS
+        description: 传入空 ids 列表，返回空 users
+        command: USER_GET_BY_IDS
+        input: { ids: [] }
+        asserts:
+          - resp.status == 200
+          - resp.users is empty
+
+      - id: USER_MIXED_IDS
+        description: 已知 + 未知 id，仅返回已知用户
+        command: USER_GET_BY_IDS
+        input: { ids: ["<loggedInUserId>", 99999] }
+        asserts:
+          - resp.status == 200
+          - resp.users.length == 1
+          - users[0].id == loggedInUserId
+
+      - id: USER_ALL_UNKNOWN
+        description: 全部不存在的 id，返回空 users
+        command: USER_GET_BY_IDS
+        input: { ids: [99999] }
+        asserts:
+          - resp.status == 200
+          - resp.users is empty
+
+  - name: Department Query
+    id: dept_queries
+    depends_on: user_queries.USER_SINGLE_KNOWN
+    cases:
+      - id: DEPT_KNOWN
+        description: 查询用户所在部门，校验 Department 字段完整性
+        command: DEPT_GET_BY_ID
+        input: { id: "<from user.deptId>", recursive: false }
+        asserts:
+          - resp.status == 200
+          - resp.depts is not empty
+          - dept.name is not empty
+          - dept.tenantId >= 1
+          - dept.version > 0
+
+      - id: DEPT_UNKNOWN
+        description: 不存在的部门 id，返回空 depts
+        command: DEPT_GET_BY_ID
+        input: { id: 999999, recursive: false }
+        asserts:
+          - resp.status == 200
+          - resp.depts is empty
+
+      - id: DEPT_RECURSIVE
+        description: 递归查询，返回子部门 + 成员
+        command: DEPT_GET_BY_ID
+        input: { id: "<from user.deptId>", recursive: true }
+        asserts:
+          - resp.status == 200
+          - resp.depts is not empty
+
+      - id: DEPT_USERS_VALID
+        description: 返回的 users map 中每个 value 可正确反序列化为 User
+        command: DEPT_GET_BY_ID
+        input: { id: "<from user.deptId>", recursive: true }
+        asserts:
+          - resp.users entries each have valid User with id > 0 and non-empty name

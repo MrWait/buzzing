@@ -30,6 +30,8 @@ Buzzing 是一个企业级协作平台（类飞书/钉钉/Slack），包含完�
 | `buzzing/` | Flutter 客户端 |
 | `proto/` | 共享 Protobuf 定义 |
 | `docs/` | 项目文档 |
+| `buzzing/sdk_test/` | 基于 dart 的自动化测试框架 |
+| `utils` | 使用 js 的数据初始化工具 |
 
 ### 后端模块
 
@@ -58,6 +60,9 @@ Buzzing 是一个企业级协作平台（类飞书/钉钉/Slack），包含完�
 - 客户端实现业务中展示、用户交互的部分，SDK 负责实现业务逻辑（网络接口、服务端交互、数据同步、数据存储、日志、埋点等非 UI 功能）。
 - SDK 原则上仅使用 rust 技术栈，如果某个功能无法使用 rust 实现，或者 rust 实现效果比较差，先进行询问。
 - 在实现用户请求的功能时，如果功能较为复杂，先给出方案，由用户审核。
+- 客户端代码中，style 必须使用 theme.dart 中的定义，不允许硬编码样式。如果 theme.dart 中无适合类型，可自行增加。
+- 添加自动化测试用例，需添加 spec 文件，用于描述用例。且测试用例和 spec 要同步修改。
+
 
 ## 文档导航
 
@@ -71,6 +76,8 @@ Buzzing 是一个企业级协作平台（类飞书/钉钉/Slack），包含完�
 | `docs/database.md` | 数据库表结构、CMV 位向量 |
 | `docs/calendar-layout-algorithm.md` | 日历重叠日程排列算法 |
 | `docs/calendar/calendar_p1.md` | 日历业务功能 PRD (Phase 1) |
+| `docs/theme.md` | 客户端主题设计方案 |
+
 
 ## 编译命令
 常用命令都在 justfile 中，大部分命令都可以通过 just 运行。如果新增命令或脚本，建议添加到 justfile。
