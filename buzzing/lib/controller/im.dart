@@ -591,14 +591,6 @@ class FeedModel {
   late Chat? chat;
   late Message? message;
 
-  Widget build(Function onTap) {
-    return FeedCard(
-      icon: Icons.group,
-      title: id.toString(),
-      msg: "M1",
-      onTap: () {},
-    );
-  }
 }
 
 class MessageIndex {

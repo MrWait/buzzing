@@ -1,3 +1,4 @@
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/utils/common_utils.dart';
@@ -36,7 +37,7 @@ class ContactPanel extends StatelessWidget {
       child: TextField(
         onChanged: ctl.search,
         decoration: InputDecoration(
-          hintText: 'Search members...',
+          hintText: t.search,
           hintStyle: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
           prefixIcon: Icon(Icons.search, color: cs.onSurfaceVariant, size: 20),
           filled: true,
@@ -64,7 +65,7 @@ class ContactPanel extends StatelessWidget {
 
   Widget _buildSearchResults(ColorScheme cs, TextTheme tt) {
     if (ctl.searchResults.isEmpty) {
-      return Center(child: Text('No results', style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant)));
+      return Center(child: Text(t.noSearchResult, style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant)));
     }
     return ListView.builder(
       itemCount: ctl.searchResults.length,
@@ -92,7 +93,7 @@ class ContactPanel extends StatelessWidget {
           children: [
             Icon(Icons.account_tree_outlined, size: 20, color: cs.onSurfaceVariant),
             SizedBox(width: 10),
-            Text('Contacts', style: tt.bodyMedium),
+            Text(t.contacts, style: tt.bodyMedium),
             Spacer(),
             Icon(Icons.chevron_right, size: 20, color: cs.onSurfaceVariant),
           ],

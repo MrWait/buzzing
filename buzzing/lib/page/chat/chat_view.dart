@@ -2,59 +2,105 @@ import 'package:buzzing/models/const.dart';
 import 'package:buzzing/models/model.dart';
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/provider/im_provider.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/widget/message_input.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
-import 'package:buzzing/res/theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ChatPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
     final bt = Theme.of(context).extension<BuzzingTheme>()!;
     final im = ref.watch(imProvider);
     return Container(
       color: bt.mentionBg,
-      margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
-      padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
       child: ListenableBuilder(
         listenable: im,
         builder: (ctx, _) {
-        var chatId = im.chatId;
-        var chat = im.getChat(chatId);
-        if (chatId == 0) {
-          return Column(mainAxisSize: MainAxisSize.max, children: []);
-        } else {
-          var name = "";
-          if (chat != null) {
-            name = chat.name;
-          }
-          if (name.length > 40) {
-            name = name.substring(0, 40) + "...";
-          }
-          name = name + "(" + chatId.toString() + ")";
-
-          return Column(
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              Container(
-                color: bt.mentionBg,
-                height: 44.0,
-                child: Row(
-                  children: [
-                    Icon(Icons.group),
-                    Text(name, textAlign: TextAlign.center),
-                    Spacer(),
-                  ],
+          var chatId = im.chatId;
+          var chat = im.getChat(chatId);
+          if (chatId == 0) {
+            return Center(
+              child: Text(
+                '选择一个会话开始聊天',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
+            );
+          }
+          return Column(
+            children: [
+              _ChatHeader(chat: chat, chatId: chatId),
               Expanded(child: MessageView()),
               MessageInput(),
             ],
           );
-        }
-      }),
+        },
+      ),
+    );
+  }
+}
+
+class _ChatHeader extends StatelessWidget {
+  final dynamic chat;
+  final Int64 chatId;
+
+  const _ChatHeader({required this.chat, required this.chatId});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    var name = '';
+    if (chat != null) {
+      name = chat.name;
+    }
+    if (name.length > 40) name = '${name.substring(0, 40)}...';
+
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: cs.primary,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              name.isNotEmpty ? name[0].toUpperCase() : '?',
+              style: tt.bodySmall?.copyWith(color: cs.onPrimary),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(name, style: tt.titleSmall),
+          ),
+          IconButton(
+            icon: Icon(Icons.search, size: 20, color: cs.onSurfaceVariant),
+            onPressed: () {},
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+          IconButton(
+            icon: Icon(Icons.more_horiz, size: 20, color: cs.onSurfaceVariant),
+            onPressed: () {},
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -71,15 +117,13 @@ class MessageView extends ConsumerWidget {
         return Container(
           color: cs.surface,
           child: SelectionArea(
-            child: ListView.separated(
+            child: ListView.builder(
               controller: im.msgCtrl,
               itemCount: im.messagePosList.length,
               itemBuilder: (context, index) {
                 var msg = im.messagePosList[index];
-
                 return Model.messageBox(msg.id, msg.fromId, im.entity);
               },
-              separatorBuilder: (context, index) => Divider(height: 5.0),
             ),
           ),
         );

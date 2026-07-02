@@ -1,226 +1,38 @@
 import 'dart:convert';
-import 'dart:math';
 
-import 'package:buzzing/widget/profile.dart';
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:buzzing/res/theme.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
 
-class MessageWidget extends ConsumerWidget {
-  late final String icon;
-  late final String name;
-  late final String desc;
-  late final String time;
-  late final String text;
-  late final String avatar;
-  late final Int64 userId;
-  late final GlobalKey? key;
-  late bool simple;
-  MessageWidget({
-    icon = "",
-    name = "",
-    desc = "",
-    time = "",
-    avatar = "",
-    key,
-    simple = false,
-    required text,
-    required userId,
-  }) : icon = icon,
-       desc = desc,
-       name = name,
-       time = time,
-       simple = simple,
-       avatar = avatar,
-       userId = userId,
-       text = text,
-       key = key;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final im = ref.watch(imProvider);
-    return renderMsg(context, im);
-  }
-
-  Widget renderMsg(context, ImController im) {
-    final cs = Theme.of(context).colorScheme;
-    final bt = Theme.of(context).extension<BuzzingTheme>()!;
-    if (simple) {
-      return Container(
-        padding: EdgeInsets.all(2),
-        child: Row(
-          children: [
-            Container(
-              color: Color(0xFFeb84ca),
-              width: 40,
-            ),
-            Expanded(
-              child: Container(
-                alignment: Alignment.topLeft,
-                color: bt.mentionBg,
-                padding: EdgeInsets.all(2),
-                child: Text(text, textAlign: TextAlign.left),
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      return IntrinsicHeight(
-        child: Container(
-          padding: EdgeInsets.all(2),
-          child: Row(
-            children: [
-              // icon
-              Container(
-                width: 40,
-                child: Column(
-                  children: [
-                    Container(
-                      alignment: Alignment.topCenter,
-                      height: 40,
-                      child: ListenableBuilder(
-                        listenable: im,
-                        builder: (ctx, _) => ProfilePopup(
-                          im,
-                          context,
-                          userId,
-                          avatar,
-                          im.getUserVer(userId),
-                        ),
-                      ),
-                    ),
-                    Spacer(),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Container(
-                  alignment: Alignment.topLeft,
-                  child: Column(
-                    children: [
-                      // detail
-                      Row(
-                        children: [
-                          Text(
-                            name,
-                            textAlign: TextAlign.left,
-                          ),
-                          Text(desc, textAlign: TextAlign.left),
-                          Text(time, textAlign: TextAlign.left),
-                          Spacer(),
-                        ],
-                      ),
-                      // msg
-                      Container(
-                        alignment: Alignment.topLeft,
-                        color: bt.mentionBg,
-                        padding: EdgeInsets.all(2),
-                        child: Text(text, textAlign: TextAlign.left),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-  }
-}
-
-String genText(int len) {
-  const src = '+-*=?AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz';
-  Random random = Random();
-  return String.fromCharCodes(
-    Iterable.generate(len, (_) => src.codeUnitAt(random.nextInt(src.length))),
-  );
-}
-
-List<Widget> genMessages() {
-  return <Widget>[
-    MessageWidget(simple: true, text: genText(2000), userId: 0),
-    Container(height: 2),
-    MessageWidget(
-      simple: false,
-      icon: "I1",
-      name: "N1",
-      desc: "D1",
-      text: genText(20),
-      userId: 0,
-    ),
-    Container(height: 2),
-    MessageWidget(
-      simple: false,
-      icon: "I1",
-      name: "N1",
-      desc: "D1",
-      text: genText(200),
-      userId: 0,
-    ),
-    Container(height: 2),
-    MessageWidget(
-      simple: false,
-      icon: "I1",
-      name: "N1",
-      desc: "D1",
-      text: genText(5),
-      userId: 0,
-    ),
-    Container(height: 2),
-    MessageWidget(simple: true, text: genText(140), userId: 0),
-    Container(height: 2),
-    MessageWidget(simple: true, text: genText(140), userId: 0),
-    Container(height: 2),
-    MessageWidget(simple: true, text: genText(140), userId: 0),
-    Container(height: 2),
-    MessageWidget(simple: true, text: genText(140), userId: 0),
-    Container(height: 2),
-    MessageWidget(simple: true, text: genText(140), userId: 0),
-    Container(height: 2),
-    MessageWidget(simple: true, text: genText(140), userId: 0),
-    Container(height: 2),
-    MessageWidget(
-      simple: false,
-      icon: "I1",
-      name: "N1",
-      desc: "D1",
-      text: genText(1400),
-      userId: 0,
-    ),
-  ];
-}
-
 class MessageBox extends ConsumerWidget {
   final User user;
   final Message msg;
-  var controller = QuillController.basic();
 
-  MessageBox({required msg, required user}) : user = user, msg = msg;
+  MessageBox({required this.msg, required this.user});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
-    final bt = Theme.of(context).extension<BuzzingTheme>()!;
+    final tt = Theme.of(context).textTheme;
     final im = ref.watch(imProvider);
+    final isSelf = msg.fromId == im.userId;
+    final showAvatar = !isSelf;
+
     Widget render;
     switch (msg.tpy) {
-      // MessageType.TEXT.value:
       case 1:
         var m = MessageText.fromBuffer(msg.content);
-        render = Text(m.text, textAlign: TextAlign.left);
+        render = Text(m.text, style: tt.bodyMedium);
         break;
-      // MessageType.RICH_TEXT_QUILL.value
       case 11:
         var m = MessageText.fromBuffer(msg.content);
         try {
+          final controller = QuillController.basic();
           controller.document = Document.fromJson(jsonDecode(m.text));
           controller.readOnly = true;
           render = QuillEditor.basic(
@@ -232,87 +44,87 @@ class MessageBox extends ConsumerWidget {
               embedBuilders: FlutterQuillEmbeds.editorBuilders(),
             ),
           );
-        } catch (e) {
-          render = Text(msg.summary, textAlign: TextAlign.left);
+        } catch (_) {
+          render = Text(msg.summary, style: tt.bodyMedium);
         }
         break;
       default:
-        render = Text(msg.summary, textAlign: TextAlign.left);
-        break;
+        render = Text(msg.summary, style: tt.bodyMedium);
     }
-    return IntrinsicHeight(
-      child: Container(
-        //color: PageStyle.c_71BCFF,
-        padding: EdgeInsets.all(2),
-        child: Row(
-          children: [
-            // icon
-            Container(
-              width: 40,
-              child: Column(
-                children: [
-                  Container(
-                    //color: PageStyle.c_EB84CA,
-                    alignment: Alignment.topCenter,
-                    //                      width: 40,
-                    height: 40,
-                    child: ListenableBuilder(
-                      listenable: im,
-                      builder: (ctx, _) => ProfilePopup(
-                        im,
-                        context,
-                        user.id,
-                        user.avatar,
-                        im.getUserVer(user.id),
-                      ),
+
+    final bubbleColor = isSelf ? cs.primary : cs.surfaceContainerHigh;
+    final textColor = isSelf ? cs.onPrimary : cs.onSurface;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        mainAxisAlignment: isSelf ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (showAvatar) ...[
+            _buildAvatar(cs, tt, im, user),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: Column(
+              crossAxisAlignment: isSelf ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                if (showAvatar)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Text(
+                      user.name,
+                      style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                     ),
                   ),
-                  Spacer(),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Container(
-                alignment: Alignment.topLeft,
-                child: Column(
-                  children: [
-                    // detail
-                    Row(
-                      children: [
-                        Text(
-                          user.name,
-                          textAlign: TextAlign.left,
-                          //textScaleFactor: 1.5,
-                        ),
-                        Text(
-                          "(" +
-                              msg.pos.toString() +
-                              ", " +
-                              msg.id.toString() +
-                              ")",
-                          textAlign: TextAlign.left,
-                        ),
-                        Text(
-                          msg.updateTimeMs.toString(),
-                          textAlign: TextAlign.left,
-                        ),
-                        Spacer(),
-                      ],
-                    ),
-                    // msg
-                    Container(
-                      alignment: Alignment.topLeft,
-                      color: bt.mentionBg,
-                      padding: EdgeInsets.all(2),
-                      child: render,
-                    ),
-                  ],
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: bubbleColor,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: DefaultTextStyle(
+                    style: tt.bodyMedium!.copyWith(color: textColor),
+                    child: render,
+                  ),
                 ),
-              ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    _formatTime(msg.createTimeMs),
+                    style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
+          if (isSelf) const SizedBox(width: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatar(ColorScheme cs, TextTheme tt, ImController im, User u) {
+    return GestureDetector(
+      onTap: () {},
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: cs.primary,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          u.name.isNotEmpty ? u.name[0].toUpperCase() : '?',
+          style: tt.bodySmall?.copyWith(color: cs.onPrimary),
         ),
       ),
     );
+  }
+
+  String _formatTime(Int64 ms) {
+    var dt = DateTime.fromMillisecondsSinceEpoch(ms.toInt());
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }

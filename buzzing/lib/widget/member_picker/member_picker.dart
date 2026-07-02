@@ -1,6 +1,6 @@
 import 'package:buzzing/controller/im.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
-import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/widget/member_picker/contact_panel.dart';
 import 'package:buzzing/widget/member_picker/controller.dart';
 import 'package:buzzing/widget/member_picker/selected_panel.dart';
@@ -120,7 +120,7 @@ class _MemberPickerState extends State<MemberPicker> {
         children: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cancel'),
+            child: Text(t.cancel),
           ),
           SizedBox(width: 8),
           ElevatedButton(
@@ -128,7 +128,7 @@ class _MemberPickerState extends State<MemberPicker> {
               ctl.confirm();
               Navigator.of(context).pop();
             },
-            child: Text('Confirm'),
+            child: Text(t.ok),
           ),
         ],
       ),
