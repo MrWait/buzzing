@@ -481,6 +481,7 @@ message Schedule {
     repeated int64 member_ids = 29;
     repeated int32 notify_time = 30;
     ScheduleCycleRule cycle = 31;
+    int32 modify_scope = 32; // 0: 仅此, 1: 全部, 2: 以后（仅客户端使用）
 }
 
 // by day => seq: 0, week_seqs: [0, 1, 2, 3, 4, ?5, ?6]
@@ -509,7 +510,7 @@ message ScheduleCycleRule {
     int64 start_at = 3;
     int64 stop_at = 4;
     CycleRule rule = 5;
-    repeated int64 exception_ids = 6;
+    repeated int64 exception_times = 6;  // 存例外实例的 start_time（原 exception_ids）
     int64 version = 7;
 
     // Schedule template;

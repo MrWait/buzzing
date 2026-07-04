@@ -29,6 +29,8 @@ message CalendarDeleteResponse {}
 
 message CalendarSearchRequest {
     string key = 1;
+    int32 limit = 2;   // default 20
+    int32 offset = 3;
 }
 message CalendarSearchResponse {
     repeated entity.Calendar calendars = 1;
@@ -58,13 +60,13 @@ message ScheduleCreateResponse {
 message ScheduleRemoveRequest {
     int64 id = 1;
     int64 cycle_id = 2;
-    bool with_all = 3;
+    int32 modify_scope = 3; // 0: 仅此, 1: 全部, 2: 以后
 }
 message ScheduleRemoveResponse {}
 
 message ScheduleUpdateRequest {
     entity.Schedule schedule = 1;
-    bool with_all = 3;
+    int32 modify_scope = 3; // 0: 仅此, 1: 全部, 2: 以后
 }
 message ScheduleUpdateResponse {
     entity.Schedule schedule = 1;
@@ -108,4 +110,21 @@ message SchedulePullByCycleRequest {
 }
 message SchedulePullByCycleResponse {
     repeated entity.Schedule schedules = 1;
+}
+
+// 服务端→客户端：批量日程删除推送
+message ScheduleDeletePush {
+    repeated int64 ids = 1;           // 逐个删：实例 ID 列表
+    int64 cycle_rule_id = 2;          // 批量删：删除整个 cycled 的所有实例
+    int64 start_time = 3;             // 批量删：删除 cycle_rule_id 下 start_time >= 此值的实例
+}
+
+// 服务端→客户端：日程提醒推送
+message ScheduleRemindPush {
+    int64 schedule_id = 1;
+    int64 start_time = 2;
+    int64 end_time = 3;
+    string title = 4;
+    string location = 5;
+    int32 notify_minute = 6;
 }

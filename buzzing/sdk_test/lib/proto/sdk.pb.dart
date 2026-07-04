@@ -8,7 +8,7 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:core' as $core;
 
@@ -75,7 +75,7 @@ class InitRequest extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'InitRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'sdk'),
       createEmptyInstance: create)
-    ..a<$core.int>(1, _omitFieldNames ? '' : 'deviceType', $pb.PbFieldType.O3)
+    ..aI(1, _omitFieldNames ? '' : 'deviceType')
     ..aOS(2, _omitFieldNames ? '' : 'appId')
     ..aOS(3, _omitFieldNames ? '' : 'appVersion')
     ..aOS(4, _omitFieldNames ? '' : 'deviceId')
@@ -84,9 +84,7 @@ class InitRequest extends $pb.GeneratedMessage {
     ..aOS(8, _omitFieldNames ? '' : 'locale')
     ..aOS(9, _omitFieldNames ? '' : 'commonDataPath')
     ..aOS(10, _omitFieldNames ? '' : 'osVersion')
-    ..e<$0.EnvChannel>(11, _omitFieldNames ? '' : 'env', $pb.PbFieldType.OE,
-        defaultOrMaker: $0.EnvChannel.ENV_UNKNOWN,
-        valueOf: $0.EnvChannel.valueOf,
+    ..aE<$0.EnvChannel>(11, _omitFieldNames ? '' : 'env',
         enumValues: $0.EnvChannel.values)
     ..aOS(12, _omitFieldNames ? '' : 'pathPrefix')
     ..aOS(13, _omitFieldNames ? '' : 'customLogPath')
@@ -102,7 +100,7 @@ class InitRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  InitRequest clone() => InitRequest()..mergeFromMessage(this);
+  InitRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   InitRequest copyWith(void Function(InitRequest) updates) =>
       super.copyWith((message) => updates(message as InitRequest))
@@ -115,7 +113,6 @@ class InitRequest extends $pb.GeneratedMessage {
   static InitRequest create() => InitRequest._();
   @$core.override
   InitRequest createEmptyInstance() => create();
-  static $pb.PbList<InitRequest> createRepeated() => $pb.PbList<InitRequest>();
   @$core.pragma('dart2js:noInline')
   static InitRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<InitRequest>(create);
@@ -290,16 +287,16 @@ class InvokeRequest extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'InvokeRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'sdk'),
       createEmptyInstance: create)
-    ..a<$core.int>(1, _omitFieldNames ? '' : 'seq', $pb.PbFieldType.O3)
-    ..a<$core.int>(2, _omitFieldNames ? '' : 'command', $pb.PbFieldType.O3)
+    ..aI(1, _omitFieldNames ? '' : 'seq')
+    ..aI(2, _omitFieldNames ? '' : 'command')
     ..aInt64(4, _omitFieldNames ? '' : 'userId')
-    ..a<$core.int>(5, _omitFieldNames ? '' : 'source', $pb.PbFieldType.O3)
+    ..aI(5, _omitFieldNames ? '' : 'source')
     ..a<$core.List<$core.int>>(
         20, _omitFieldNames ? '' : 'payload', $pb.PbFieldType.OY)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  InvokeRequest clone() => InvokeRequest()..mergeFromMessage(this);
+  InvokeRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   InvokeRequest copyWith(void Function(InvokeRequest) updates) =>
       super.copyWith((message) => updates(message as InvokeRequest))
@@ -312,8 +309,6 @@ class InvokeRequest extends $pb.GeneratedMessage {
   static InvokeRequest create() => InvokeRequest._();
   @$core.override
   InvokeRequest createEmptyInstance() => create();
-  static $pb.PbList<InvokeRequest> createRepeated() =>
-      $pb.PbList<InvokeRequest>();
   @$core.pragma('dart2js:noInline')
   static InvokeRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<InvokeRequest>(create);
@@ -393,15 +388,15 @@ class InvokeResponse extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'InvokeResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'sdk'),
       createEmptyInstance: create)
-    ..a<$core.int>(1, _omitFieldNames ? '' : 'seq', $pb.PbFieldType.O3)
-    ..a<$core.int>(2, _omitFieldNames ? '' : 'status', $pb.PbFieldType.O3)
+    ..aI(1, _omitFieldNames ? '' : 'seq')
+    ..aI(2, _omitFieldNames ? '' : 'status')
     ..aInt64(3, _omitFieldNames ? '' : 'userId')
     ..a<$core.List<$core.int>>(
         4, _omitFieldNames ? '' : 'payload', $pb.PbFieldType.OY)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  InvokeResponse clone() => InvokeResponse()..mergeFromMessage(this);
+  InvokeResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   InvokeResponse copyWith(void Function(InvokeResponse) updates) =>
       super.copyWith((message) => updates(message as InvokeResponse))
@@ -414,8 +409,6 @@ class InvokeResponse extends $pb.GeneratedMessage {
   static InvokeResponse create() => InvokeResponse._();
   @$core.override
   InvokeResponse createEmptyInstance() => create();
-  static $pb.PbList<InvokeResponse> createRepeated() =>
-      $pb.PbList<InvokeResponse>();
   @$core.pragma('dart2js:noInline')
   static InvokeResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<InvokeResponse>(create);
@@ -486,15 +479,15 @@ class SdkPushPacket extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'SdkPushPacket',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'sdk'),
       createEmptyInstance: create)
-    ..a<$core.int>(1, _omitFieldNames ? '' : 'command', $pb.PbFieldType.O3)
+    ..aI(1, _omitFieldNames ? '' : 'command')
     ..aInt64(2, _omitFieldNames ? '' : 'userId')
-    ..a<$core.int>(3, _omitFieldNames ? '' : 'seq', $pb.PbFieldType.O3)
+    ..aI(3, _omitFieldNames ? '' : 'seq')
     ..a<$core.List<$core.int>>(
         4, _omitFieldNames ? '' : 'payload', $pb.PbFieldType.OY)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SdkPushPacket clone() => SdkPushPacket()..mergeFromMessage(this);
+  SdkPushPacket clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SdkPushPacket copyWith(void Function(SdkPushPacket) updates) =>
       super.copyWith((message) => updates(message as SdkPushPacket))
@@ -507,8 +500,6 @@ class SdkPushPacket extends $pb.GeneratedMessage {
   static SdkPushPacket create() => SdkPushPacket._();
   @$core.override
   SdkPushPacket createEmptyInstance() => create();
-  static $pb.PbList<SdkPushPacket> createRepeated() =>
-      $pb.PbList<SdkPushPacket>();
   @$core.pragma('dart2js:noInline')
   static SdkPushPacket getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SdkPushPacket>(create);
@@ -584,12 +575,12 @@ class SdkLoginUserRequest extends $pb.GeneratedMessage {
     ..aInt64(1, _omitFieldNames ? '' : 'userId')
     ..aInt64(2, _omitFieldNames ? '' : 'tenantId')
     ..aOS(3, _omitFieldNames ? '' : 'accessToken')
-    ..a<$core.int>(4, _omitFieldNames ? '' : 'unionId', $pb.PbFieldType.O3)
+    ..aI(4, _omitFieldNames ? '' : 'unionId')
     ..aOS(5, _omitFieldNames ? '' : 'unionClientConfig')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SdkLoginUserRequest clone() => SdkLoginUserRequest()..mergeFromMessage(this);
+  SdkLoginUserRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SdkLoginUserRequest copyWith(void Function(SdkLoginUserRequest) updates) =>
       super.copyWith((message) => updates(message as SdkLoginUserRequest))
@@ -602,8 +593,6 @@ class SdkLoginUserRequest extends $pb.GeneratedMessage {
   static SdkLoginUserRequest create() => SdkLoginUserRequest._();
   @$core.override
   SdkLoginUserRequest createEmptyInstance() => create();
-  static $pb.PbList<SdkLoginUserRequest> createRepeated() =>
-      $pb.PbList<SdkLoginUserRequest>();
   @$core.pragma('dart2js:noInline')
   static SdkLoginUserRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SdkLoginUserRequest>(create);
@@ -674,8 +663,7 @@ class SdkLoginUserResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SdkLoginUserResponse clone() =>
-      SdkLoginUserResponse()..mergeFromMessage(this);
+  SdkLoginUserResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SdkLoginUserResponse copyWith(void Function(SdkLoginUserResponse) updates) =>
       super.copyWith((message) => updates(message as SdkLoginUserResponse))
@@ -688,8 +676,6 @@ class SdkLoginUserResponse extends $pb.GeneratedMessage {
   static SdkLoginUserResponse create() => SdkLoginUserResponse._();
   @$core.override
   SdkLoginUserResponse createEmptyInstance() => create();
-  static $pb.PbList<SdkLoginUserResponse> createRepeated() =>
-      $pb.PbList<SdkLoginUserResponse>();
   @$core.pragma('dart2js:noInline')
   static SdkLoginUserResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SdkLoginUserResponse>(create);
@@ -715,8 +701,7 @@ class SdkLogoutUserRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SdkLogoutUserRequest clone() =>
-      SdkLogoutUserRequest()..mergeFromMessage(this);
+  SdkLogoutUserRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SdkLogoutUserRequest copyWith(void Function(SdkLogoutUserRequest) updates) =>
       super.copyWith((message) => updates(message as SdkLogoutUserRequest))
@@ -729,8 +714,6 @@ class SdkLogoutUserRequest extends $pb.GeneratedMessage {
   static SdkLogoutUserRequest create() => SdkLogoutUserRequest._();
   @$core.override
   SdkLogoutUserRequest createEmptyInstance() => create();
-  static $pb.PbList<SdkLogoutUserRequest> createRepeated() =>
-      $pb.PbList<SdkLogoutUserRequest>();
   @$core.pragma('dart2js:noInline')
   static SdkLogoutUserRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SdkLogoutUserRequest>(create);
@@ -756,8 +739,7 @@ class SdkLogoutUserResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SdkLogoutUserResponse clone() =>
-      SdkLogoutUserResponse()..mergeFromMessage(this);
+  SdkLogoutUserResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SdkLogoutUserResponse copyWith(
           void Function(SdkLogoutUserResponse) updates) =>
@@ -771,8 +753,6 @@ class SdkLogoutUserResponse extends $pb.GeneratedMessage {
   static SdkLogoutUserResponse create() => SdkLogoutUserResponse._();
   @$core.override
   SdkLogoutUserResponse createEmptyInstance() => create();
-  static $pb.PbList<SdkLogoutUserResponse> createRepeated() =>
-      $pb.PbList<SdkLogoutUserResponse>();
   @$core.pragma('dart2js:noInline')
   static SdkLogoutUserResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SdkLogoutUserResponse>(create);
@@ -798,8 +778,7 @@ class PushDeviceKickoffResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PushDeviceKickoffResponse clone() =>
-      PushDeviceKickoffResponse()..mergeFromMessage(this);
+  PushDeviceKickoffResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   PushDeviceKickoffResponse copyWith(
           void Function(PushDeviceKickoffResponse) updates) =>
@@ -813,8 +792,6 @@ class PushDeviceKickoffResponse extends $pb.GeneratedMessage {
   static PushDeviceKickoffResponse create() => PushDeviceKickoffResponse._();
   @$core.override
   PushDeviceKickoffResponse createEmptyInstance() => create();
-  static $pb.PbList<PushDeviceKickoffResponse> createRepeated() =>
-      $pb.PbList<PushDeviceKickoffResponse>();
   @$core.pragma('dart2js:noInline')
   static PushDeviceKickoffResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<PushDeviceKickoffResponse>(create);
@@ -840,8 +817,7 @@ class PushFeedCardsResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PushFeedCardsResponse clone() =>
-      PushFeedCardsResponse()..mergeFromMessage(this);
+  PushFeedCardsResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   PushFeedCardsResponse copyWith(
           void Function(PushFeedCardsResponse) updates) =>
@@ -855,8 +831,6 @@ class PushFeedCardsResponse extends $pb.GeneratedMessage {
   static PushFeedCardsResponse create() => PushFeedCardsResponse._();
   @$core.override
   PushFeedCardsResponse createEmptyInstance() => create();
-  static $pb.PbList<PushFeedCardsResponse> createRepeated() =>
-      $pb.PbList<PushFeedCardsResponse>();
   @$core.pragma('dart2js:noInline')
   static PushFeedCardsResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<PushFeedCardsResponse>(create);
@@ -882,8 +856,7 @@ class GetSdkVersionRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetSdkVersionRequest clone() =>
-      GetSdkVersionRequest()..mergeFromMessage(this);
+  GetSdkVersionRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetSdkVersionRequest copyWith(void Function(GetSdkVersionRequest) updates) =>
       super.copyWith((message) => updates(message as GetSdkVersionRequest))
@@ -896,8 +869,6 @@ class GetSdkVersionRequest extends $pb.GeneratedMessage {
   static GetSdkVersionRequest create() => GetSdkVersionRequest._();
   @$core.override
   GetSdkVersionRequest createEmptyInstance() => create();
-  static $pb.PbList<GetSdkVersionRequest> createRepeated() =>
-      $pb.PbList<GetSdkVersionRequest>();
   @$core.pragma('dart2js:noInline')
   static GetSdkVersionRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetSdkVersionRequest>(create);
@@ -930,8 +901,7 @@ class GetSdkVersionResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetSdkVersionResponse clone() =>
-      GetSdkVersionResponse()..mergeFromMessage(this);
+  GetSdkVersionResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetSdkVersionResponse copyWith(
           void Function(GetSdkVersionResponse) updates) =>
@@ -945,8 +915,6 @@ class GetSdkVersionResponse extends $pb.GeneratedMessage {
   static GetSdkVersionResponse create() => GetSdkVersionResponse._();
   @$core.override
   GetSdkVersionResponse createEmptyInstance() => create();
-  static $pb.PbList<GetSdkVersionResponse> createRepeated() =>
-      $pb.PbList<GetSdkVersionResponse>();
   @$core.pragma('dart2js:noInline')
   static GetSdkVersionResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetSdkVersionResponse>(create);
@@ -990,15 +958,12 @@ class AvatarKey extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'entityId')
     ..aOS(2, _omitFieldNames ? '' : 'key')
-    ..e<AvatarKey_EntityType>(
-        3, _omitFieldNames ? '' : 'entityType', $pb.PbFieldType.OE,
-        defaultOrMaker: AvatarKey_EntityType.OTHERS,
-        valueOf: AvatarKey_EntityType.valueOf,
+    ..aE<AvatarKey_EntityType>(3, _omitFieldNames ? '' : 'entityType',
         enumValues: AvatarKey_EntityType.values)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  AvatarKey clone() => AvatarKey()..mergeFromMessage(this);
+  AvatarKey clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   AvatarKey copyWith(void Function(AvatarKey) updates) =>
       super.copyWith((message) => updates(message as AvatarKey)) as AvatarKey;
@@ -1010,7 +975,6 @@ class AvatarKey extends $pb.GeneratedMessage {
   static AvatarKey create() => AvatarKey._();
   @$core.override
   AvatarKey createEmptyInstance() => create();
-  static $pb.PbList<AvatarKey> createRepeated() => $pb.PbList<AvatarKey>();
   @$core.pragma('dart2js:noInline')
   static AvatarKey getDefault() =>
       _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<AvatarKey>(create);
@@ -1074,13 +1038,13 @@ class WriteClientLog extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'sdk'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'msg')
-    ..a<$core.int>(2, _omitFieldNames ? '' : 'level', $pb.PbFieldType.O3)
+    ..aI(2, _omitFieldNames ? '' : 'level')
     ..aOS(3, _omitFieldNames ? '' : 'error')
     ..aOS(4, _omitFieldNames ? '' : 'backtrace')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  WriteClientLog clone() => WriteClientLog()..mergeFromMessage(this);
+  WriteClientLog clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   WriteClientLog copyWith(void Function(WriteClientLog) updates) =>
       super.copyWith((message) => updates(message as WriteClientLog))
@@ -1093,8 +1057,6 @@ class WriteClientLog extends $pb.GeneratedMessage {
   static WriteClientLog create() => WriteClientLog._();
   @$core.override
   WriteClientLog createEmptyInstance() => create();
-  static $pb.PbList<WriteClientLog> createRepeated() =>
-      $pb.PbList<WriteClientLog>();
   @$core.pragma('dart2js:noInline')
   static WriteClientLog getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<WriteClientLog>(create);
@@ -1162,13 +1124,13 @@ class NetRequest extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'NetRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'sdk'),
       createEmptyInstance: create)
-    ..a<$core.int>(1, _omitFieldNames ? '' : 'cmd', $pb.PbFieldType.O3)
+    ..aI(1, _omitFieldNames ? '' : 'cmd')
     ..a<$core.List<$core.int>>(
         2, _omitFieldNames ? '' : 'body', $pb.PbFieldType.OY)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  NetRequest clone() => NetRequest()..mergeFromMessage(this);
+  NetRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   NetRequest copyWith(void Function(NetRequest) updates) =>
       super.copyWith((message) => updates(message as NetRequest)) as NetRequest;
@@ -1180,7 +1142,6 @@ class NetRequest extends $pb.GeneratedMessage {
   static NetRequest create() => NetRequest._();
   @$core.override
   NetRequest createEmptyInstance() => create();
-  static $pb.PbList<NetRequest> createRepeated() => $pb.PbList<NetRequest>();
   @$core.pragma('dart2js:noInline')
   static NetRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<NetRequest>(create);
@@ -1235,8 +1196,7 @@ class PushEntityChangeRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PushEntityChangeRequest clone() =>
-      PushEntityChangeRequest()..mergeFromMessage(this);
+  PushEntityChangeRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   PushEntityChangeRequest copyWith(
           void Function(PushEntityChangeRequest) updates) =>
@@ -1250,8 +1210,6 @@ class PushEntityChangeRequest extends $pb.GeneratedMessage {
   static PushEntityChangeRequest create() => PushEntityChangeRequest._();
   @$core.override
   PushEntityChangeRequest createEmptyInstance() => create();
-  static $pb.PbList<PushEntityChangeRequest> createRepeated() =>
-      $pb.PbList<PushEntityChangeRequest>();
   @$core.pragma('dart2js:noInline')
   static PushEntityChangeRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<PushEntityChangeRequest>(create);

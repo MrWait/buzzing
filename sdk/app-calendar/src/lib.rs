@@ -78,6 +78,12 @@ impl AppTrait for AppCalendar {
             // calendar
             Command::CalendarPushList as i32,
             Command::CalendarPushUpdate as i32,
+            // schedule
+            Command::SchedulePushUpdate as i32,
+            // push
+            Command::PushEntityChange as i32,
+            Command::PushScheduleDelete as i32,
+            Command::PushScheduleReminder as i32,
         ]
     }
 
@@ -108,6 +114,9 @@ impl AppTrait for AppCalendar {
             Command::CalendarPushList => self.handle_push_calendar_list(params).await,
             Command::CalendarPushUpdate => self.handle_push_calendar(params).await,
             Command::SchedulePushUpdate => self.handle_push_schedule_update(params).await,
+            Command::PushEntityChange => self.handle_entity_changed(params).await,
+            Command::PushScheduleDelete => self.handle_push_schedule_delete(params).await,
+            Command::PushScheduleReminder => self.handle_push_schedule_reminder(params).await,
             _ => return Err(anyhow::anyhow!("not handled")),
         }
     }

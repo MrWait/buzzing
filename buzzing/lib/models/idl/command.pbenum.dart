@@ -8,7 +8,7 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:core' as $core;
 
@@ -183,6 +183,10 @@ class Command extends $pb.ProtobufEnum {
       Command._(1615, _omitEnumNames ? '' : 'SCHEDULE_PULL_BUSY');
   static const Command SCHEDULE_PUSH_UPDATE =
       Command._(1616, _omitEnumNames ? '' : 'SCHEDULE_PUSH_UPDATE');
+  static const Command PUSH_SCHEDULE_REMINDER =
+      Command._(1617, _omitEnumNames ? '' : 'PUSH_SCHEDULE_REMINDER');
+  static const Command PUSH_SCHEDULE_DELETE =
+      Command._(1618, _omitEnumNames ? '' : 'PUSH_SCHEDULE_DELETE');
 
   static const $core.List<Command> values = <Command>[
     COMMAND_UNKNOWN,
@@ -266,6 +270,8 @@ class Command extends $pb.ProtobufEnum {
     SCHEDULE_PULL_BY_CALENDAR_IDS,
     SCHEDULE_PULL_BUSY,
     SCHEDULE_PUSH_UPDATE,
+    PUSH_SCHEDULE_REMINDER,
+    PUSH_SCHEDULE_DELETE,
   ];
 
   static final $core.Map<$core.int, Command> _byValue =

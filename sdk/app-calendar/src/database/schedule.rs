@@ -112,6 +112,7 @@ fn parse_schedule(row: &Row) -> Result<(entity::Schedule, bool)> {
             cycle: extra.cycle,
             desc: extra.desc,
             title: extra.title,
+            modify_scope: 0,
         },
         dirty != 0,
     ))
@@ -303,4 +304,74 @@ pub(crate) fn schedule_get_dirty(conn: &Connection, limit: usize) -> Result<Vec<
         Ok(())
     });
     Ok(result)
+}
+
+pub(crate) fn schedule_remove_local(conn: &Connection, schedule_id: i64) -> Result<()> {
+    cost!("schedule_remove_local");
+    conn.execute("DELETE FROM schedule WHERE id = ?1", params![schedule_id])?;
+    Ok(())
+}
+
+pub(crate) fn schedule_get_by_range(
+    conn: &Connection,
+    calendar_ids: &[i64],
+    start_time: i64,
+    end_time: i64,
+    schedules: &mut Vec<entity::Schedule>,
+) -> Result<()> {
+    cost!("schedule_get_by_range");
+    if calendar_ids.is_empty() {
+        return Ok(());
+    }
+    for cid in calendar_ids {
+        let query = format!(
+            "SELECT {} FROM schedule WHERE calendar_id = ?1 AND end_time >= ?2 AND start_time <= ?3",
+            FIELD_SCHEDULE,
+        );
+        let mut stmt = conn.prepare(&query)?;
+        if let Err(err) = stmt
+            .query(params![cid, start_time, end_time])
+            .and_then(|mut rows| {
+                while let Some(row) = rows.next()? {
+                    let (schedule, _) = parse_schedule(&row)?;
+                    schedules.push(schedule);
+                }
+                Ok(())
+            })
+        {
+            debug!("schedule_get_by_range error: {:?}", err);
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn schedule_remove_by_cycle_rule_id(conn: &Connection, cycle_rule_id: i64) -> Result<()> {
+    cost!("schedule_remove_by_cycle_rule_id");
+    conn.execute(
+        "DELETE FROM schedule WHERE cycle_rule_id = ?1",
+        params![cycle_rule_id],
+    )?;
+    Ok(())
+}
+
+pub(crate) fn schedule_remove_future_by_cycle(
+    conn: &Connection,
+    cycle_rule_id: i64,
+    start_time: i64,
+) -> Result<()> {
+    cost!("schedule_remove_future_by_cycle");
+    conn.execute(
+        "DELETE FROM schedule WHERE cycle_rule_id = ?1 AND start_time >= ?2",
+        params![cycle_rule_id, start_time],
+    )?;
+    Ok(())
+}
+
+pub(crate) fn schedule_remove_by_calendar(conn: &Connection, calendar_id: i64) -> Result<()> {
+    cost!("schedule_remove_by_calendar");
+    conn.execute(
+        "DELETE FROM schedule WHERE calendar_id = ?1",
+        params![calendar_id],
+    )?;
+    Ok(())
 }

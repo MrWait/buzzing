@@ -11,10 +11,17 @@ use tracing::debug;
 use common::{BizCalendar, EntityIds, ExternApp, UserBrief, VecBool};
 use proto::idl::{command::Command, entity};
 
+mod workers;
+
 #[derive(Clone)]
 pub struct AppCalendar;
 #[async_trait::async_trait]
 impl ExternApp for AppCalendar {
+    fn serve(&self, ctx: &AppContext) {
+        workers::start_batch_remind_worker(ctx);
+        workers::start_remind_worker(ctx);
+    }
+
     fn handled_command(&self) -> Vec<i32> {
         vec![
             // calendar

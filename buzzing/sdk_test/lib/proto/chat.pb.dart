@@ -8,7 +8,7 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:core' as $core;
 
@@ -45,7 +45,7 @@ class CreateChatRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CreateChatRequest clone() => CreateChatRequest()..mergeFromMessage(this);
+  CreateChatRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CreateChatRequest copyWith(void Function(CreateChatRequest) updates) =>
       super.copyWith((message) => updates(message as CreateChatRequest))
@@ -58,8 +58,6 @@ class CreateChatRequest extends $pb.GeneratedMessage {
   static CreateChatRequest create() => CreateChatRequest._();
   @$core.override
   CreateChatRequest createEmptyInstance() => create();
-  static $pb.PbList<CreateChatRequest> createRepeated() =>
-      $pb.PbList<CreateChatRequest>();
   @$core.pragma('dart2js:noInline')
   static CreateChatRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CreateChatRequest>(create);
@@ -107,7 +105,7 @@ class CreateChatResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CreateChatResponse clone() => CreateChatResponse()..mergeFromMessage(this);
+  CreateChatResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CreateChatResponse copyWith(void Function(CreateChatResponse) updates) =>
       super.copyWith((message) => updates(message as CreateChatResponse))
@@ -120,8 +118,6 @@ class CreateChatResponse extends $pb.GeneratedMessage {
   static CreateChatResponse create() => CreateChatResponse._();
   @$core.override
   CreateChatResponse createEmptyInstance() => create();
-  static $pb.PbList<CreateChatResponse> createRepeated() =>
-      $pb.PbList<CreateChatResponse>();
   @$core.pragma('dart2js:noInline')
   static CreateChatResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CreateChatResponse>(create);
@@ -174,7 +170,7 @@ class GetChatByIdsRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetChatByIdsRequest clone() => GetChatByIdsRequest()..mergeFromMessage(this);
+  GetChatByIdsRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetChatByIdsRequest copyWith(void Function(GetChatByIdsRequest) updates) =>
       super.copyWith((message) => updates(message as GetChatByIdsRequest))
@@ -187,8 +183,6 @@ class GetChatByIdsRequest extends $pb.GeneratedMessage {
   static GetChatByIdsRequest create() => GetChatByIdsRequest._();
   @$core.override
   GetChatByIdsRequest createEmptyInstance() => create();
-  static $pb.PbList<GetChatByIdsRequest> createRepeated() =>
-      $pb.PbList<GetChatByIdsRequest>();
   @$core.pragma('dart2js:noInline')
   static GetChatByIdsRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetChatByIdsRequest>(create);
@@ -225,8 +219,7 @@ class GetChatByIdsResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetChatByIdsResponse clone() =>
-      GetChatByIdsResponse()..mergeFromMessage(this);
+  GetChatByIdsResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetChatByIdsResponse copyWith(void Function(GetChatByIdsResponse) updates) =>
       super.copyWith((message) => updates(message as GetChatByIdsResponse))
@@ -239,8 +232,6 @@ class GetChatByIdsResponse extends $pb.GeneratedMessage {
   static GetChatByIdsResponse create() => GetChatByIdsResponse._();
   @$core.override
   GetChatByIdsResponse createEmptyInstance() => create();
-  static $pb.PbList<GetChatByIdsResponse> createRepeated() =>
-      $pb.PbList<GetChatByIdsResponse>();
   @$core.pragma('dart2js:noInline')
   static GetChatByIdsResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetChatByIdsResponse>(create);
@@ -291,7 +282,7 @@ class SetChatDraftRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SetChatDraftRequest clone() => SetChatDraftRequest()..mergeFromMessage(this);
+  SetChatDraftRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SetChatDraftRequest copyWith(void Function(SetChatDraftRequest) updates) =>
       super.copyWith((message) => updates(message as SetChatDraftRequest))
@@ -304,8 +295,6 @@ class SetChatDraftRequest extends $pb.GeneratedMessage {
   static SetChatDraftRequest create() => SetChatDraftRequest._();
   @$core.override
   SetChatDraftRequest createEmptyInstance() => create();
-  static $pb.PbList<SetChatDraftRequest> createRepeated() =>
-      $pb.PbList<SetChatDraftRequest>();
   @$core.pragma('dart2js:noInline')
   static SetChatDraftRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SetChatDraftRequest>(create);
@@ -358,8 +347,7 @@ class SetChatDraftResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SetChatDraftResponse clone() =>
-      SetChatDraftResponse()..mergeFromMessage(this);
+  SetChatDraftResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SetChatDraftResponse copyWith(void Function(SetChatDraftResponse) updates) =>
       super.copyWith((message) => updates(message as SetChatDraftResponse))
@@ -372,8 +360,6 @@ class SetChatDraftResponse extends $pb.GeneratedMessage {
   static SetChatDraftResponse create() => SetChatDraftResponse._();
   @$core.override
   SetChatDraftResponse createEmptyInstance() => create();
-  static $pb.PbList<SetChatDraftResponse> createRepeated() =>
-      $pb.PbList<SetChatDraftResponse>();
   @$core.pragma('dart2js:noInline')
   static SetChatDraftResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SetChatDraftResponse>(create);
@@ -406,7 +392,7 @@ class GetChatDraftRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetChatDraftRequest clone() => GetChatDraftRequest()..mergeFromMessage(this);
+  GetChatDraftRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetChatDraftRequest copyWith(void Function(GetChatDraftRequest) updates) =>
       super.copyWith((message) => updates(message as GetChatDraftRequest))
@@ -419,8 +405,6 @@ class GetChatDraftRequest extends $pb.GeneratedMessage {
   static GetChatDraftRequest create() => GetChatDraftRequest._();
   @$core.override
   GetChatDraftRequest createEmptyInstance() => create();
-  static $pb.PbList<GetChatDraftRequest> createRepeated() =>
-      $pb.PbList<GetChatDraftRequest>();
   @$core.pragma('dart2js:noInline')
   static GetChatDraftRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetChatDraftRequest>(create);
@@ -469,8 +453,7 @@ class GetChatDraftResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetChatDraftResponse clone() =>
-      GetChatDraftResponse()..mergeFromMessage(this);
+  GetChatDraftResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetChatDraftResponse copyWith(void Function(GetChatDraftResponse) updates) =>
       super.copyWith((message) => updates(message as GetChatDraftResponse))
@@ -483,8 +466,6 @@ class GetChatDraftResponse extends $pb.GeneratedMessage {
   static GetChatDraftResponse create() => GetChatDraftResponse._();
   @$core.override
   GetChatDraftResponse createEmptyInstance() => create();
-  static $pb.PbList<GetChatDraftResponse> createRepeated() =>
-      $pb.PbList<GetChatDraftResponse>();
   @$core.pragma('dart2js:noInline')
   static GetChatDraftResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetChatDraftResponse>(create);
@@ -544,7 +525,7 @@ class DismissChatRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  DismissChatRequest clone() => DismissChatRequest()..mergeFromMessage(this);
+  DismissChatRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   DismissChatRequest copyWith(void Function(DismissChatRequest) updates) =>
       super.copyWith((message) => updates(message as DismissChatRequest))
@@ -557,8 +538,6 @@ class DismissChatRequest extends $pb.GeneratedMessage {
   static DismissChatRequest create() => DismissChatRequest._();
   @$core.override
   DismissChatRequest createEmptyInstance() => create();
-  static $pb.PbList<DismissChatRequest> createRepeated() =>
-      $pb.PbList<DismissChatRequest>();
   @$core.pragma('dart2js:noInline')
   static DismissChatRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<DismissChatRequest>(create);
@@ -593,7 +572,7 @@ class DismissChatResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  DismissChatResponse clone() => DismissChatResponse()..mergeFromMessage(this);
+  DismissChatResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   DismissChatResponse copyWith(void Function(DismissChatResponse) updates) =>
       super.copyWith((message) => updates(message as DismissChatResponse))
@@ -606,8 +585,6 @@ class DismissChatResponse extends $pb.GeneratedMessage {
   static DismissChatResponse create() => DismissChatResponse._();
   @$core.override
   DismissChatResponse createEmptyInstance() => create();
-  static $pb.PbList<DismissChatResponse> createRepeated() =>
-      $pb.PbList<DismissChatResponse>();
   @$core.pragma('dart2js:noInline')
   static DismissChatResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<DismissChatResponse>(create);
@@ -640,7 +617,7 @@ class UpdateChatRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  UpdateChatRequest clone() => UpdateChatRequest()..mergeFromMessage(this);
+  UpdateChatRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   UpdateChatRequest copyWith(void Function(UpdateChatRequest) updates) =>
       super.copyWith((message) => updates(message as UpdateChatRequest))
@@ -653,8 +630,6 @@ class UpdateChatRequest extends $pb.GeneratedMessage {
   static UpdateChatRequest create() => UpdateChatRequest._();
   @$core.override
   UpdateChatRequest createEmptyInstance() => create();
-  static $pb.PbList<UpdateChatRequest> createRepeated() =>
-      $pb.PbList<UpdateChatRequest>();
   @$core.pragma('dart2js:noInline')
   static UpdateChatRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<UpdateChatRequest>(create);
@@ -691,7 +666,7 @@ class UpdateChatResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  UpdateChatResponse clone() => UpdateChatResponse()..mergeFromMessage(this);
+  UpdateChatResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   UpdateChatResponse copyWith(void Function(UpdateChatResponse) updates) =>
       super.copyWith((message) => updates(message as UpdateChatResponse))
@@ -704,8 +679,6 @@ class UpdateChatResponse extends $pb.GeneratedMessage {
   static UpdateChatResponse create() => UpdateChatResponse._();
   @$core.override
   UpdateChatResponse createEmptyInstance() => create();
-  static $pb.PbList<UpdateChatResponse> createRepeated() =>
-      $pb.PbList<UpdateChatResponse>();
   @$core.pragma('dart2js:noInline')
   static UpdateChatResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<UpdateChatResponse>(create);
@@ -741,8 +714,7 @@ class AddChatChatterRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  AddChatChatterRequest clone() =>
-      AddChatChatterRequest()..mergeFromMessage(this);
+  AddChatChatterRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   AddChatChatterRequest copyWith(
           void Function(AddChatChatterRequest) updates) =>
@@ -756,8 +728,6 @@ class AddChatChatterRequest extends $pb.GeneratedMessage {
   static AddChatChatterRequest create() => AddChatChatterRequest._();
   @$core.override
   AddChatChatterRequest createEmptyInstance() => create();
-  static $pb.PbList<AddChatChatterRequest> createRepeated() =>
-      $pb.PbList<AddChatChatterRequest>();
   @$core.pragma('dart2js:noInline')
   static AddChatChatterRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<AddChatChatterRequest>(create);
@@ -795,8 +765,7 @@ class AddChatChatterResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  AddChatChatterResponse clone() =>
-      AddChatChatterResponse()..mergeFromMessage(this);
+  AddChatChatterResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   AddChatChatterResponse copyWith(
           void Function(AddChatChatterResponse) updates) =>
@@ -810,8 +779,6 @@ class AddChatChatterResponse extends $pb.GeneratedMessage {
   static AddChatChatterResponse create() => AddChatChatterResponse._();
   @$core.override
   AddChatChatterResponse createEmptyInstance() => create();
-  static $pb.PbList<AddChatChatterResponse> createRepeated() =>
-      $pb.PbList<AddChatChatterResponse>();
   @$core.pragma('dart2js:noInline')
   static AddChatChatterResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<AddChatChatterResponse>(create);
@@ -847,8 +814,7 @@ class RemoveChatChatterRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  RemoveChatChatterRequest clone() =>
-      RemoveChatChatterRequest()..mergeFromMessage(this);
+  RemoveChatChatterRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   RemoveChatChatterRequest copyWith(
           void Function(RemoveChatChatterRequest) updates) =>
@@ -862,8 +828,6 @@ class RemoveChatChatterRequest extends $pb.GeneratedMessage {
   static RemoveChatChatterRequest create() => RemoveChatChatterRequest._();
   @$core.override
   RemoveChatChatterRequest createEmptyInstance() => create();
-  static $pb.PbList<RemoveChatChatterRequest> createRepeated() =>
-      $pb.PbList<RemoveChatChatterRequest>();
   @$core.pragma('dart2js:noInline')
   static RemoveChatChatterRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<RemoveChatChatterRequest>(create);
@@ -901,8 +865,7 @@ class RemoveChatChatterResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  RemoveChatChatterResponse clone() =>
-      RemoveChatChatterResponse()..mergeFromMessage(this);
+  RemoveChatChatterResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   RemoveChatChatterResponse copyWith(
           void Function(RemoveChatChatterResponse) updates) =>
@@ -916,8 +879,6 @@ class RemoveChatChatterResponse extends $pb.GeneratedMessage {
   static RemoveChatChatterResponse create() => RemoveChatChatterResponse._();
   @$core.override
   RemoveChatChatterResponse createEmptyInstance() => create();
-  static $pb.PbList<RemoveChatChatterResponse> createRepeated() =>
-      $pb.PbList<RemoveChatChatterResponse>();
   @$core.pragma('dart2js:noInline')
   static RemoveChatChatterResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<RemoveChatChatterResponse>(create);
@@ -951,14 +912,13 @@ class ReadChatMessageRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'chat'),
       createEmptyInstance: create)
     ..aInt64(1, _omitFieldNames ? '' : 'chatId')
-    ..a<$core.int>(2, _omitFieldNames ? '' : 'pos', $pb.PbFieldType.O3)
+    ..aI(2, _omitFieldNames ? '' : 'pos')
     ..p<$fixnum.Int64>(
         3, _omitFieldNames ? '' : 'messageIds', $pb.PbFieldType.K6)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ReadChatMessageRequest clone() =>
-      ReadChatMessageRequest()..mergeFromMessage(this);
+  ReadChatMessageRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ReadChatMessageRequest copyWith(
           void Function(ReadChatMessageRequest) updates) =>
@@ -972,8 +932,6 @@ class ReadChatMessageRequest extends $pb.GeneratedMessage {
   static ReadChatMessageRequest create() => ReadChatMessageRequest._();
   @$core.override
   ReadChatMessageRequest createEmptyInstance() => create();
-  static $pb.PbList<ReadChatMessageRequest> createRepeated() =>
-      $pb.PbList<ReadChatMessageRequest>();
   @$core.pragma('dart2js:noInline')
   static ReadChatMessageRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ReadChatMessageRequest>(create);
@@ -1020,8 +978,7 @@ class ReadChatMessageResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ReadChatMessageResponse clone() =>
-      ReadChatMessageResponse()..mergeFromMessage(this);
+  ReadChatMessageResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ReadChatMessageResponse copyWith(
           void Function(ReadChatMessageResponse) updates) =>
@@ -1035,8 +992,6 @@ class ReadChatMessageResponse extends $pb.GeneratedMessage {
   static ReadChatMessageResponse create() => ReadChatMessageResponse._();
   @$core.override
   ReadChatMessageResponse createEmptyInstance() => create();
-  static $pb.PbList<ReadChatMessageResponse> createRepeated() =>
-      $pb.PbList<ReadChatMessageResponse>();
   @$core.pragma('dart2js:noInline')
   static ReadChatMessageResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ReadChatMessageResponse>(create);
@@ -1069,7 +1024,7 @@ class QuitChatRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  QuitChatRequest clone() => QuitChatRequest()..mergeFromMessage(this);
+  QuitChatRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   QuitChatRequest copyWith(void Function(QuitChatRequest) updates) =>
       super.copyWith((message) => updates(message as QuitChatRequest))
@@ -1082,8 +1037,6 @@ class QuitChatRequest extends $pb.GeneratedMessage {
   static QuitChatRequest create() => QuitChatRequest._();
   @$core.override
   QuitChatRequest createEmptyInstance() => create();
-  static $pb.PbList<QuitChatRequest> createRepeated() =>
-      $pb.PbList<QuitChatRequest>();
   @$core.pragma('dart2js:noInline')
   static QuitChatRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<QuitChatRequest>(create);
@@ -1118,7 +1071,7 @@ class QuitChatResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  QuitChatResponse clone() => QuitChatResponse()..mergeFromMessage(this);
+  QuitChatResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   QuitChatResponse copyWith(void Function(QuitChatResponse) updates) =>
       super.copyWith((message) => updates(message as QuitChatResponse))
@@ -1131,8 +1084,6 @@ class QuitChatResponse extends $pb.GeneratedMessage {
   static QuitChatResponse create() => QuitChatResponse._();
   @$core.override
   QuitChatResponse createEmptyInstance() => create();
-  static $pb.PbList<QuitChatResponse> createRepeated() =>
-      $pb.PbList<QuitChatResponse>();
   @$core.pragma('dart2js:noInline')
   static QuitChatResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<QuitChatResponse>(create);

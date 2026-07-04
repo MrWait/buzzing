@@ -154,6 +154,11 @@ pub(crate) async fn calendar_create(
     debug!("create calendar, model: {src:?}");
     let mut resp = calendar::CalendarCreateResponse::default();
     let calendar = CalendarModel::create(&ctx.db, src).await?;
+    let _ = User2CalendarModel::upsert_subscriber(
+        &ctx.db, brief.id, id,
+        PresetColor::rand().into(),
+        entity::CalendarRole::RoleOwner as i32,
+    ).await;
     let cal_entity: entity::Calendar = CalendarModel(calendar.clone()).into();
     let user_ids = cal_entity
         .subscribers
@@ -184,25 +189,39 @@ pub(crate) async fn calendar_delete(
     packet: &entity::Packet,
     _ws: bool,
 ) -> Result<(i32, Vec<u8>)> {
-    let mut req = pb_decode::<calendar::CalendarDeleteRequest>(&packet.payload)?;
+    let req = pb_decode::<calendar::CalendarDeleteRequest>(&packet.payload)?;
     let mut resp = calendar::CalendarDeleteResponse::default();
     debug!("calendar delete, req: {req:?}");
 
+    // 不允许删除默认日历
+    if req.id == brief.id {
+        return Ok((ErrorCode::ErrorNoPermision as i32, resp.encode_to_vec()));
+    }
+
     let calendar = CACHE_CALENDAR.get(ctx, &req.id).await?;
     let now = current_ms() as i64;
-    let user_ids;
+    let user_ids: Vec<i64>;
     {
         let cal = calendar.read().await;
-        if cal.calendar.creator != brief.id || cal.calendar.id == brief.id {
-            return Ok((ErrorCode::ErrorParamInvalid as i32, resp.encode_to_vec()));
+        // 仅创建者或 RoleOwner 可删除
+        if cal.calendar.creator != brief.id {
+            let role = cal.subscribers.subscribers.get(&brief.id)
+                .map(|s| s.role).unwrap_or(0);
+            if role < entity::CalendarRole::RoleOwner as i32 {
+                return Ok((ErrorCode::ErrorNoPermision as i32, resp.encode_to_vec()));
+            }
         }
         user_ids = cal.user_ids();
-        CalendarModel::delete(&ctx.db, cal.calendar.id).await?;
-        User2CalendarModel::calendar_remove_for_users(&ctx.db, user_ids.clone(), cal.calendar.id)
-            .await?;
     }
+
+    // 级联删除日程和 cycled
+    crate::models::schedules::ScheduleModel::remove_by_calendar_id(&ctx.db, req.id).await?;
+    crate::models::cycleds::CycledModel::remove_by_calendar_id(&ctx.db, req.id).await?;
+    User2CalendarModel::calendar_remove_for_users(&ctx.db, user_ids.clone(), req.id).await?;
+    CalendarModel::delete(&ctx.db, req.id).await?;
     let _ = CACHE_CALENDAR.remove(&req.id).await;
 
+    // 推 EntityChange 给所有订阅者
     let biz = BizHub::get()?;
     let mut push = pipeline::PushEntityChanged::default();
     let sid = id_gen(None);
@@ -216,7 +235,7 @@ pub(crate) async fn calendar_delete(
         .gateway
         .send_packet_to_user(
             ctx,
-            &vec![brief.id],
+            &user_ids,
             sid,
             Command::PushEntityChange,
             push.encode_to_vec(),
@@ -235,7 +254,9 @@ pub(crate) async fn calendar_search(
     let req = pb_decode::<calendar::CalendarSearchRequest>(&packet.payload)?;
     debug!("search calendar, req: {req:?}");
     let mut resp = calendar::CalendarSearchResponse::default();
-    let mut calendars = CalendarModel::search(&ctx.db, &req.key).await?;
+    let limit_val = if req.limit > 0 { req.limit as u64 } else { 20 };
+    let offset_val = if req.offset > 0 { req.offset as u64 } else { 0 };
+    let mut calendars = CalendarModel::search(&ctx.db, &req.key, limit_val, offset_val).await?;
     resp.calendars = calendars
         .drain(..)
         .map(|c| CalendarModel(c).into())
@@ -299,8 +320,28 @@ pub(crate) async fn calendar_subscribe(
                     color: PresetColor::rand().into(),
                 },
             );
+            let _ = User2CalendarModel::upsert_subscriber(
+                &ctx.db, brief.id, req.id,
+                PresetColor::rand().into(),
+                entity::CalendarRole::RoleGuest as i32,
+            ).await;
         } else if !req.subscribe && calendar.subscribers.subscribers.contains_key(&brief.id) {
             calendar.subscribers.subscribers.remove(&brief.id);
+            let _ = User2CalendarModel::remove_subscriber(&ctx.db, brief.id, req.id).await;
+
+            // 推 EntityChange(Delete) 给退订者（pipe 持久化）
+            let biz = BizHub::get()?;
+            let mut push = pipeline::PushEntityChanged::default();
+            push.changes.push(entity::EntityChange {
+                id: req.id,
+                version: now,
+                r#type: entity::EntityType::Calendar as i32,
+                operate: Operate::Delete as i32,
+            });
+            let _ = biz.gateway.send_packet_to_user(
+                ctx, &[brief.id], id_gen(None),
+                Command::PushEntityChange, push.encode_to_vec(), true,
+            ).await;
         }
 
         CalendarModel::update_subscribers(&ctx.db, req.id, &calendar.subscribers).await?;
@@ -319,5 +360,50 @@ pub(crate) async fn calendar_update(
     packet: &entity::Packet,
     _ws: bool,
 ) -> Result<(i32, Vec<u8>)> {
-    Ok((0, vec![]))
+    let req = pb_decode::<calendar::CalendarUpdateRequest>(&packet.payload)?;
+    let src = req.calendar.ok_or(Error::string("no calendar"))?;
+
+    let cal = CACHE_CALENDAR.get(ctx, &src.id).await?;
+    let mut cal = cal.write().await;
+
+    // 权限校验
+    let my_role = cal.subscribers.subscribers.get(&brief.id)
+        .map(|s| s.role)
+        .unwrap_or(0);
+    let is_manager = my_role >= entity::CalendarRole::RoleManager as i32;
+    let is_owner = my_role >= entity::CalendarRole::RoleOwner as i32;
+
+    // 根据权限应用变更
+    if !src.name.is_empty() && is_manager {
+        cal.calendar.name = Some(src.name.clone());
+    }
+    if src.color != 0 && is_manager {
+        cal.calendar.color = src.color;
+    }
+    if is_owner {
+        cal.calendar.public = src.public;
+        cal.calendar.enable = src.enable;
+    }
+    // 订阅者个人颜色
+    if let Some(sub) = cal.subscribers.subscribers.get_mut(&brief.id) {
+        if let Some(ref subscribers) = src.subscribers {
+            if let Some(my_sub) = subscribers.subscribers.get(&brief.id) {
+                sub.color = my_sub.color;
+            }
+        }
+    }
+
+    let now = current_ms() as i64;
+    cal.calendar.version = now;
+
+    // 持久化
+    CalendarModel::update(&ctx.db, &cal.calendar, &cal.subscribers).await?;
+
+    // 推送变更
+    let entity = cal.entity();
+    let _ = push_calendar_to_users(ctx, &cal.user_ids(), entity).await;
+
+    let mut resp = calendar::CalendarUpdateResponse::default();
+    resp.calendar = Some(cal.entity());
+    Ok((0, resp.encode_to_vec()))
 }

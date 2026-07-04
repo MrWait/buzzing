@@ -214,3 +214,8 @@ pub(crate) fn calendar_get_dirty(conn: &Connection, limit: usize) -> Result<Vec<
     });
     Ok(result)
 }
+
+pub(crate) fn calendar_remove_local(conn: &Connection, id: i64) -> Result<()> {
+    conn.execute("DELETE FROM calendar WHERE id = ?1", params![id])?;
+    Ok(())
+}
