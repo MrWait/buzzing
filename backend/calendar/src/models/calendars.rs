@@ -79,10 +79,11 @@ impl CalendarModel {
             tenant_id: ActiveValue::set(src.tenant_id),
             public: ActiveValue::set(src.public),
             is_defalut: ActiveValue::set(src.is_default),
+            enable: ActiveValue::set(src.enable),
             color: ActiveValue::set(src.color),
             name: ActiveValue::set(Some(src.name.clone())),
             desc: ActiveValue::set(Some(src.desc.clone())),
-            version: ActiveValue::set(src.version.clone()),
+            version: ActiveValue::set(src.version),
             subscriber: ActiveValue::set(
                 serde_json::to_value(subscriber).map_err(|_| ModelError::EntityNotFound)?,
             ),
@@ -94,45 +95,45 @@ impl CalendarModel {
         Ok(calendar)
     }
 
+    pub async fn update(
+        db: &DatabaseConnection,
+        model: &Model,
+        subscribers: &entity::CalendarSubscribers,
+    ) -> ModelResult<()> {
+        ActiveModel {
+            id: ActiveValue::set(model.id),
+            name: ActiveValue::set(model.name.clone()),
+            desc: ActiveValue::set(model.desc.clone()),
+            color: ActiveValue::set(model.color),
+            public: ActiveValue::set(model.public),
+            enable: ActiveValue::set(model.enable),
+            subscriber: ActiveValue::set(
+                serde_json::to_value(&subscribers.subscribers)
+                    .map_err(|_| ModelError::EntityNotFound)?,
+            ),
+            version: ActiveValue::set(model.version),
+            ..Default::default()
+        }
+        .update(db)
+        .await?;
+        Ok(())
+    }
+
     pub async fn update_subscribers(
         db: &DatabaseConnection,
         id: i64,
         subscribers: &entity::CalendarSubscribers,
     ) -> ModelResult<()> {
-        // let calendar = ActiveModel {
-        //     id: ActiveValue::set(id),
-        //     subscriber: ActiveValue::set(
-        //         serde_json::to_value(&subscribers.subscribers)
-        //             .map_err(|_| ModelError::EntityNotFound)?,
-        //     ),
-        //     ..Default::default()
-        // }
-        // .update(db)
-        // .await?;
-
-        // let calendars = Entity::update_many()
-        //     .col_expr(
-        //         Column::Subscriber,
-        //         Expr::cust_with_values("subscriber || $1", [0]).to_owned(),
-        //     )
-        //     .filter(Expr::column(Column::Id).eq(id))
-        //     .exec_with_returning(db)
-        //     .await?;
-
-        let calendars = Entity::update_many()
-            .col_expr(
-                Column::Subscriber,
-                Expr::cust_with_values("array_remove(array_append(subscriber, $1), $2)", [0])
-                    .to_owned(),
-            )
-            .filter(Expr::column(Column::Id).eq(id))
-            .exec_with_returning(db)
-            .await?;
-
-        Ok(())
-    }
-
-    pub async fn update(db: &DatabaseConnection) -> ModelResult<()> {
+        ActiveModel {
+            id: ActiveValue::set(id),
+            subscriber: ActiveValue::set(
+                serde_json::to_value(&subscribers.subscribers)
+                    .map_err(|_| ModelError::EntityNotFound)?,
+            ),
+            ..Default::default()
+        }
+        .update(db)
+        .await?;
         Ok(())
     }
 
@@ -141,11 +142,21 @@ impl CalendarModel {
         Ok(())
     }
 
-    pub async fn search(db: &DatabaseConnection, key: &str) -> ModelResult<Vec<Model>> {
-        let calendars = Entity::find()
+    pub async fn search(
+        db: &DatabaseConnection,
+        key: &str,
+        limit_val: u64,
+        offset_val: u64,
+    ) -> ModelResult<Vec<Model>> {
+        let all = Entity::find()
             .filter(model::query::condition().contains(Column::Name, key).build())
             .all(db)
             .await?;
+        let calendars: Vec<Model> = all
+            .into_iter()
+            .skip(offset_val as usize)
+            .take(limit_val as usize)
+            .collect();
         Ok(calendars)
     }
 }
@@ -164,7 +175,7 @@ impl Into<entity::Calendar> for CalendarModel {
             desc: cal.desc.unwrap_or_default(),
             is_default: cal.is_defalut,
             public: cal.public,
-            enable: true,
+            enable: cal.enable,
             subscribers: Some(entity::CalendarSubscribers { subscribers }),
         }
     }

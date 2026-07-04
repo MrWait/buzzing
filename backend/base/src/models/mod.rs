@@ -6,6 +6,7 @@ pub mod depts;
 pub mod feeds;
 pub mod messages;
 pub mod pipelines;
+pub mod schedule_reminders;
 pub mod settings;
 pub mod tenants;
 pub mod users;

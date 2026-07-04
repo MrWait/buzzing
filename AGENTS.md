@@ -63,6 +63,7 @@ Buzzing 是一个企业级协作平台（类飞书/钉钉/Slack），包含完�
 - 在实现用户请求的功能时，如果功能较为复杂，先给出方案，由用户审核。
 - 客户端代码中，style 必须使用 theme.dart 中的定义，不允许硬编码样式。如果 theme.dart 中无适合类型，可自行增加。
 - 添加自动化测试用例（包括 buzzing/sdk_test, backend_test），需添加 spec 文件，用于描述用例。且测试用例和 spec 要同步修改。
+- backend、SDK 在构建时，自动编译 proto 文件，无需单独生成。
 
 
 ## 文档导航

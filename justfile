@@ -73,3 +73,7 @@ backend_test:
 # 后端 smoke 测试 (连通性 + 登录流程)
 backend_test_smoke:
     cd backend_test && npm run test:smoke
+
+# install protoc-gen-dart
+install_protoc_dart:
+    dart pub global activate protoc_plugin

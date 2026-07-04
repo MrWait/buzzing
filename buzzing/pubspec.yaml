@@ -97,7 +97,7 @@ dependencies:
   #     url: https://github.com/hrxiang/flutter_openim_widget.git
   #     ref: 2.3.5+3
   visibility_detector: ^0.4.0+2
-  protobuf: ^4.2.0
+  protobuf: ^6.0.0
   fixnum: ^1.1.0
   ffi: ^2.1.2
   stream_channel: ^2.1.2

@@ -8,7 +8,8 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names, unused_import
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -99,6 +100,8 @@ const Command$json = {
     {'1': 'SCHEDULE_PULL_BY_CALENDAR_IDS', '2': 1614},
     {'1': 'SCHEDULE_PULL_BUSY', '2': 1615},
     {'1': 'SCHEDULE_PUSH_UPDATE', '2': 1616},
+    {'1': 'PUSH_SCHEDULE_REMINDER', '2': 1617},
+    {'1': 'PUSH_SCHEDULE_DELETE', '2': 1618},
   ],
 };
 
@@ -135,4 +138,6 @@ final $typed_data.Uint8List commandDescriptor = $convert.base64Decode(
     'X1BVU0hfTElTVBDGDBIZChRDQUxFTkRBUl9QVVNIX1VQREFURRDHDBIUCg9TQ0hFRFVMRV9DUk'
     'VBVEUQygwSFAoPU0NIRURVTEVfUkVNT1ZFEMsMEhQKD1NDSEVEVUxFX1VQREFURRDMDBIZChRT'
     'Q0hFRFVMRV9QVUxMX0JZX0lEUxDNDBIiCh1TQ0hFRFVMRV9QVUxMX0JZX0NBTEVOREFSX0lEUx'
-    'DODBIXChJTQ0hFRFVMRV9QVUxMX0JVU1kQzwwSGQoUU0NIRURVTEVfUFVTSF9VUERBVEUQ0Aw=');
+    'DODBIXChJTQ0hFRFVMRV9QVUxMX0JVU1kQzwwSGQoUU0NIRURVTEVfUFVTSF9VUERBVEUQ0AwS'
+    'GwoWUFVTSF9TQ0hFRFVMRV9SRU1JTkRFUhDRDBIZChRQVVNIX1NDSEVEVUxFX0RFTEVURRDSDA'
+    '==');
