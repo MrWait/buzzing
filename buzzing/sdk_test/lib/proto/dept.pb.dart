@@ -8,7 +8,7 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:core' as $core;
 
@@ -51,7 +51,7 @@ class GetDeptRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetDeptRequest clone() => GetDeptRequest()..mergeFromMessage(this);
+  GetDeptRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetDeptRequest copyWith(void Function(GetDeptRequest) updates) =>
       super.copyWith((message) => updates(message as GetDeptRequest))
@@ -64,8 +64,6 @@ class GetDeptRequest extends $pb.GeneratedMessage {
   static GetDeptRequest create() => GetDeptRequest._();
   @$core.override
   GetDeptRequest createEmptyInstance() => create();
-  static $pb.PbList<GetDeptRequest> createRepeated() =>
-      $pb.PbList<GetDeptRequest>();
   @$core.pragma('dart2js:noInline')
   static GetDeptRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetDeptRequest>(create);
@@ -140,7 +138,7 @@ class GetDeptResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GetDeptResponse clone() => GetDeptResponse()..mergeFromMessage(this);
+  GetDeptResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GetDeptResponse copyWith(void Function(GetDeptResponse) updates) =>
       super.copyWith((message) => updates(message as GetDeptResponse))
@@ -153,8 +151,6 @@ class GetDeptResponse extends $pb.GeneratedMessage {
   static GetDeptResponse create() => GetDeptResponse._();
   @$core.override
   GetDeptResponse createEmptyInstance() => create();
-  static $pb.PbList<GetDeptResponse> createRepeated() =>
-      $pb.PbList<GetDeptResponse>();
   @$core.pragma('dart2js:noInline')
   static GetDeptResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GetDeptResponse>(create);

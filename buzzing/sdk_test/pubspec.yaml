@@ -7,7 +7,7 @@ environment:
 dependencies:
   flutter_rust_bridge: 2.11.1
   fixnum: ^1.1.0
-  protobuf: ^4.2.0
+  protobuf: ^6.0.0
   http: ^1.2.0
 
 dev_dependencies:

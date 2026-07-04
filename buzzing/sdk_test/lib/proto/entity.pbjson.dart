@@ -8,7 +8,8 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names, unused_import
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -1389,6 +1390,7 @@ const Schedule$json = {
       '6': '.entity.ScheduleCycleRule',
       '10': 'cycle'
     },
+    {'1': 'modify_scope', '3': 32, '4': 1, '5': 5, '10': 'modifyScope'},
   ],
 };
 
@@ -1412,7 +1414,8 @@ final $typed_data.Uint8List scheduleDescriptor = $convert.base64Decode(
     'NhdGlvbhIYCgdhcmNoaXZlGBogASgJUgdhcmNoaXZlEhIKBGRlc2MYGyABKAlSBGRlc2MSFAoF'
     'dGl0bGUYHCABKAlSBXRpdGxlEh0KCm1lbWJlcl9pZHMYHSADKANSCW1lbWJlcklkcxIfCgtub3'
     'RpZnlfdGltZRgeIAMoBVIKbm90aWZ5VGltZRIvCgVjeWNsZRgfIAEoCzIZLmVudGl0eS5TY2hl'
-    'ZHVsZUN5Y2xlUnVsZVIFY3ljbGU=');
+    'ZHVsZUN5Y2xlUnVsZVIFY3ljbGUSIQoMbW9kaWZ5X3Njb3BlGCAgASgFUgttb2RpZnlTY29wZQ'
+    '==');
 
 @$core.Deprecated('Use cycleRuleDescriptor instead')
 const CycleRule$json = {
@@ -1461,7 +1464,7 @@ const ScheduleCycleRule$json = {
       '6': '.entity.CycleRule',
       '10': 'rule'
     },
-    {'1': 'exception_ids', '3': 6, '4': 3, '5': 3, '10': 'exceptionIds'},
+    {'1': 'exception_times', '3': 6, '4': 3, '5': 3, '10': 'exceptionTimes'},
     {'1': 'version', '3': 7, '4': 1, '5': 3, '10': 'version'},
   ],
 };
@@ -1470,5 +1473,6 @@ const ScheduleCycleRule$json = {
 final $typed_data.Uint8List scheduleCycleRuleDescriptor = $convert.base64Decode(
     'ChFTY2hlZHVsZUN5Y2xlUnVsZRIOCgJpZBgBIAEoA1ICaWQSHwoLY2FsZW5kYXJfaWQYAiABKA'
     'NSCmNhbGVuZGFySWQSGQoIc3RhcnRfYXQYAyABKANSB3N0YXJ0QXQSFwoHc3RvcF9hdBgEIAEo'
-    'A1IGc3RvcEF0EiUKBHJ1bGUYBSABKAsyES5lbnRpdHkuQ3ljbGVSdWxlUgRydWxlEiMKDWV4Y2'
-    'VwdGlvbl9pZHMYBiADKANSDGV4Y2VwdGlvbklkcxIYCgd2ZXJzaW9uGAcgASgDUgd2ZXJzaW9u');
+    'A1IGc3RvcEF0EiUKBHJ1bGUYBSABKAsyES5lbnRpdHkuQ3ljbGVSdWxlUgRydWxlEicKD2V4Y2'
+    'VwdGlvbl90aW1lcxgGIAMoA1IOZXhjZXB0aW9uVGltZXMSGAoHdmVyc2lvbhgHIAEoA1IHdmVy'
+    'c2lvbg==');

@@ -8,7 +8,7 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:core' as $core;
 
@@ -45,8 +45,7 @@ class PullPacketsBySidsRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PullPacketsBySidsRequest clone() =>
-      PullPacketsBySidsRequest()..mergeFromMessage(this);
+  PullPacketsBySidsRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   PullPacketsBySidsRequest copyWith(
           void Function(PullPacketsBySidsRequest) updates) =>
@@ -60,8 +59,6 @@ class PullPacketsBySidsRequest extends $pb.GeneratedMessage {
   static PullPacketsBySidsRequest create() => PullPacketsBySidsRequest._();
   @$core.override
   PullPacketsBySidsRequest createEmptyInstance() => create();
-  static $pb.PbList<PullPacketsBySidsRequest> createRepeated() =>
-      $pb.PbList<PullPacketsBySidsRequest>();
   @$core.pragma('dart2js:noInline')
   static PullPacketsBySidsRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<PullPacketsBySidsRequest>(create);
@@ -109,8 +106,7 @@ class PullPacketsBySidsResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PullPacketsBySidsResponse clone() =>
-      PullPacketsBySidsResponse()..mergeFromMessage(this);
+  PullPacketsBySidsResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   PullPacketsBySidsResponse copyWith(
           void Function(PullPacketsBySidsResponse) updates) =>
@@ -124,8 +120,6 @@ class PullPacketsBySidsResponse extends $pb.GeneratedMessage {
   static PullPacketsBySidsResponse create() => PullPacketsBySidsResponse._();
   @$core.override
   PullPacketsBySidsResponse createEmptyInstance() => create();
-  static $pb.PbList<PullPacketsBySidsResponse> createRepeated() =>
-      $pb.PbList<PullPacketsBySidsResponse>();
   @$core.pragma('dart2js:noInline')
   static PullPacketsBySidsResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<PullPacketsBySidsResponse>(create);
@@ -162,8 +156,7 @@ class ProcessMultiPacketsRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ProcessMultiPacketsRequest clone() =>
-      ProcessMultiPacketsRequest()..mergeFromMessage(this);
+  ProcessMultiPacketsRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ProcessMultiPacketsRequest copyWith(
           void Function(ProcessMultiPacketsRequest) updates) =>
@@ -178,8 +171,6 @@ class ProcessMultiPacketsRequest extends $pb.GeneratedMessage {
   static ProcessMultiPacketsRequest create() => ProcessMultiPacketsRequest._();
   @$core.override
   ProcessMultiPacketsRequest createEmptyInstance() => create();
-  static $pb.PbList<ProcessMultiPacketsRequest> createRepeated() =>
-      $pb.PbList<ProcessMultiPacketsRequest>();
   @$core.pragma('dart2js:noInline')
   static ProcessMultiPacketsRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ProcessMultiPacketsRequest>(create);
@@ -228,8 +219,7 @@ class ProcessMultiPacketsResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ProcessMultiPacketsResponse clone() =>
-      ProcessMultiPacketsResponse()..mergeFromMessage(this);
+  ProcessMultiPacketsResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ProcessMultiPacketsResponse copyWith(
           void Function(ProcessMultiPacketsResponse) updates) =>
@@ -245,8 +235,6 @@ class ProcessMultiPacketsResponse extends $pb.GeneratedMessage {
       ProcessMultiPacketsResponse._();
   @$core.override
   ProcessMultiPacketsResponse createEmptyInstance() => create();
-  static $pb.PbList<ProcessMultiPacketsResponse> createRepeated() =>
-      $pb.PbList<ProcessMultiPacketsResponse>();
   @$core.pragma('dart2js:noInline')
   static ProcessMultiPacketsResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ProcessMultiPacketsResponse>(create);
@@ -282,12 +270,11 @@ class MultiPacketResultExt extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'MultiPacketResultExt',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'server'),
       createEmptyInstance: create)
-    ..a<$core.int>(1, _omitFieldNames ? '' : 'statusCode', $pb.PbFieldType.O3)
+    ..aI(1, _omitFieldNames ? '' : 'statusCode')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  MultiPacketResultExt clone() =>
-      MultiPacketResultExt()..mergeFromMessage(this);
+  MultiPacketResultExt clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   MultiPacketResultExt copyWith(void Function(MultiPacketResultExt) updates) =>
       super.copyWith((message) => updates(message as MultiPacketResultExt))
@@ -300,8 +287,6 @@ class MultiPacketResultExt extends $pb.GeneratedMessage {
   static MultiPacketResultExt create() => MultiPacketResultExt._();
   @$core.override
   MultiPacketResultExt createEmptyInstance() => create();
-  static $pb.PbList<MultiPacketResultExt> createRepeated() =>
-      $pb.PbList<MultiPacketResultExt>();
   @$core.pragma('dart2js:noInline')
   static MultiPacketResultExt getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<MultiPacketResultExt>(create);
@@ -350,16 +335,15 @@ class PullPacketsBySeqIdRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'server'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'sid')
-    ..a<$core.int>(2, _omitFieldNames ? '' : 'count', $pb.PbFieldType.OU3)
-    ..a<$core.int>(3, _omitFieldNames ? '' : 'version', $pb.PbFieldType.OU3)
+    ..aI(2, _omitFieldNames ? '' : 'count', fieldType: $pb.PbFieldType.OU3)
+    ..aI(3, _omitFieldNames ? '' : 'version', fieldType: $pb.PbFieldType.OU3)
     ..aOB(4, _omitFieldNames ? '' : 'frontierDowngrade')
     ..aOS(5, _omitFieldNames ? '' : 'batchUniqId')
     ..aInt64(6, _omitFieldNames ? '' : 'batchIndex')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PullPacketsBySeqIdRequest clone() =>
-      PullPacketsBySeqIdRequest()..mergeFromMessage(this);
+  PullPacketsBySeqIdRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   PullPacketsBySeqIdRequest copyWith(
           void Function(PullPacketsBySeqIdRequest) updates) =>
@@ -373,8 +357,6 @@ class PullPacketsBySeqIdRequest extends $pb.GeneratedMessage {
   static PullPacketsBySeqIdRequest create() => PullPacketsBySeqIdRequest._();
   @$core.override
   PullPacketsBySeqIdRequest createEmptyInstance() => create();
-  static $pb.PbList<PullPacketsBySeqIdRequest> createRepeated() =>
-      $pb.PbList<PullPacketsBySeqIdRequest>();
   @$core.pragma('dart2js:noInline')
   static PullPacketsBySeqIdRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<PullPacketsBySeqIdRequest>(create);
@@ -469,7 +451,7 @@ class PullPacketsBySeqIdResponse extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'server'),
       createEmptyInstance: create)
     ..aOB(1, _omitFieldNames ? '' : 'hasMore')
-    ..pc<$0.Packet>(2, _omitFieldNames ? '' : 'packets', $pb.PbFieldType.PM,
+    ..pPM<$0.Packet>(2, _omitFieldNames ? '' : 'packets',
         subBuilder: $0.Packet.create)
     ..aInt64(3, _omitFieldNames ? '' : 'lastPacketCreateTime')
     ..aOS(4, _omitFieldNames ? '' : 'lastSid')
@@ -478,8 +460,7 @@ class PullPacketsBySeqIdResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PullPacketsBySeqIdResponse clone() =>
-      PullPacketsBySeqIdResponse()..mergeFromMessage(this);
+  PullPacketsBySeqIdResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   PullPacketsBySeqIdResponse copyWith(
           void Function(PullPacketsBySeqIdResponse) updates) =>
@@ -494,8 +475,6 @@ class PullPacketsBySeqIdResponse extends $pb.GeneratedMessage {
   static PullPacketsBySeqIdResponse create() => PullPacketsBySeqIdResponse._();
   @$core.override
   PullPacketsBySeqIdResponse createEmptyInstance() => create();
-  static $pb.PbList<PullPacketsBySeqIdResponse> createRepeated() =>
-      $pb.PbList<PullPacketsBySeqIdResponse>();
   @$core.pragma('dart2js:noInline')
   static PullPacketsBySeqIdResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<PullPacketsBySeqIdResponse>(create);

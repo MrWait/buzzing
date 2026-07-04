@@ -138,6 +138,30 @@ impl AppCalendar {
     pub async fn handle_push_calendar_list(&self, param: &[u8]) -> Result<()> {
         let push = calendar::CalendarPushListRequest::decode(param)?;
         debug!("handle push calendar list, {push:?}");
+        // 保存到本地 DB
+        if !push.calendars.is_empty() {
+            let mut conn = self.db.inner()?;
+            database::calendar::calendar_batch_save(conn.deref_mut(), &push.calendars)?;
+        }
+        // ffi_push 透传到 Flutter
+        let _ = ffi_push(Command::CalendarPushList as i32, param.to_vec());
+        Ok(())
+    }
+
+    pub async fn handle_entity_changed(&self, param: &[u8]) -> Result<()> {
+        use proto::idl::pipeline;
+        let push = pipeline::PushEntityChanged::decode(param)?;
+        debug!("handle entity changed, {push:?}");
+        let conn = self.db.inner()?;
+        for change in &push.changes {
+            if change.r#type == 2 {
+                // Calendar
+                database::calendar::calendar_remove_local(&conn, change.id)?;
+            } else if change.r#type == 3 {
+                // Schedule
+                database::schedule::schedule_remove_local(&conn, change.id)?;
+            }
+        }
         Ok(())
     }
 }

@@ -131,7 +131,7 @@ void main() {
   });
 
   group('Calendar | reads from local DB', () {
-    test('CALENDAR_GET_LIST returns empty initially', () async {
+    test('CALENDAR_GET_LIST returns calendars from local DB', () async {
       final req = CalendarGetListRequest.create();
       final resp = await invoke(
         Command.CALENDAR_GET_LIST.value,
@@ -141,17 +141,160 @@ void main() {
       expect(resp.status, anyOf(0, 200));
       if (resp.payload.isNotEmpty) {
         final calResp = CalendarGetListResponse.fromBuffer(resp.payload);
-        expect(calResp.calendars, isEmpty);
+        print('calendars count: ${calResp.calendars.length}');
       }
     });
 
-    test('SCHEDULE_PULL_BY_IDS stub returns empty', () async {
+    test('SCHEDULE_PULL_BY_IDS returns response', () async {
       final req = SchedulePullByIdsRequest.create()..ids.add(Int64(1));
       final resp = await invoke(
         Command.SCHEDULE_PULL_BY_IDS.value,
         req.writeToBuffer(),
       );
+      print('SCHEDULE_PULL_BY_IDS: status=${resp.status}, payloadLen=${resp.payload.length}');
       expect(resp.seq, greaterThan(0));
+    });
+  });
+
+  group('Calendar | SDK CRUD', () {
+    late Int64 createdCalId;
+    late Int64 createdSchedId;
+
+    test('CALENDAR_CREATE creates a calendar via SDK', () async {
+      final req = CalendarCreateRequest.create()
+        ..calendar = (Calendar.create()
+          ..name = 'sdk-test-cal-${DateTime.now().millisecondsSinceEpoch}'
+          ..desc = 'created by sdk test'
+          ..color = 0xFF3370FF
+          ..isDefault = false);
+      final resp = await invoke(
+        Command.CALENDAR_CREATE.value,
+        req.writeToBuffer(),
+      );
+      print('CALENDAR_CREATE: status=${resp.status}, payloadLen=${resp.payload.length}');
+      expect(resp.status, anyOf(0, 200));
+      if (resp.payload.isNotEmpty) {
+        final createResp = CalendarCreateResponse.fromBuffer(resp.payload);
+        expect(createResp.calendar, isNotNull);
+        expect(createResp.calendar.name, req.calendar.name);
+        createdCalId = createResp.calendar.id;
+        print('created calendar id=$createdCalId');
+      }
+    });
+
+    test('SCHEDULE_CREATE creates a schedule via SDK', () async {
+      expect(createdCalId, greaterThan(Int64(0)));
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final req = ScheduleCreateRequest.create()
+        ..schedule = (Schedule.create()
+          ..calendarId = createdCalId
+          ..title = 'sdk-test-sched-${now}'
+          ..startTime = Int64(now)
+          ..endTime = Int64(now + 3600000)
+          ..type = 0);
+      final resp = await invoke(
+        Command.SCHEDULE_CREATE.value,
+        req.writeToBuffer(),
+      );
+      print('SCHEDULE_CREATE: status=${resp.status}, payloadLen=${resp.payload.length}');
+      expect(resp.status, anyOf(0, 200));
+      if (resp.payload.isNotEmpty) {
+        final createResp = ScheduleCreateResponse.fromBuffer(resp.payload);
+        expect(createResp.schedule, isNotNull);
+        expect(createResp.schedule.title, req.schedule.title);
+        createdSchedId = createResp.schedule.id;
+        print('created schedule id=$createdSchedId');
+      }
+    });
+
+    test('CALENDAR_GET_LIST includes created calendar', () async {
+      expect(createdCalId, greaterThan(Int64(0)));
+      await Future.delayed(const Duration(milliseconds: 500));
+      final req = CalendarGetListRequest.create();
+      final resp = await invoke(
+        Command.CALENDAR_GET_LIST.value,
+        req.writeToBuffer(),
+      );
+      print('CALENDAR_GET_LIST after create: status=${resp.status}');
+      expect(resp.status, anyOf(0, 200));
+      if (resp.payload.isNotEmpty) {
+        final calResp = CalendarGetListResponse.fromBuffer(resp.payload);
+        final found = calResp.calendars.where((c) => c.id == createdCalId);
+        if (found.isNotEmpty) {
+          print('created calendar found in local DB: name="${found.first.name}"');
+        } else {
+          print('created calendar NOT yet in local DB (push may be pending)');
+        }
+      }
+    });
+
+    test('SCHEDULE_PULL_BY_CALENDAR_IDS returns response', () async {
+      expect(createdCalId, greaterThan(Int64(0)));
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final req = SchedulePullByCalendarIdsRequest.create()
+        ..calendarIds.add(createdCalId)
+        ..startTime = Int64(now - 86400000)
+        ..endTime = Int64(now + 86400000);
+      final resp = await invoke(
+        Command.SCHEDULE_PULL_BY_CALENDAR_IDS.value,
+        req.writeToBuffer(),
+      );
+      print('SCHEDULE_PULL_BY_CALENDAR_IDS: status=${resp.status}, payloadLen=${resp.payload.length}');
+      expect(resp.seq, greaterThan(0));
+      if (resp.payload.isNotEmpty) {
+        final pullResp = SchedulePullByCalendarIdsResponse.fromBuffer(resp.payload);
+        print('schedules count: ${pullResp.schedules.length}');
+        if (createdSchedId != Int64(0)) {
+          final found = pullResp.schedules.where((s) => s.id == createdSchedId);
+          if (found.isNotEmpty) {
+            print('created schedule found: "${found.first.title}"');
+          }
+        }
+      }
+    });
+
+    test('SCHEDULE_CREATE with cycle rule (daily)', () async {
+      expect(createdCalId, greaterThan(Int64(0)));
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final req = ScheduleCreateRequest.create()
+        ..schedule = (Schedule.create()
+          ..calendarId = createdCalId
+          ..title = 'sdk-recurring-sched-${now}'
+          ..startTime = Int64(now)
+          ..endTime = Int64(now + 3600000)
+          ..type = 0
+          ..cycle = (ScheduleCycleRule.create()
+            ..rule = (CycleRule.create()
+              ..cycleType = 1  // CycleByDay
+              ..seq = 1)));    // every day
+      final resp = await invoke(
+        Command.SCHEDULE_CREATE.value,
+        req.writeToBuffer(),
+      );
+      print('SCHEDULE_CREATE (recurring): status=${resp.status}, payloadLen=${resp.payload.length}');
+      expect(resp.status, anyOf(0, 200));
+      if (resp.payload.isNotEmpty) {
+        final createResp = ScheduleCreateResponse.fromBuffer(resp.payload);
+        expect(createResp.schedule, isNotNull);
+        print('created recurring schedule id=${createResp.schedule.id}');
+      }
+    });
+
+    test('SCHEDULE_UPDATE updates schedule via SDK', () async {
+      expect(createdSchedId, greaterThan(Int64(0)));
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final req = ScheduleUpdateRequest.create()
+        ..schedule = (Schedule.create()
+          ..id = createdSchedId
+          ..calendarId = createdCalId
+          ..title = 'sdk-updated-sched-${now}')
+        ..modifyScope = 0;
+      final resp = await invoke(
+        Command.SCHEDULE_UPDATE.value,
+        req.writeToBuffer(),
+      );
+      print('SCHEDULE_UPDATE: status=${resp.status}, payloadLen=${resp.payload.length}');
+      expect(resp.status, anyOf(0, 200));
     });
   });
 

@@ -8,7 +8,7 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:core' as $core;
 
@@ -38,8 +38,7 @@ class CalendarGetListRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CalendarGetListRequest clone() =>
-      CalendarGetListRequest()..mergeFromMessage(this);
+  CalendarGetListRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CalendarGetListRequest copyWith(
           void Function(CalendarGetListRequest) updates) =>
@@ -53,8 +52,6 @@ class CalendarGetListRequest extends $pb.GeneratedMessage {
   static CalendarGetListRequest create() => CalendarGetListRequest._();
   @$core.override
   CalendarGetListRequest createEmptyInstance() => create();
-  static $pb.PbList<CalendarGetListRequest> createRepeated() =>
-      $pb.PbList<CalendarGetListRequest>();
   @$core.pragma('dart2js:noInline')
   static CalendarGetListRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CalendarGetListRequest>(create);
@@ -83,13 +80,12 @@ class CalendarGetListResponse extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'CalendarGetListResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'calendar'),
       createEmptyInstance: create)
-    ..pc<$0.Calendar>(1, _omitFieldNames ? '' : 'calendars', $pb.PbFieldType.PM,
+    ..pPM<$0.Calendar>(1, _omitFieldNames ? '' : 'calendars',
         subBuilder: $0.Calendar.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CalendarGetListResponse clone() =>
-      CalendarGetListResponse()..mergeFromMessage(this);
+  CalendarGetListResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CalendarGetListResponse copyWith(
           void Function(CalendarGetListResponse) updates) =>
@@ -103,8 +99,6 @@ class CalendarGetListResponse extends $pb.GeneratedMessage {
   static CalendarGetListResponse create() => CalendarGetListResponse._();
   @$core.override
   CalendarGetListResponse createEmptyInstance() => create();
-  static $pb.PbList<CalendarGetListResponse> createRepeated() =>
-      $pb.PbList<CalendarGetListResponse>();
   @$core.pragma('dart2js:noInline')
   static CalendarGetListResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CalendarGetListResponse>(create);
@@ -141,8 +135,7 @@ class CalendarCreateRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CalendarCreateRequest clone() =>
-      CalendarCreateRequest()..mergeFromMessage(this);
+  CalendarCreateRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CalendarCreateRequest copyWith(
           void Function(CalendarCreateRequest) updates) =>
@@ -156,8 +149,6 @@ class CalendarCreateRequest extends $pb.GeneratedMessage {
   static CalendarCreateRequest create() => CalendarCreateRequest._();
   @$core.override
   CalendarCreateRequest createEmptyInstance() => create();
-  static $pb.PbList<CalendarCreateRequest> createRepeated() =>
-      $pb.PbList<CalendarCreateRequest>();
   @$core.pragma('dart2js:noInline')
   static CalendarCreateRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CalendarCreateRequest>(create);
@@ -202,8 +193,7 @@ class CalendarCreateResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CalendarCreateResponse clone() =>
-      CalendarCreateResponse()..mergeFromMessage(this);
+  CalendarCreateResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CalendarCreateResponse copyWith(
           void Function(CalendarCreateResponse) updates) =>
@@ -217,8 +207,6 @@ class CalendarCreateResponse extends $pb.GeneratedMessage {
   static CalendarCreateResponse create() => CalendarCreateResponse._();
   @$core.override
   CalendarCreateResponse createEmptyInstance() => create();
-  static $pb.PbList<CalendarCreateResponse> createRepeated() =>
-      $pb.PbList<CalendarCreateResponse>();
   @$core.pragma('dart2js:noInline')
   static CalendarCreateResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CalendarCreateResponse>(create);
@@ -263,8 +251,7 @@ class CalendarUpdateRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CalendarUpdateRequest clone() =>
-      CalendarUpdateRequest()..mergeFromMessage(this);
+  CalendarUpdateRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CalendarUpdateRequest copyWith(
           void Function(CalendarUpdateRequest) updates) =>
@@ -278,8 +265,6 @@ class CalendarUpdateRequest extends $pb.GeneratedMessage {
   static CalendarUpdateRequest create() => CalendarUpdateRequest._();
   @$core.override
   CalendarUpdateRequest createEmptyInstance() => create();
-  static $pb.PbList<CalendarUpdateRequest> createRepeated() =>
-      $pb.PbList<CalendarUpdateRequest>();
   @$core.pragma('dart2js:noInline')
   static CalendarUpdateRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CalendarUpdateRequest>(create);
@@ -324,8 +309,7 @@ class CalendarUpdateResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CalendarUpdateResponse clone() =>
-      CalendarUpdateResponse()..mergeFromMessage(this);
+  CalendarUpdateResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CalendarUpdateResponse copyWith(
           void Function(CalendarUpdateResponse) updates) =>
@@ -339,8 +323,6 @@ class CalendarUpdateResponse extends $pb.GeneratedMessage {
   static CalendarUpdateResponse create() => CalendarUpdateResponse._();
   @$core.override
   CalendarUpdateResponse createEmptyInstance() => create();
-  static $pb.PbList<CalendarUpdateResponse> createRepeated() =>
-      $pb.PbList<CalendarUpdateResponse>();
   @$core.pragma('dart2js:noInline')
   static CalendarUpdateResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CalendarUpdateResponse>(create);
@@ -384,8 +366,7 @@ class CalendarDeleteRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CalendarDeleteRequest clone() =>
-      CalendarDeleteRequest()..mergeFromMessage(this);
+  CalendarDeleteRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CalendarDeleteRequest copyWith(
           void Function(CalendarDeleteRequest) updates) =>
@@ -399,8 +380,6 @@ class CalendarDeleteRequest extends $pb.GeneratedMessage {
   static CalendarDeleteRequest create() => CalendarDeleteRequest._();
   @$core.override
   CalendarDeleteRequest createEmptyInstance() => create();
-  static $pb.PbList<CalendarDeleteRequest> createRepeated() =>
-      $pb.PbList<CalendarDeleteRequest>();
   @$core.pragma('dart2js:noInline')
   static CalendarDeleteRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CalendarDeleteRequest>(create);
@@ -435,8 +414,7 @@ class CalendarDeleteResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CalendarDeleteResponse clone() =>
-      CalendarDeleteResponse()..mergeFromMessage(this);
+  CalendarDeleteResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CalendarDeleteResponse copyWith(
           void Function(CalendarDeleteResponse) updates) =>
@@ -450,8 +428,6 @@ class CalendarDeleteResponse extends $pb.GeneratedMessage {
   static CalendarDeleteResponse create() => CalendarDeleteResponse._();
   @$core.override
   CalendarDeleteResponse createEmptyInstance() => create();
-  static $pb.PbList<CalendarDeleteResponse> createRepeated() =>
-      $pb.PbList<CalendarDeleteResponse>();
   @$core.pragma('dart2js:noInline')
   static CalendarDeleteResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CalendarDeleteResponse>(create);
@@ -461,9 +437,13 @@ class CalendarDeleteResponse extends $pb.GeneratedMessage {
 class CalendarSearchRequest extends $pb.GeneratedMessage {
   factory CalendarSearchRequest({
     $core.String? key,
+    $core.int? limit,
+    $core.int? offset,
   }) {
     final result = create();
     if (key != null) result.key = key;
+    if (limit != null) result.limit = limit;
+    if (offset != null) result.offset = offset;
     return result;
   }
 
@@ -481,11 +461,12 @@ class CalendarSearchRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'calendar'),
       createEmptyInstance: create)
     ..aOS(1, _omitFieldNames ? '' : 'key')
+    ..aI(2, _omitFieldNames ? '' : 'limit')
+    ..aI(3, _omitFieldNames ? '' : 'offset')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CalendarSearchRequest clone() =>
-      CalendarSearchRequest()..mergeFromMessage(this);
+  CalendarSearchRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CalendarSearchRequest copyWith(
           void Function(CalendarSearchRequest) updates) =>
@@ -499,8 +480,6 @@ class CalendarSearchRequest extends $pb.GeneratedMessage {
   static CalendarSearchRequest create() => CalendarSearchRequest._();
   @$core.override
   CalendarSearchRequest createEmptyInstance() => create();
-  static $pb.PbList<CalendarSearchRequest> createRepeated() =>
-      $pb.PbList<CalendarSearchRequest>();
   @$core.pragma('dart2js:noInline')
   static CalendarSearchRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CalendarSearchRequest>(create);
@@ -514,6 +493,24 @@ class CalendarSearchRequest extends $pb.GeneratedMessage {
   $core.bool hasKey() => $_has(0);
   @$pb.TagNumber(1)
   void clearKey() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get limit => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set limit($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLimit() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLimit() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get offset => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set offset($core.int value) => $_setSignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasOffset() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearOffset() => $_clearField(3);
 }
 
 class CalendarSearchResponse extends $pb.GeneratedMessage {
@@ -538,13 +535,12 @@ class CalendarSearchResponse extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'CalendarSearchResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'calendar'),
       createEmptyInstance: create)
-    ..pc<$0.Calendar>(1, _omitFieldNames ? '' : 'calendars', $pb.PbFieldType.PM,
+    ..pPM<$0.Calendar>(1, _omitFieldNames ? '' : 'calendars',
         subBuilder: $0.Calendar.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CalendarSearchResponse clone() =>
-      CalendarSearchResponse()..mergeFromMessage(this);
+  CalendarSearchResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CalendarSearchResponse copyWith(
           void Function(CalendarSearchResponse) updates) =>
@@ -558,8 +554,6 @@ class CalendarSearchResponse extends $pb.GeneratedMessage {
   static CalendarSearchResponse create() => CalendarSearchResponse._();
   @$core.override
   CalendarSearchResponse createEmptyInstance() => create();
-  static $pb.PbList<CalendarSearchResponse> createRepeated() =>
-      $pb.PbList<CalendarSearchResponse>();
   @$core.pragma('dart2js:noInline')
   static CalendarSearchResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CalendarSearchResponse>(create);
@@ -591,13 +585,12 @@ class CalendarPushListRequest extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'CalendarPushListRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'calendar'),
       createEmptyInstance: create)
-    ..pc<$0.Calendar>(1, _omitFieldNames ? '' : 'calendars', $pb.PbFieldType.PM,
+    ..pPM<$0.Calendar>(1, _omitFieldNames ? '' : 'calendars',
         subBuilder: $0.Calendar.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CalendarPushListRequest clone() =>
-      CalendarPushListRequest()..mergeFromMessage(this);
+  CalendarPushListRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CalendarPushListRequest copyWith(
           void Function(CalendarPushListRequest) updates) =>
@@ -611,8 +604,6 @@ class CalendarPushListRequest extends $pb.GeneratedMessage {
   static CalendarPushListRequest create() => CalendarPushListRequest._();
   @$core.override
   CalendarPushListRequest createEmptyInstance() => create();
-  static $pb.PbList<CalendarPushListRequest> createRepeated() =>
-      $pb.PbList<CalendarPushListRequest>();
   @$core.pragma('dart2js:noInline')
   static CalendarPushListRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CalendarPushListRequest>(create);
@@ -651,8 +642,7 @@ class CalendarSubscribeRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CalendarSubscribeRequest clone() =>
-      CalendarSubscribeRequest()..mergeFromMessage(this);
+  CalendarSubscribeRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CalendarSubscribeRequest copyWith(
           void Function(CalendarSubscribeRequest) updates) =>
@@ -666,8 +656,6 @@ class CalendarSubscribeRequest extends $pb.GeneratedMessage {
   static CalendarSubscribeRequest create() => CalendarSubscribeRequest._();
   @$core.override
   CalendarSubscribeRequest createEmptyInstance() => create();
-  static $pb.PbList<CalendarSubscribeRequest> createRepeated() =>
-      $pb.PbList<CalendarSubscribeRequest>();
   @$core.pragma('dart2js:noInline')
   static CalendarSubscribeRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CalendarSubscribeRequest>(create);
@@ -711,8 +699,7 @@ class CalendarSubscribeResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CalendarSubscribeResponse clone() =>
-      CalendarSubscribeResponse()..mergeFromMessage(this);
+  CalendarSubscribeResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CalendarSubscribeResponse copyWith(
           void Function(CalendarSubscribeResponse) updates) =>
@@ -726,8 +713,6 @@ class CalendarSubscribeResponse extends $pb.GeneratedMessage {
   static CalendarSubscribeResponse create() => CalendarSubscribeResponse._();
   @$core.override
   CalendarSubscribeResponse createEmptyInstance() => create();
-  static $pb.PbList<CalendarSubscribeResponse> createRepeated() =>
-      $pb.PbList<CalendarSubscribeResponse>();
   @$core.pragma('dart2js:noInline')
   static CalendarSubscribeResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CalendarSubscribeResponse>(create);
@@ -761,8 +746,7 @@ class CalendarPushUpdateRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  CalendarPushUpdateRequest clone() =>
-      CalendarPushUpdateRequest()..mergeFromMessage(this);
+  CalendarPushUpdateRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   CalendarPushUpdateRequest copyWith(
           void Function(CalendarPushUpdateRequest) updates) =>
@@ -776,8 +760,6 @@ class CalendarPushUpdateRequest extends $pb.GeneratedMessage {
   static CalendarPushUpdateRequest create() => CalendarPushUpdateRequest._();
   @$core.override
   CalendarPushUpdateRequest createEmptyInstance() => create();
-  static $pb.PbList<CalendarPushUpdateRequest> createRepeated() =>
-      $pb.PbList<CalendarPushUpdateRequest>();
   @$core.pragma('dart2js:noInline')
   static CalendarPushUpdateRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<CalendarPushUpdateRequest>(create);
@@ -822,8 +804,7 @@ class ScheduleCreateRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ScheduleCreateRequest clone() =>
-      ScheduleCreateRequest()..mergeFromMessage(this);
+  ScheduleCreateRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ScheduleCreateRequest copyWith(
           void Function(ScheduleCreateRequest) updates) =>
@@ -837,8 +818,6 @@ class ScheduleCreateRequest extends $pb.GeneratedMessage {
   static ScheduleCreateRequest create() => ScheduleCreateRequest._();
   @$core.override
   ScheduleCreateRequest createEmptyInstance() => create();
-  static $pb.PbList<ScheduleCreateRequest> createRepeated() =>
-      $pb.PbList<ScheduleCreateRequest>();
   @$core.pragma('dart2js:noInline')
   static ScheduleCreateRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ScheduleCreateRequest>(create);
@@ -883,8 +862,7 @@ class ScheduleCreateResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ScheduleCreateResponse clone() =>
-      ScheduleCreateResponse()..mergeFromMessage(this);
+  ScheduleCreateResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ScheduleCreateResponse copyWith(
           void Function(ScheduleCreateResponse) updates) =>
@@ -898,8 +876,6 @@ class ScheduleCreateResponse extends $pb.GeneratedMessage {
   static ScheduleCreateResponse create() => ScheduleCreateResponse._();
   @$core.override
   ScheduleCreateResponse createEmptyInstance() => create();
-  static $pb.PbList<ScheduleCreateResponse> createRepeated() =>
-      $pb.PbList<ScheduleCreateResponse>();
   @$core.pragma('dart2js:noInline')
   static ScheduleCreateResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ScheduleCreateResponse>(create);
@@ -921,12 +897,12 @@ class ScheduleRemoveRequest extends $pb.GeneratedMessage {
   factory ScheduleRemoveRequest({
     $fixnum.Int64? id,
     $fixnum.Int64? cycleId,
-    $core.bool? withAll,
+    $core.int? modifyScope,
   }) {
     final result = create();
     if (id != null) result.id = id;
     if (cycleId != null) result.cycleId = cycleId;
-    if (withAll != null) result.withAll = withAll;
+    if (modifyScope != null) result.modifyScope = modifyScope;
     return result;
   }
 
@@ -945,12 +921,11 @@ class ScheduleRemoveRequest extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aInt64(1, _omitFieldNames ? '' : 'id')
     ..aInt64(2, _omitFieldNames ? '' : 'cycleId')
-    ..aOB(3, _omitFieldNames ? '' : 'withAll')
+    ..aI(3, _omitFieldNames ? '' : 'modifyScope')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ScheduleRemoveRequest clone() =>
-      ScheduleRemoveRequest()..mergeFromMessage(this);
+  ScheduleRemoveRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ScheduleRemoveRequest copyWith(
           void Function(ScheduleRemoveRequest) updates) =>
@@ -964,8 +939,6 @@ class ScheduleRemoveRequest extends $pb.GeneratedMessage {
   static ScheduleRemoveRequest create() => ScheduleRemoveRequest._();
   @$core.override
   ScheduleRemoveRequest createEmptyInstance() => create();
-  static $pb.PbList<ScheduleRemoveRequest> createRepeated() =>
-      $pb.PbList<ScheduleRemoveRequest>();
   @$core.pragma('dart2js:noInline')
   static ScheduleRemoveRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ScheduleRemoveRequest>(create);
@@ -990,13 +963,13 @@ class ScheduleRemoveRequest extends $pb.GeneratedMessage {
   void clearCycleId() => $_clearField(2);
 
   @$pb.TagNumber(3)
-  $core.bool get withAll => $_getBF(2);
+  $core.int get modifyScope => $_getIZ(2);
   @$pb.TagNumber(3)
-  set withAll($core.bool value) => $_setBool(2, value);
+  set modifyScope($core.int value) => $_setSignedInt32(2, value);
   @$pb.TagNumber(3)
-  $core.bool hasWithAll() => $_has(2);
+  $core.bool hasModifyScope() => $_has(2);
   @$pb.TagNumber(3)
-  void clearWithAll() => $_clearField(3);
+  void clearModifyScope() => $_clearField(3);
 }
 
 class ScheduleRemoveResponse extends $pb.GeneratedMessage {
@@ -1018,8 +991,7 @@ class ScheduleRemoveResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ScheduleRemoveResponse clone() =>
-      ScheduleRemoveResponse()..mergeFromMessage(this);
+  ScheduleRemoveResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ScheduleRemoveResponse copyWith(
           void Function(ScheduleRemoveResponse) updates) =>
@@ -1033,8 +1005,6 @@ class ScheduleRemoveResponse extends $pb.GeneratedMessage {
   static ScheduleRemoveResponse create() => ScheduleRemoveResponse._();
   @$core.override
   ScheduleRemoveResponse createEmptyInstance() => create();
-  static $pb.PbList<ScheduleRemoveResponse> createRepeated() =>
-      $pb.PbList<ScheduleRemoveResponse>();
   @$core.pragma('dart2js:noInline')
   static ScheduleRemoveResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ScheduleRemoveResponse>(create);
@@ -1044,11 +1014,11 @@ class ScheduleRemoveResponse extends $pb.GeneratedMessage {
 class ScheduleUpdateRequest extends $pb.GeneratedMessage {
   factory ScheduleUpdateRequest({
     $0.Schedule? schedule,
-    $core.bool? withAll,
+    $core.int? modifyScope,
   }) {
     final result = create();
     if (schedule != null) result.schedule = schedule;
-    if (withAll != null) result.withAll = withAll;
+    if (modifyScope != null) result.modifyScope = modifyScope;
     return result;
   }
 
@@ -1067,12 +1037,11 @@ class ScheduleUpdateRequest extends $pb.GeneratedMessage {
       createEmptyInstance: create)
     ..aOM<$0.Schedule>(1, _omitFieldNames ? '' : 'schedule',
         subBuilder: $0.Schedule.create)
-    ..aOB(3, _omitFieldNames ? '' : 'withAll')
+    ..aI(3, _omitFieldNames ? '' : 'modifyScope')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ScheduleUpdateRequest clone() =>
-      ScheduleUpdateRequest()..mergeFromMessage(this);
+  ScheduleUpdateRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ScheduleUpdateRequest copyWith(
           void Function(ScheduleUpdateRequest) updates) =>
@@ -1086,8 +1055,6 @@ class ScheduleUpdateRequest extends $pb.GeneratedMessage {
   static ScheduleUpdateRequest create() => ScheduleUpdateRequest._();
   @$core.override
   ScheduleUpdateRequest createEmptyInstance() => create();
-  static $pb.PbList<ScheduleUpdateRequest> createRepeated() =>
-      $pb.PbList<ScheduleUpdateRequest>();
   @$core.pragma('dart2js:noInline')
   static ScheduleUpdateRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ScheduleUpdateRequest>(create);
@@ -1105,13 +1072,13 @@ class ScheduleUpdateRequest extends $pb.GeneratedMessage {
   $0.Schedule ensureSchedule() => $_ensure(0);
 
   @$pb.TagNumber(3)
-  $core.bool get withAll => $_getBF(1);
+  $core.int get modifyScope => $_getIZ(1);
   @$pb.TagNumber(3)
-  set withAll($core.bool value) => $_setBool(1, value);
+  set modifyScope($core.int value) => $_setSignedInt32(1, value);
   @$pb.TagNumber(3)
-  $core.bool hasWithAll() => $_has(1);
+  $core.bool hasModifyScope() => $_has(1);
   @$pb.TagNumber(3)
-  void clearWithAll() => $_clearField(3);
+  void clearModifyScope() => $_clearField(3);
 }
 
 class ScheduleUpdateResponse extends $pb.GeneratedMessage {
@@ -1141,8 +1108,7 @@ class ScheduleUpdateResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  ScheduleUpdateResponse clone() =>
-      ScheduleUpdateResponse()..mergeFromMessage(this);
+  ScheduleUpdateResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   ScheduleUpdateResponse copyWith(
           void Function(ScheduleUpdateResponse) updates) =>
@@ -1156,8 +1122,6 @@ class ScheduleUpdateResponse extends $pb.GeneratedMessage {
   static ScheduleUpdateResponse create() => ScheduleUpdateResponse._();
   @$core.override
   ScheduleUpdateResponse createEmptyInstance() => create();
-  static $pb.PbList<ScheduleUpdateResponse> createRepeated() =>
-      $pb.PbList<ScheduleUpdateResponse>();
   @$core.pragma('dart2js:noInline')
   static ScheduleUpdateResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<ScheduleUpdateResponse>(create);
@@ -1204,8 +1168,7 @@ class SchedulePullByIdsRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SchedulePullByIdsRequest clone() =>
-      SchedulePullByIdsRequest()..mergeFromMessage(this);
+  SchedulePullByIdsRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SchedulePullByIdsRequest copyWith(
           void Function(SchedulePullByIdsRequest) updates) =>
@@ -1219,8 +1182,6 @@ class SchedulePullByIdsRequest extends $pb.GeneratedMessage {
   static SchedulePullByIdsRequest create() => SchedulePullByIdsRequest._();
   @$core.override
   SchedulePullByIdsRequest createEmptyInstance() => create();
-  static $pb.PbList<SchedulePullByIdsRequest> createRepeated() =>
-      $pb.PbList<SchedulePullByIdsRequest>();
   @$core.pragma('dart2js:noInline')
   static SchedulePullByIdsRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SchedulePullByIdsRequest>(create);
@@ -1263,15 +1224,14 @@ class SchedulePullByIdsResponse extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'SchedulePullByIdsResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'calendar'),
       createEmptyInstance: create)
-    ..pc<$0.Schedule>(1, _omitFieldNames ? '' : 'schedules', $pb.PbFieldType.PM,
+    ..pPM<$0.Schedule>(1, _omitFieldNames ? '' : 'schedules',
         subBuilder: $0.Schedule.create)
     ..aOM<$0.Entity>(2, _omitFieldNames ? '' : 'entity',
         subBuilder: $0.Entity.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SchedulePullByIdsResponse clone() =>
-      SchedulePullByIdsResponse()..mergeFromMessage(this);
+  SchedulePullByIdsResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SchedulePullByIdsResponse copyWith(
           void Function(SchedulePullByIdsResponse) updates) =>
@@ -1285,8 +1245,6 @@ class SchedulePullByIdsResponse extends $pb.GeneratedMessage {
   static SchedulePullByIdsResponse create() => SchedulePullByIdsResponse._();
   @$core.override
   SchedulePullByIdsResponse createEmptyInstance() => create();
-  static $pb.PbList<SchedulePullByIdsResponse> createRepeated() =>
-      $pb.PbList<SchedulePullByIdsResponse>();
   @$core.pragma('dart2js:noInline')
   static SchedulePullByIdsResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SchedulePullByIdsResponse>(create);
@@ -1341,8 +1299,7 @@ class SchedulePullByCalendarIdsRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SchedulePullByCalendarIdsRequest clone() =>
-      SchedulePullByCalendarIdsRequest()..mergeFromMessage(this);
+  SchedulePullByCalendarIdsRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SchedulePullByCalendarIdsRequest copyWith(
           void Function(SchedulePullByCalendarIdsRequest) updates) =>
@@ -1358,8 +1315,6 @@ class SchedulePullByCalendarIdsRequest extends $pb.GeneratedMessage {
       SchedulePullByCalendarIdsRequest._();
   @$core.override
   SchedulePullByCalendarIdsRequest createEmptyInstance() => create();
-  static $pb.PbList<SchedulePullByCalendarIdsRequest> createRepeated() =>
-      $pb.PbList<SchedulePullByCalendarIdsRequest>();
   @$core.pragma('dart2js:noInline')
   static SchedulePullByCalendarIdsRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SchedulePullByCalendarIdsRequest>(
@@ -1411,13 +1366,12 @@ class SchedulePullByCalendarIdsResponse extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'SchedulePullByCalendarIdsResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'calendar'),
       createEmptyInstance: create)
-    ..pc<$0.Schedule>(1, _omitFieldNames ? '' : 'schedules', $pb.PbFieldType.PM,
+    ..pPM<$0.Schedule>(1, _omitFieldNames ? '' : 'schedules',
         subBuilder: $0.Schedule.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SchedulePullByCalendarIdsResponse clone() =>
-      SchedulePullByCalendarIdsResponse()..mergeFromMessage(this);
+  SchedulePullByCalendarIdsResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SchedulePullByCalendarIdsResponse copyWith(
           void Function(SchedulePullByCalendarIdsResponse) updates) =>
@@ -1433,8 +1387,6 @@ class SchedulePullByCalendarIdsResponse extends $pb.GeneratedMessage {
       SchedulePullByCalendarIdsResponse._();
   @$core.override
   SchedulePullByCalendarIdsResponse createEmptyInstance() => create();
-  static $pb.PbList<SchedulePullByCalendarIdsResponse> createRepeated() =>
-      $pb.PbList<SchedulePullByCalendarIdsResponse>();
   @$core.pragma('dart2js:noInline')
   static SchedulePullByCalendarIdsResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SchedulePullByCalendarIdsResponse>(
@@ -1477,8 +1429,7 @@ class SchedulePullBusyRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SchedulePullBusyRequest clone() =>
-      SchedulePullBusyRequest()..mergeFromMessage(this);
+  SchedulePullBusyRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SchedulePullBusyRequest copyWith(
           void Function(SchedulePullBusyRequest) updates) =>
@@ -1492,8 +1443,6 @@ class SchedulePullBusyRequest extends $pb.GeneratedMessage {
   static SchedulePullBusyRequest create() => SchedulePullBusyRequest._();
   @$core.override
   SchedulePullBusyRequest createEmptyInstance() => create();
-  static $pb.PbList<SchedulePullBusyRequest> createRepeated() =>
-      $pb.PbList<SchedulePullBusyRequest>();
   @$core.pragma('dart2js:noInline')
   static SchedulePullBusyRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SchedulePullBusyRequest>(create);
@@ -1555,8 +1504,7 @@ class SchedulePullBusyResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SchedulePullBusyResponse clone() =>
-      SchedulePullBusyResponse()..mergeFromMessage(this);
+  SchedulePullBusyResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SchedulePullBusyResponse copyWith(
           void Function(SchedulePullBusyResponse) updates) =>
@@ -1570,8 +1518,6 @@ class SchedulePullBusyResponse extends $pb.GeneratedMessage {
   static SchedulePullBusyResponse create() => SchedulePullBusyResponse._();
   @$core.override
   SchedulePullBusyResponse createEmptyInstance() => create();
-  static $pb.PbList<SchedulePullBusyResponse> createRepeated() =>
-      $pb.PbList<SchedulePullBusyResponse>();
   @$core.pragma('dart2js:noInline')
   static SchedulePullBusyResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SchedulePullBusyResponse>(create);
@@ -1603,13 +1549,12 @@ class SchedulePushUpdateRequest extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'SchedulePushUpdateRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'calendar'),
       createEmptyInstance: create)
-    ..pc<$0.Schedule>(1, _omitFieldNames ? '' : 'schedules', $pb.PbFieldType.PM,
+    ..pPM<$0.Schedule>(1, _omitFieldNames ? '' : 'schedules',
         subBuilder: $0.Schedule.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SchedulePushUpdateRequest clone() =>
-      SchedulePushUpdateRequest()..mergeFromMessage(this);
+  SchedulePushUpdateRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SchedulePushUpdateRequest copyWith(
           void Function(SchedulePushUpdateRequest) updates) =>
@@ -1623,8 +1568,6 @@ class SchedulePushUpdateRequest extends $pb.GeneratedMessage {
   static SchedulePushUpdateRequest create() => SchedulePushUpdateRequest._();
   @$core.override
   SchedulePushUpdateRequest createEmptyInstance() => create();
-  static $pb.PbList<SchedulePushUpdateRequest> createRepeated() =>
-      $pb.PbList<SchedulePushUpdateRequest>();
   @$core.pragma('dart2js:noInline')
   static SchedulePushUpdateRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SchedulePushUpdateRequest>(create);
@@ -1666,8 +1609,7 @@ class SchedulePullByCycleRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SchedulePullByCycleRequest clone() =>
-      SchedulePullByCycleRequest()..mergeFromMessage(this);
+  SchedulePullByCycleRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SchedulePullByCycleRequest copyWith(
           void Function(SchedulePullByCycleRequest) updates) =>
@@ -1682,8 +1624,6 @@ class SchedulePullByCycleRequest extends $pb.GeneratedMessage {
   static SchedulePullByCycleRequest create() => SchedulePullByCycleRequest._();
   @$core.override
   SchedulePullByCycleRequest createEmptyInstance() => create();
-  static $pb.PbList<SchedulePullByCycleRequest> createRepeated() =>
-      $pb.PbList<SchedulePullByCycleRequest>();
   @$core.pragma('dart2js:noInline')
   static SchedulePullByCycleRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SchedulePullByCycleRequest>(create);
@@ -1739,13 +1679,12 @@ class SchedulePullByCycleResponse extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'SchedulePullByCycleResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'calendar'),
       createEmptyInstance: create)
-    ..pc<$0.Schedule>(1, _omitFieldNames ? '' : 'schedules', $pb.PbFieldType.PM,
+    ..pPM<$0.Schedule>(1, _omitFieldNames ? '' : 'schedules',
         subBuilder: $0.Schedule.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  SchedulePullByCycleResponse clone() =>
-      SchedulePullByCycleResponse()..mergeFromMessage(this);
+  SchedulePullByCycleResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   SchedulePullByCycleResponse copyWith(
           void Function(SchedulePullByCycleResponse) updates) =>
@@ -1761,8 +1700,6 @@ class SchedulePullByCycleResponse extends $pb.GeneratedMessage {
       SchedulePullByCycleResponse._();
   @$core.override
   SchedulePullByCycleResponse createEmptyInstance() => create();
-  static $pb.PbList<SchedulePullByCycleResponse> createRepeated() =>
-      $pb.PbList<SchedulePullByCycleResponse>();
   @$core.pragma('dart2js:noInline')
   static SchedulePullByCycleResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<SchedulePullByCycleResponse>(create);
@@ -1770,6 +1707,194 @@ class SchedulePullByCycleResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   $pb.PbList<$0.Schedule> get schedules => $_getList(0);
+}
+
+/// 服务端→客户端：批量日程删除推送
+class ScheduleDeletePush extends $pb.GeneratedMessage {
+  factory ScheduleDeletePush({
+    $core.Iterable<$fixnum.Int64>? ids,
+    $fixnum.Int64? cycleRuleId,
+    $fixnum.Int64? startTime,
+  }) {
+    final result = create();
+    if (ids != null) result.ids.addAll(ids);
+    if (cycleRuleId != null) result.cycleRuleId = cycleRuleId;
+    if (startTime != null) result.startTime = startTime;
+    return result;
+  }
+
+  ScheduleDeletePush._();
+
+  factory ScheduleDeletePush.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ScheduleDeletePush.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ScheduleDeletePush',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'calendar'),
+      createEmptyInstance: create)
+    ..p<$fixnum.Int64>(1, _omitFieldNames ? '' : 'ids', $pb.PbFieldType.K6)
+    ..aInt64(2, _omitFieldNames ? '' : 'cycleRuleId')
+    ..aInt64(3, _omitFieldNames ? '' : 'startTime')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ScheduleDeletePush clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ScheduleDeletePush copyWith(void Function(ScheduleDeletePush) updates) =>
+      super.copyWith((message) => updates(message as ScheduleDeletePush))
+          as ScheduleDeletePush;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ScheduleDeletePush create() => ScheduleDeletePush._();
+  @$core.override
+  ScheduleDeletePush createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ScheduleDeletePush getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ScheduleDeletePush>(create);
+  static ScheduleDeletePush? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<$fixnum.Int64> get ids => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get cycleRuleId => $_getI64(1);
+  @$pb.TagNumber(2)
+  set cycleRuleId($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasCycleRuleId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearCycleRuleId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get startTime => $_getI64(2);
+  @$pb.TagNumber(3)
+  set startTime($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasStartTime() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearStartTime() => $_clearField(3);
+}
+
+/// 服务端→客户端：日程提醒推送
+class ScheduleRemindPush extends $pb.GeneratedMessage {
+  factory ScheduleRemindPush({
+    $fixnum.Int64? scheduleId,
+    $fixnum.Int64? startTime,
+    $fixnum.Int64? endTime,
+    $core.String? title,
+    $core.String? location,
+    $core.int? notifyMinute,
+  }) {
+    final result = create();
+    if (scheduleId != null) result.scheduleId = scheduleId;
+    if (startTime != null) result.startTime = startTime;
+    if (endTime != null) result.endTime = endTime;
+    if (title != null) result.title = title;
+    if (location != null) result.location = location;
+    if (notifyMinute != null) result.notifyMinute = notifyMinute;
+    return result;
+  }
+
+  ScheduleRemindPush._();
+
+  factory ScheduleRemindPush.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ScheduleRemindPush.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ScheduleRemindPush',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'calendar'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'scheduleId')
+    ..aInt64(2, _omitFieldNames ? '' : 'startTime')
+    ..aInt64(3, _omitFieldNames ? '' : 'endTime')
+    ..aOS(4, _omitFieldNames ? '' : 'title')
+    ..aOS(5, _omitFieldNames ? '' : 'location')
+    ..aI(6, _omitFieldNames ? '' : 'notifyMinute')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ScheduleRemindPush clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ScheduleRemindPush copyWith(void Function(ScheduleRemindPush) updates) =>
+      super.copyWith((message) => updates(message as ScheduleRemindPush))
+          as ScheduleRemindPush;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ScheduleRemindPush create() => ScheduleRemindPush._();
+  @$core.override
+  ScheduleRemindPush createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ScheduleRemindPush getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ScheduleRemindPush>(create);
+  static ScheduleRemindPush? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get scheduleId => $_getI64(0);
+  @$pb.TagNumber(1)
+  set scheduleId($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasScheduleId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearScheduleId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get startTime => $_getI64(1);
+  @$pb.TagNumber(2)
+  set startTime($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasStartTime() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearStartTime() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get endTime => $_getI64(2);
+  @$pb.TagNumber(3)
+  set endTime($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasEndTime() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearEndTime() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get title => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set title($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasTitle() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearTitle() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get location => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set location($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasLocation() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearLocation() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get notifyMinute => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set notifyMinute($core.int value) => $_setSignedInt32(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasNotifyMinute() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearNotifyMinute() => $_clearField(6);
 }
 
 const $core.bool _omitFieldNames =

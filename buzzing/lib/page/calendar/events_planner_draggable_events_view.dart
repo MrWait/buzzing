@@ -13,6 +13,7 @@ class EventsPlannerDraggableEventsView extends StatelessWidget {
     required this.daysShowed,
     required this.isDarkMode,
     required this.dayOnSlotTap,
+    this.onEventTap,
     this.initialDate,
   });
 
@@ -20,6 +21,7 @@ class EventsPlannerDraggableEventsView extends StatelessWidget {
   final int daysShowed;
   final bool isDarkMode;
   final Function(int, DateTime, DateTime) dayOnSlotTap;
+  final Function(Event)? onEventTap;
   final Function(DateTime) onDayChange;
   final DateTime? initialDate;
 
@@ -92,7 +94,13 @@ class EventsPlannerDraggableEventsView extends StatelessWidget {
         description: event.description,
         color: isDarkMode ? event.color.onPastel : event.color,
         textColor: isDarkMode ? event.textColor.pastel : event.textColor,
-        onTap: () => L.d("tap ${event.uniqueId}"),
+        onTap: () {
+          if (onEventTap != null) {
+            onEventTap!(event);
+          } else {
+            L.d("tap ${event.uniqueId}");
+          }
+        },
       ),
     );
   }

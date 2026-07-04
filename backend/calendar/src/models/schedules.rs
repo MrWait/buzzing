@@ -1,5 +1,6 @@
 use loco_rs::{model::ModelResult, prelude::*};
 use prost::Message;
+use sea_query::Expr;
 use tracing::debug;
 
 pub use base::models::_entities::schedules::{ActiveModel, Column, Entity, Model};
@@ -11,7 +12,7 @@ use proto::idl::{calendar, entity};
 pub struct ScheduleModel(pub Model);
 
 #[derive(prost::Message)]
-struct ScheduleExtra {
+pub(crate) struct ScheduleExtra {
     #[prost(int64, tag = "1")]
     pub room_id: i64,
     #[prost(int64, tag = "2")]
@@ -101,19 +102,47 @@ impl ScheduleModel {
     }
 
     pub async fn remove(db: &DatabaseConnection, id: i64) -> ModelResult<Model> {
-        Err(ModelError::EntityNotFound)
-    }
-
-    pub async fn get_by_cycle_id(db: &DatabaseConnection, id: i64) -> ModelResult<Vec<Model>> {
-        Err(ModelError::EntityNotFound)
-    }
-
-    pub async fn remove_by_cycle_id(db: &DatabaseConnection, id: i64) -> ModelResult<Vec<Model>> {
-        Err(ModelError::EntityNotFound)
+        let schedule = Entity::find_by_id(id).one(db).await?
+            .ok_or(ModelError::EntityNotFound)?;
+        Entity::delete_by_id(id).exec(db).await?;
+        Ok(schedule)
     }
 
     pub async fn get_by_ids(db: &DatabaseConnection, ids: Vec<i64>) -> ModelResult<Vec<Model>> {
-        Err(ModelError::EntityNotFound)
+        let schedules = Entity::find()
+            .filter(model::query::condition().is_in(Column::Id, ids).build())
+            .all(db)
+            .await?;
+        Ok(schedules)
+    }
+
+    pub async fn get_by_cycle_id(db: &DatabaseConnection, id: i64) -> ModelResult<Vec<Model>> {
+        let schedules = Entity::find()
+            .filter(model::query::condition().eq(Column::CycleRuleId, id).build())
+            .all(db)
+            .await?;
+        Ok(schedules)
+    }
+
+    pub async fn remove_by_cycle_id(db: &DatabaseConnection, id: i64) -> ModelResult<Vec<Model>> {
+        let schedules = Self::get_by_cycle_id(db, id).await?;
+        Entity::delete_many()
+            .filter(model::query::condition().eq(Column::CycleRuleId, id).build())
+            .exec(db)
+            .await?;
+        Ok(schedules)
+    }
+
+    pub async fn remove_by_calendar_id(db: &DatabaseConnection, id: i64) -> ModelResult<Vec<Model>> {
+        let schedules = Entity::find()
+            .filter(model::query::condition().eq(Column::CalendarId, id).build())
+            .all(db)
+            .await?;
+        Entity::delete_many()
+            .filter(model::query::condition().eq(Column::CalendarId, id).build())
+            .exec(db)
+            .await?;
+        Ok(schedules)
     }
 
     pub async fn find_by_user_ids(
@@ -122,7 +151,15 @@ impl ScheduleModel {
         start_time: i64,
         end_time: i64,
     ) -> ModelResult<Vec<Model>> {
-        Err(ModelError::EntityNotFound)
+        let schedules = Entity::find()
+            .filter(Column::StartTime.lt(end_time))
+            .filter(Column::EndTime.gt(start_time))
+            .all(db)
+            .await?;
+        Ok(schedules
+            .into_iter()
+            .filter(|s| s.member_ids.iter().any(|uid| user_ids.contains(uid)))
+            .collect())
     }
 
     pub async fn find_by_calendar_ids(
@@ -131,7 +168,139 @@ impl ScheduleModel {
         start_time: i64,
         end_time: i64,
     ) -> ModelResult<Vec<Model>> {
-        Err(ModelError::EntityNotFound)
+        let schedules = Entity::find()
+            .filter(model::query::condition().is_in(Column::CalendarId, calendar_ids).build())
+            .filter(model::query::condition().gte(Column::EndTime, start_time).build())
+            .filter(model::query::condition().lte(Column::StartTime, end_time).build())
+            .all(db)
+            .await?;
+        Ok(schedules)
+    }
+
+    pub async fn update(
+        db: &DatabaseConnection,
+        id: i64,
+        src: &entity::Schedule,
+    ) -> ModelResult<Model> {
+        let extra = ScheduleExtra {
+            room_id: src.room_id,
+            summary_doc_id: src.summary_doc_id,
+            chat_id: src.chat_id,
+            member_alter_schedule: src.member_alter_schedule,
+            member_create_meeting: src.member_create_meeting,
+            member_create_summary: src.member_create_summary,
+            member_invite_other: src.member_invite_other,
+            member_view_list: src.member_view_list,
+            need_checkin: src.need_checkin,
+            color: src.color,
+            archive: src.archive.clone(),
+            location: src.location.clone(),
+            notify_time: src.notify_time.clone(),
+            desc: src.desc.clone(),
+            ..Default::default()
+        };
+        let schedule = ActiveModel {
+            id: ActiveValue::set(id),
+            calendar_id: ActiveValue::set(src.calendar_id),
+            r#type: ActiveValue::set(src.r#type),
+            version: ActiveValue::set(src.version),
+            extra: ActiveValue::set(extra.encode_to_vec()),
+            title: ActiveValue::set(src.title.clone()),
+            exception: ActiveValue::set(src.exception),
+            full_day: ActiveValue::set(src.full_day),
+            show_as_idle: ActiveValue::set(src.show_as_idle),
+            public_permission: ActiveValue::set(src.public_permision),
+            start_time: ActiveValue::set(src.start_time),
+            end_time: ActiveValue::set(src.end_time),
+            member_count: ActiveValue::set(src.member_count),
+            member_ids: ActiveValue::set(src.member_ids.clone()),
+            ..Default::default()
+        }
+        .update(db)
+        .await?;
+        Ok(schedule)
+    }
+
+    pub async fn update_by_cycle_rule_id(
+        db: &DatabaseConnection,
+        cycle_rule_id: i64,
+        src: &entity::Schedule,
+    ) -> ModelResult<()> {
+        let now = src.version;
+        let extra = ScheduleExtra {
+            room_id: src.room_id,
+            summary_doc_id: src.summary_doc_id,
+            chat_id: src.chat_id,
+            member_alter_schedule: src.member_alter_schedule,
+            member_create_meeting: src.member_create_meeting,
+            member_create_summary: src.member_create_summary,
+            member_invite_other: src.member_invite_other,
+            member_view_list: src.member_view_list,
+            need_checkin: src.need_checkin,
+            color: src.color,
+            archive: src.archive.clone(),
+            location: src.location.clone(),
+            notify_time: src.notify_time.clone(),
+            desc: src.desc.clone(),
+            ..Default::default()
+        };
+        Entity::update_many()
+            .col_expr(Column::Version, Expr::value(now))
+            .col_expr(Column::Extra, Expr::value(extra.encode_to_vec()))
+            .col_expr(Column::Title, Expr::value(src.title.clone()))
+            .col_expr(Column::FullDay, Expr::value(src.full_day))
+            .col_expr(Column::ShowAsIdle, Expr::value(src.show_as_idle))
+            .col_expr(Column::PublicPermission, Expr::value(src.public_permision))
+            .col_expr(Column::MemberCount, Expr::value(src.member_count))
+            .col_expr(Column::MemberIds, Expr::value(src.member_ids.clone()))
+            .filter(Column::CycleRuleId.eq(cycle_rule_id))
+            .exec(db)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn remove_future_by_cycle(
+        db: &DatabaseConnection,
+        cycle_rule_id: i64,
+        start_time: i64,
+    ) -> ModelResult<Vec<Model>> {
+        let schedules = Entity::find()
+            .filter(Column::CycleRuleId.eq(cycle_rule_id))
+            .filter(Column::StartTime.gte(start_time))
+            .all(db)
+            .await?;
+        Entity::delete_many()
+            .filter(Column::CycleRuleId.eq(cycle_rule_id))
+            .filter(Column::StartTime.gte(start_time))
+            .exec(db)
+            .await?;
+        Ok(schedules)
+    }
+
+    pub async fn find_by_start_time_range(
+        db: &DatabaseConnection,
+        start_time_start: i64,
+        start_time_end: i64,
+    ) -> ModelResult<Vec<Model>> {
+        let schedules = Entity::find()
+            .filter(Column::StartTime.gte(start_time_start))
+            .filter(Column::StartTime.lt(start_time_end))
+            .all(db)
+            .await?;
+        Ok(schedules)
+    }
+
+    pub async fn mark_cancelled(db: &DatabaseConnection, id: i64) -> ModelResult<Model> {
+        let now = current_ms() as i64;
+        let schedule = ActiveModel {
+            id: ActiveValue::set(id),
+            exception: ActiveValue::set(true),
+            version: ActiveValue::set(now),
+            ..Default::default()
+        }
+        .update(db)
+        .await?;
+        Ok(schedule)
     }
 }
 
@@ -170,6 +339,7 @@ impl Into<entity::Schedule> for ScheduleModel {
             member_ids: self.0.member_ids,
             notify_time: extra.notify_time,
             cycle: extra.cycle_rule,
+            modify_scope: 0,
         }
     }
 }

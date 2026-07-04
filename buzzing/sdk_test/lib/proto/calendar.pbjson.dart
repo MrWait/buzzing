@@ -8,7 +8,8 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names, unused_import
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
+// ignore_for_file: unused_import
 
 import 'dart:convert' as $convert;
 import 'dart:core' as $core;
@@ -152,12 +153,15 @@ const CalendarSearchRequest$json = {
   '1': 'CalendarSearchRequest',
   '2': [
     {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
+    {'1': 'limit', '3': 2, '4': 1, '5': 5, '10': 'limit'},
+    {'1': 'offset', '3': 3, '4': 1, '5': 5, '10': 'offset'},
   ],
 };
 
 /// Descriptor for `CalendarSearchRequest`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List calendarSearchRequestDescriptor = $convert
-    .base64Decode('ChVDYWxlbmRhclNlYXJjaFJlcXVlc3QSEAoDa2V5GAEgASgJUgNrZXk=');
+final $typed_data.Uint8List calendarSearchRequestDescriptor = $convert.base64Decode(
+    'ChVDYWxlbmRhclNlYXJjaFJlcXVlc3QSEAoDa2V5GAEgASgJUgNrZXkSFAoFbGltaXQYAiABKA'
+    'VSBWxpbWl0EhYKBm9mZnNldBgDIAEoBVIGb2Zmc2V0');
 
 @$core.Deprecated('Use calendarSearchResponseDescriptor instead')
 const CalendarSearchResponse$json = {
@@ -293,14 +297,14 @@ const ScheduleRemoveRequest$json = {
   '2': [
     {'1': 'id', '3': 1, '4': 1, '5': 3, '10': 'id'},
     {'1': 'cycle_id', '3': 2, '4': 1, '5': 3, '10': 'cycleId'},
-    {'1': 'with_all', '3': 3, '4': 1, '5': 8, '10': 'withAll'},
+    {'1': 'modify_scope', '3': 3, '4': 1, '5': 5, '10': 'modifyScope'},
   ],
 };
 
 /// Descriptor for `ScheduleRemoveRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List scheduleRemoveRequestDescriptor = $convert.base64Decode(
     'ChVTY2hlZHVsZVJlbW92ZVJlcXVlc3QSDgoCaWQYASABKANSAmlkEhkKCGN5Y2xlX2lkGAIgAS'
-    'gDUgdjeWNsZUlkEhkKCHdpdGhfYWxsGAMgASgIUgd3aXRoQWxs');
+    'gDUgdjeWNsZUlkEiEKDG1vZGlmeV9zY29wZRgDIAEoBVILbW9kaWZ5U2NvcGU=');
 
 @$core.Deprecated('Use scheduleRemoveResponseDescriptor instead')
 const ScheduleRemoveResponse$json = {
@@ -323,14 +327,14 @@ const ScheduleUpdateRequest$json = {
       '6': '.entity.Schedule',
       '10': 'schedule'
     },
-    {'1': 'with_all', '3': 3, '4': 1, '5': 8, '10': 'withAll'},
+    {'1': 'modify_scope', '3': 3, '4': 1, '5': 5, '10': 'modifyScope'},
   ],
 };
 
 /// Descriptor for `ScheduleUpdateRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List scheduleUpdateRequestDescriptor = $convert.base64Decode(
     'ChVTY2hlZHVsZVVwZGF0ZVJlcXVlc3QSLAoIc2NoZWR1bGUYASABKAsyEC5lbnRpdHkuU2NoZW'
-    'R1bGVSCHNjaGVkdWxlEhkKCHdpdGhfYWxsGAMgASgIUgd3aXRoQWxs');
+    'R1bGVSCHNjaGVkdWxlEiEKDG1vZGlmeV9zY29wZRgDIAEoBVILbW9kaWZ5U2NvcGU=');
 
 @$core.Deprecated('Use scheduleUpdateResponseDescriptor instead')
 const ScheduleUpdateResponse$json = {
@@ -547,3 +551,38 @@ final $typed_data.Uint8List schedulePullByCycleResponseDescriptor =
     $convert.base64Decode(
         'ChtTY2hlZHVsZVB1bGxCeUN5Y2xlUmVzcG9uc2USLgoJc2NoZWR1bGVzGAEgAygLMhAuZW50aX'
         'R5LlNjaGVkdWxlUglzY2hlZHVsZXM=');
+
+@$core.Deprecated('Use scheduleDeletePushDescriptor instead')
+const ScheduleDeletePush$json = {
+  '1': 'ScheduleDeletePush',
+  '2': [
+    {'1': 'ids', '3': 1, '4': 3, '5': 3, '10': 'ids'},
+    {'1': 'cycle_rule_id', '3': 2, '4': 1, '5': 3, '10': 'cycleRuleId'},
+    {'1': 'start_time', '3': 3, '4': 1, '5': 3, '10': 'startTime'},
+  ],
+};
+
+/// Descriptor for `ScheduleDeletePush`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List scheduleDeletePushDescriptor = $convert.base64Decode(
+    'ChJTY2hlZHVsZURlbGV0ZVB1c2gSEAoDaWRzGAEgAygDUgNpZHMSIgoNY3ljbGVfcnVsZV9pZB'
+    'gCIAEoA1ILY3ljbGVSdWxlSWQSHQoKc3RhcnRfdGltZRgDIAEoA1IJc3RhcnRUaW1l');
+
+@$core.Deprecated('Use scheduleRemindPushDescriptor instead')
+const ScheduleRemindPush$json = {
+  '1': 'ScheduleRemindPush',
+  '2': [
+    {'1': 'schedule_id', '3': 1, '4': 1, '5': 3, '10': 'scheduleId'},
+    {'1': 'start_time', '3': 2, '4': 1, '5': 3, '10': 'startTime'},
+    {'1': 'end_time', '3': 3, '4': 1, '5': 3, '10': 'endTime'},
+    {'1': 'title', '3': 4, '4': 1, '5': 9, '10': 'title'},
+    {'1': 'location', '3': 5, '4': 1, '5': 9, '10': 'location'},
+    {'1': 'notify_minute', '3': 6, '4': 1, '5': 5, '10': 'notifyMinute'},
+  ],
+};
+
+/// Descriptor for `ScheduleRemindPush`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List scheduleRemindPushDescriptor = $convert.base64Decode(
+    'ChJTY2hlZHVsZVJlbWluZFB1c2gSHwoLc2NoZWR1bGVfaWQYASABKANSCnNjaGVkdWxlSWQSHQ'
+    'oKc3RhcnRfdGltZRgCIAEoA1IJc3RhcnRUaW1lEhkKCGVuZF90aW1lGAMgASgDUgdlbmRUaW1l'
+    'EhQKBXRpdGxlGAQgASgJUgV0aXRsZRIaCghsb2NhdGlvbhgFIAEoCVIIbG9jYXRpb24SIwoNbm'
+    '90aWZ5X21pbnV0ZRgGIAEoBVIMbm90aWZ5TWludXRl');

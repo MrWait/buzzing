@@ -1,0 +1,80 @@
+version: 1.0
+module: calendar
+description: 日历/日程 SDK CRUD 及本地缓存同步
+
+commands:
+  - CALENDAR_GET_LIST
+  - CALENDAR_CREATE
+  - CALENDAR_UPDATE
+  - CALENDAR_DELETE
+  - SCHEDULE_CREATE
+  - SCHEDULE_UPDATE
+  - SCHEDULE_REMOVE
+  - SCHEDULE_PULL_BY_IDS
+  - SCHEDULE_PULL_BY_CALENDAR_IDS
+
+precondition:
+  - SDK 初始化并登录成功
+  - 本地 DB 已就绪
+
+test_groups:
+  - name: "Calendar | reads from local DB"
+    cases:
+      - id: CALENDAR_GET_LIST
+        description: 从本地 DB 读取日历列表
+        command: CALENDAR_GET_LIST (1600)
+        asserts:
+          - status 为 0 或 200
+
+      - id: SCHEDULE_PULL_BY_IDS
+        description: 按 ID 拉取日程（本地缓存）
+        command: SCHEDULE_PULL_BY_IDS (1613)
+        asserts:
+          - seq > 0
+
+  - name: "Calendar | SDK CRUD"
+    cases:
+      - id: CALENDAR_CREATE
+        description: 通过 SDK 创建日历（SDK→Server→SDK 本地缓存）
+        command: CALENDAR_CREATE (1601)
+        input: CalendarCreateRequest { calendar: { name, desc, color } }
+        asserts:
+          - status 为 0 或 200
+          - 返回的 calendar.id 非零
+
+      - id: SCHEDULE_CREATE
+        description: 通过 SDK 创建日程
+        command: SCHEDULE_CREATE (1610)
+        input: ScheduleCreateRequest { schedule: { calendar_id, title, start_time, end_time } }
+        asserts:
+          - status 为 0 或 200
+          - 返回的 schedule.id 非零
+
+      - id: CALENDAR_GET_LIST_after_create
+        description: 创建日历后，验证本地 DB 中存在
+        command: CALENDAR_GET_LIST (1600)
+        asserts:
+          - status 为 0 或 200
+        note: >-
+          创建后本地 DB 可能因 push 延迟而未更新，需要短暂等待
+
+      - id: SCHEDULE_PULL_BY_CALENDAR_IDS
+        description: 按日历 ID + 时间范围拉取日程
+        command: SCHEDULE_PULL_BY_CALENDAR_IDS (1614)
+        input: SchedulePullByCalendarIdsRequest { calendar_ids, start_time, end_time }
+        asserts:
+          - seq > 0
+
+      - id: SCHEDULE_CREATE_recurring
+        description: 通过 SDK 创建重复日程（每日，间隔 1）
+        command: SCHEDULE_CREATE (1610)
+        input: ScheduleCreateRequest { schedule: { cycle: { rule: { cycle_type: 1, seq: 1 } } } }
+        asserts:
+          - status 为 0 或 200
+
+      - id: SCHEDULE_UPDATE
+        description: 通过 SDK 更新日程
+        command: SCHEDULE_UPDATE (1612)
+        input: ScheduleUpdateRequest { schedule: { id, calendar_id, title }, modify_scope: 0 }
+        asserts:
+          - status 为 0 或 200

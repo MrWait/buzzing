@@ -8,7 +8,7 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:core' as $core;
 
@@ -44,7 +44,7 @@ class RpcRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  RpcRequest clone() => RpcRequest()..mergeFromMessage(this);
+  RpcRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   RpcRequest copyWith(void Function(RpcRequest) updates) =>
       super.copyWith((message) => updates(message as RpcRequest)) as RpcRequest;
@@ -56,7 +56,6 @@ class RpcRequest extends $pb.GeneratedMessage {
   static RpcRequest create() => RpcRequest._();
   @$core.override
   RpcRequest createEmptyInstance() => create();
-  static $pb.PbList<RpcRequest> createRepeated() => $pb.PbList<RpcRequest>();
   @$core.pragma('dart2js:noInline')
   static RpcRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<RpcRequest>(create);
@@ -98,7 +97,7 @@ class RpcResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  RpcResponse clone() => RpcResponse()..mergeFromMessage(this);
+  RpcResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   RpcResponse copyWith(void Function(RpcResponse) updates) =>
       super.copyWith((message) => updates(message as RpcResponse))
@@ -111,7 +110,6 @@ class RpcResponse extends $pb.GeneratedMessage {
   static RpcResponse create() => RpcResponse._();
   @$core.override
   RpcResponse createEmptyInstance() => create();
-  static $pb.PbList<RpcResponse> createRepeated() => $pb.PbList<RpcResponse>();
   @$core.pragma('dart2js:noInline')
   static RpcResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<RpcResponse>(create);
@@ -154,8 +152,7 @@ class GatewayInvokeRequest extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GatewayInvokeRequest clone() =>
-      GatewayInvokeRequest()..mergeFromMessage(this);
+  GatewayInvokeRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GatewayInvokeRequest copyWith(void Function(GatewayInvokeRequest) updates) =>
       super.copyWith((message) => updates(message as GatewayInvokeRequest))
@@ -168,8 +165,6 @@ class GatewayInvokeRequest extends $pb.GeneratedMessage {
   static GatewayInvokeRequest create() => GatewayInvokeRequest._();
   @$core.override
   GatewayInvokeRequest createEmptyInstance() => create();
-  static $pb.PbList<GatewayInvokeRequest> createRepeated() =>
-      $pb.PbList<GatewayInvokeRequest>();
   @$core.pragma('dart2js:noInline')
   static GatewayInvokeRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GatewayInvokeRequest>(create);
@@ -214,8 +209,7 @@ class GatewayInvokeResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GatewayInvokeResponse clone() =>
-      GatewayInvokeResponse()..mergeFromMessage(this);
+  GatewayInvokeResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   GatewayInvokeResponse copyWith(
           void Function(GatewayInvokeResponse) updates) =>
@@ -229,8 +223,6 @@ class GatewayInvokeResponse extends $pb.GeneratedMessage {
   static GatewayInvokeResponse create() => GatewayInvokeResponse._();
   @$core.override
   GatewayInvokeResponse createEmptyInstance() => create();
-  static $pb.PbList<GatewayInvokeResponse> createRepeated() =>
-      $pb.PbList<GatewayInvokeResponse>();
   @$core.pragma('dart2js:noInline')
   static GatewayInvokeResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<GatewayInvokeResponse>(create);

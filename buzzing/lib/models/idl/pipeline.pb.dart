@@ -8,7 +8,7 @@
 // ignore_for_file: constant_identifier_names
 // ignore_for_file: curly_braces_in_flow_control_structures
 // ignore_for_file: deprecated_member_use_from_same_package, library_prefixes
-// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: non_constant_identifier_names, prefer_relative_imports
 
 import 'dart:core' as $core;
 
@@ -44,11 +44,11 @@ class PullPipelineRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'pipeline'),
       createEmptyInstance: create)
     ..aInt64(1, _omitFieldNames ? '' : 'sid')
-    ..a<$core.int>(2, _omitFieldNames ? '' : 'count', $pb.PbFieldType.O3)
+    ..aI(2, _omitFieldNames ? '' : 'count')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PullPipelineRequest clone() => PullPipelineRequest()..mergeFromMessage(this);
+  PullPipelineRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   PullPipelineRequest copyWith(void Function(PullPipelineRequest) updates) =>
       super.copyWith((message) => updates(message as PullPipelineRequest))
@@ -61,8 +61,6 @@ class PullPipelineRequest extends $pb.GeneratedMessage {
   static PullPipelineRequest create() => PullPipelineRequest._();
   @$core.override
   PullPipelineRequest createEmptyInstance() => create();
-  static $pb.PbList<PullPipelineRequest> createRepeated() =>
-      $pb.PbList<PullPipelineRequest>();
   @$core.pragma('dart2js:noInline')
   static PullPipelineRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<PullPipelineRequest>(create);
@@ -114,14 +112,13 @@ class PullPipelineResponse extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'pipeline'),
       createEmptyInstance: create)
     ..aInt64(1, _omitFieldNames ? '' : 'sid')
-    ..pc<$0.Packet>(2, _omitFieldNames ? '' : 'packets', $pb.PbFieldType.PM,
+    ..pPM<$0.Packet>(2, _omitFieldNames ? '' : 'packets',
         subBuilder: $0.Packet.create)
     ..aOB(3, _omitFieldNames ? '' : 'hasMore')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PullPipelineResponse clone() =>
-      PullPipelineResponse()..mergeFromMessage(this);
+  PullPipelineResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   PullPipelineResponse copyWith(void Function(PullPipelineResponse) updates) =>
       super.copyWith((message) => updates(message as PullPipelineResponse))
@@ -134,8 +131,6 @@ class PullPipelineResponse extends $pb.GeneratedMessage {
   static PullPipelineResponse create() => PullPipelineResponse._();
   @$core.override
   PullPipelineResponse createEmptyInstance() => create();
-  static $pb.PbList<PullPipelineResponse> createRepeated() =>
-      $pb.PbList<PullPipelineResponse>();
   @$core.pragma('dart2js:noInline')
   static PullPipelineResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<PullPipelineResponse>(create);
@@ -185,13 +180,12 @@ class PushEntityChanged extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'PushEntityChanged',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'pipeline'),
       createEmptyInstance: create)
-    ..pc<$0.EntityChange>(
-        1, _omitFieldNames ? '' : 'changes', $pb.PbFieldType.PM,
+    ..pPM<$0.EntityChange>(1, _omitFieldNames ? '' : 'changes',
         subBuilder: $0.EntityChange.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PushEntityChanged clone() => PushEntityChanged()..mergeFromMessage(this);
+  PushEntityChanged clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   PushEntityChanged copyWith(void Function(PushEntityChanged) updates) =>
       super.copyWith((message) => updates(message as PushEntityChanged))
@@ -204,8 +198,6 @@ class PushEntityChanged extends $pb.GeneratedMessage {
   static PushEntityChanged create() => PushEntityChanged._();
   @$core.override
   PushEntityChanged createEmptyInstance() => create();
-  static $pb.PbList<PushEntityChanged> createRepeated() =>
-      $pb.PbList<PushEntityChanged>();
   @$core.pragma('dart2js:noInline')
   static PushEntityChanged getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<PushEntityChanged>(create);
@@ -237,12 +229,12 @@ class PullEntityRequest extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'PullEntityRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'pipeline'),
       createEmptyInstance: create)
-    ..pc<$0.EntityId>(1, _omitFieldNames ? '' : 'ids', $pb.PbFieldType.PM,
+    ..pPM<$0.EntityId>(1, _omitFieldNames ? '' : 'ids',
         subBuilder: $0.EntityId.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PullEntityRequest clone() => PullEntityRequest()..mergeFromMessage(this);
+  PullEntityRequest clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   PullEntityRequest copyWith(void Function(PullEntityRequest) updates) =>
       super.copyWith((message) => updates(message as PullEntityRequest))
@@ -255,8 +247,6 @@ class PullEntityRequest extends $pb.GeneratedMessage {
   static PullEntityRequest create() => PullEntityRequest._();
   @$core.override
   PullEntityRequest createEmptyInstance() => create();
-  static $pb.PbList<PullEntityRequest> createRepeated() =>
-      $pb.PbList<PullEntityRequest>();
   @$core.pragma('dart2js:noInline')
   static PullEntityRequest getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<PullEntityRequest>(create);
@@ -293,7 +283,7 @@ class PullEntityResponse extends $pb.GeneratedMessage {
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  PullEntityResponse clone() => PullEntityResponse()..mergeFromMessage(this);
+  PullEntityResponse clone() => deepCopy();
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
   PullEntityResponse copyWith(void Function(PullEntityResponse) updates) =>
       super.copyWith((message) => updates(message as PullEntityResponse))
@@ -306,8 +296,6 @@ class PullEntityResponse extends $pb.GeneratedMessage {
   static PullEntityResponse create() => PullEntityResponse._();
   @$core.override
   PullEntityResponse createEmptyInstance() => create();
-  static $pb.PbList<PullEntityResponse> createRepeated() =>
-      $pb.PbList<PullEntityResponse>();
   @$core.pragma('dart2js:noInline')
   static PullEntityResponse getDefault() => _defaultInstance ??=
       $pb.GeneratedMessage.$_defaultFor<PullEntityResponse>(create);
