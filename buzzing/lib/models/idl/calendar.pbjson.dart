@@ -552,6 +552,22 @@ final $typed_data.Uint8List schedulePullByCycleResponseDescriptor =
         'ChtTY2hlZHVsZVB1bGxCeUN5Y2xlUmVzcG9uc2USLgoJc2NoZWR1bGVzGAEgAygLMhAuZW50aX'
         'R5LlNjaGVkdWxlUglzY2hlZHVsZXM=');
 
+@$core.Deprecated('Use schedulePushByRangeDescriptor instead')
+const SchedulePushByRange$json = {
+  '1': 'SchedulePushByRange',
+  '2': [
+    {'1': 'calendar_ids', '3': 1, '4': 3, '5': 3, '10': 'calendarIds'},
+    {'1': 'start_time', '3': 2, '4': 1, '5': 3, '10': 'startTime'},
+    {'1': 'end_time', '3': 3, '4': 1, '5': 3, '10': 'endTime'},
+  ],
+};
+
+/// Descriptor for `SchedulePushByRange`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List schedulePushByRangeDescriptor = $convert.base64Decode(
+    'ChNTY2hlZHVsZVB1c2hCeVJhbmdlEiEKDGNhbGVuZGFyX2lkcxgBIAMoA1ILY2FsZW5kYXJJZH'
+    'MSHQoKc3RhcnRfdGltZRgCIAEoA1IJc3RhcnRUaW1lEhkKCGVuZF90aW1lGAMgASgDUgdlbmRU'
+    'aW1l');
+
 @$core.Deprecated('Use scheduleDeletePushDescriptor instead')
 const ScheduleDeletePush$json = {
   '1': 'ScheduleDeletePush',

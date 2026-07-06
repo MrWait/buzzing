@@ -32,7 +32,7 @@ impl Initializer for ViewEngineInitializer {
                 .tera
                 .lock()
                 .expect("lock")
-                .register_function("t", FluentLoader::new(arc));
+                .engine.register_function("t", FluentLoader::new(arc));
 
             #[cfg(not(debug_assertions))]
             tera_engine

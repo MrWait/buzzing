@@ -145,11 +145,15 @@ impl CalendarModel {
     pub async fn search(
         db: &DatabaseConnection,
         key: &str,
+        tenant_id: i64,
         limit_val: u64,
         offset_val: u64,
     ) -> ModelResult<Vec<Model>> {
         let all = Entity::find()
-            .filter(model::query::condition().contains(Column::Name, key).build())
+            .filter(model::query::condition()
+                .contains(Column::Name, key)
+                .eq(Column::TenantId, tenant_id)
+                .build())
             .all(db)
             .await?;
         let calendars: Vec<Model> = all

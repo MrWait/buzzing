@@ -80,6 +80,7 @@ impl ExternApp for AppCalendar {
                 return Err(Error::NotFound);
             }
         };
+        debug!("calendar handled, code: {code}");
         Ok((code, data))
     }
 }
