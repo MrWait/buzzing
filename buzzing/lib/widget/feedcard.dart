@@ -1,4 +1,5 @@
 import 'package:buzzing/controller/im.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 
@@ -26,6 +27,7 @@ class ConversationItem extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onSecondaryTapDown: (details) => _showContextMenu(context, details),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         color: selected ? cs.secondaryContainer : Colors.transparent,
@@ -104,6 +106,23 @@ class ConversationItem extends StatelessWidget {
         name.isNotEmpty ? name[0].toUpperCase() : '?',
         style: tt.bodyMedium?.copyWith(color: cs.onPrimary),
       ),
+    );
+  }
+
+  void _showContextMenu(BuildContext context, TapDownDetails details) {
+    showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        details.globalPosition.dx,
+        details.globalPosition.dy,
+        details.globalPosition.dx + 1,
+        details.globalPosition.dy + 1,
+      ),
+      items: [
+        PopupMenuItem(value: 'top', child: Text(t.top)),
+        PopupMenuItem(value: 'markRead', child: Text(t.markRead)),
+        PopupMenuItem(value: 'remove', child: Text(t.remove)),
+      ],
     );
   }
 

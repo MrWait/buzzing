@@ -1,3 +1,4 @@
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 
 class ModifyScopeDialog extends StatelessWidget {
@@ -8,33 +9,33 @@ class ModifyScopeDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(isDelete ? "Delete repeating schedule" : "Edit repeating schedule"),
+      title: Text(isDelete ? t.deleteRepeatingSchedule : t.editRepeatingSchedule),
       content: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text("How would you like to apply changes?"),
+        Text(t.howToApply),
         const SizedBox(height: 16),
         ListTile(
           leading: const Icon(Icons.event),
-          title: const Text("This event"),
-          subtitle: const Text("Change only this occurrence"),
+          title: Text(t.thisEvent),
+          subtitle: Text(t.changeOnlyThis),
           onTap: () => Navigator.of(context).pop(0),
         ),
         ListTile(
           leading: const Icon(Icons.event_repeat),
-          title: const Text("All events"),
-          subtitle: const Text("Change all occurrences in the series"),
+          title: Text(t.allEvents),
+          subtitle: Text(t.changeAll),
           onTap: () => Navigator.of(context).pop(1),
         ),
         ListTile(
           leading: const Icon(Icons.forward),
-          title: const Text("This and future events"),
-          subtitle: const Text("Change this and all future occurrences"),
+          title: Text(t.futureEvents),
+          subtitle: Text(t.changeFuture),
           onTap: () => Navigator.of(context).pop(2),
         ),
       ]),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(null),
-          child: const Text("Cancel"),
+          child: Text(t.cancel),
         ),
       ],
     );

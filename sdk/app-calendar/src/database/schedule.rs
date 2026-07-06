@@ -122,11 +122,16 @@ pub(crate) fn schedule_batch_save(
     conn: &mut Connection,
     schedules: &[entity::Schedule],
 ) -> Result<()> {
+    debug!("schedule_batch_save: {}", schedules.len());
     cost!("schedule_batch_save");
     let tx = conn.transaction()?;
     let query = format!(
         "REPLACE INTO schedule ({}) VALUES ({})",
         FIELD_SCHEDULE,
+        placeholder(FIELD_COUNT)
+    );
+    debug!(
+        "FIELD_COUNT: {FIELD_COUNT}, FIELD_SCHEDULE: {FIELD_SCHEDULE}, => {:?}",
         placeholder(FIELD_COUNT)
     );
     {
@@ -345,7 +350,10 @@ pub(crate) fn schedule_get_by_range(
     Ok(())
 }
 
-pub(crate) fn schedule_remove_by_cycle_rule_id(conn: &Connection, cycle_rule_id: i64) -> Result<()> {
+pub(crate) fn schedule_remove_by_cycle_rule_id(
+    conn: &Connection,
+    cycle_rule_id: i64,
+) -> Result<()> {
     cost!("schedule_remove_by_cycle_rule_id");
     conn.execute(
         "DELETE FROM schedule WHERE cycle_rule_id = ?1",

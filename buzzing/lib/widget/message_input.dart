@@ -15,8 +15,10 @@ class MessageInput extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
     final im = ref.watch(imProvider);
     return Container(
+      margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: cs.outlineVariant)),
+        border: Border.all(color: cs.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: ListenableBuilder(
         listenable: im,
@@ -34,6 +36,7 @@ class MessageInput extends ConsumerWidget {
               link: im.layerLink,
               child: QuillEditor.basic(
                 controller: im.quillController,
+                focusNode: im.focusNode,
                 config: QuillEditorConfig(
                   minHeight: 80,
                   maxHeight: 120,
@@ -47,6 +50,9 @@ class MessageInput extends ConsumerWidget {
             Container(
               height: 36,
               padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: cs.outlineVariant)),
+              ),
               child: Row(
                 children: [
                   _ToolbarBtn(icon: Icons.attach_file, onTap: () async {}),

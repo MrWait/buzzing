@@ -1,4 +1,3 @@
-import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/utils/extension.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:flutter/material.dart';
@@ -12,18 +11,20 @@ class EventsPlannerDraggableEventsView extends StatelessWidget {
     required this.controller,
     required this.daysShowed,
     required this.isDarkMode,
-    required this.dayOnSlotTap,
+    required this.dayOnSlotDoubleTap,
     this.onEventTap,
     this.initialDate,
+    this.eventsPlannerKey,
   });
 
   final EventsController controller;
   final int daysShowed;
   final bool isDarkMode;
-  final Function(int, DateTime, DateTime) dayOnSlotTap;
+  final Function(int, DateTime, DateTime) dayOnSlotDoubleTap;
   final Function(Event)? onEventTap;
   final Function(DateTime) onDayChange;
   final DateTime? initialDate;
+  final GlobalKey<EventsPlannerState>? eventsPlannerKey;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +32,7 @@ class EventsPlannerDraggableEventsView extends StatelessWidget {
     var initialVerticalScrollOffset = heightPerMinute * 7 * 60;
 
     return EventsPlanner(
+      key: eventsPlannerKey,
       controller: controller,
       daysShowed: daysShowed,
       maxPreviousDays: 10,
@@ -39,7 +41,7 @@ class EventsPlannerDraggableEventsView extends StatelessWidget {
       heightPerMinute: heightPerMinute,
       initialVerticalScrollOffset: initialVerticalScrollOffset,
       dayParam: DayParam(
-        onSlotTap: dayOnSlotTap,
+        onSlotDoubleTap: dayOnSlotDoubleTap,
         dayEventBuilder: (event, height, width, heightPerMinute) {
           return draggableEvent(event, height, width);
         },

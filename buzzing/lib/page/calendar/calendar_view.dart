@@ -1,3 +1,4 @@
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/calendar.pb.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
@@ -11,10 +12,8 @@ import 'package:buzzing/widget/header_bar.dart';
 import 'package:buzzing/widget/navigate_bar.dart';
 import 'package:buzzing/widget/schedule_creator.dart';
 import 'package:buzzing/widget/schedule_detail_page.dart';
-import 'package:buzzing/widget/search_dialog.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_popup/flutter_popup.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:infinite_calendar_view/infinite_calendar_view.dart';
 
@@ -22,7 +21,6 @@ import 'calendar_logic.dart';
 import 'events_planner_draggable_events_view.dart';
 import 'events_planner_one_day_view.dart';
 import "events_months_view.dart";
-import 'events_view_bar.dart';
 import "calendar_navigator.dart";
 
 class CalendarPage extends ConsumerWidget {
@@ -44,10 +42,10 @@ class CalendarPage extends ConsumerWidget {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(
               content: Text(reminder.title.isNotEmpty
-                  ? "Reminder: ${reminder.title}"
-                  : "Schedule reminder"),
+                  ? "${t.scheduleReminder}: ${reminder.title}"
+                  : t.scheduleReminder),
               action: SnackBarAction(
-                label: "View",
+                label: t.view,
                 onPressed: () {
                   showDialog<bool>(
                     context: context,
@@ -77,15 +75,26 @@ class CalendarPage extends ConsumerWidget {
                   child: ListenableBuilder(
                       listenable: ctl,
                       builder: (ctx, _) => Scaffold(
+                        floatingActionButton: FloatingActionButton(
+                          mini: true,
+                          onPressed: () {
+                            showDialog<bool>(
+                                context: context,
+                                builder: (context) {
+                                  return const ScheduleCreator(startTime: null);
+                                });
+                          },
+                          child: const Icon(Icons.add),
+                        ),
                         appBar: EventPlanerHeader(
                           dateText: "",
                           onChangeCalendarView: (mode) {
                             ctl.calendarMode = mode;
                             ctl.notifyListeners();
                           },
-                          jumpToday: () {
-
-                          },
+                          jumpToday: () => ctl.goToToday(),
+                          onPrevious: () => ctl.previousMonth(),
+                          onNext: () => ctl.nextMonth(),
                         ),
                         body: eventView(context, ctl, ctl.calendarMode),
                       ))),
@@ -100,15 +109,16 @@ class CalendarPage extends ConsumerWidget {
     switch (mode) {
       case CalendarView.day7:
         return EventsPlannerDraggableEventsView(
+          eventsPlannerKey: ctl.eventsPlannerKey,
           controller: ctl.eventController,
           daysShowed: 7,
           isDarkMode: false,
-          dayOnSlotTap: (int index, DateTime exactTime, DateTime roundTime) {
-            L.d("day slot tap, $index, $exactTime, $roundTime");
+          dayOnSlotDoubleTap: (int index, DateTime exactTime, DateTime roundTime) {
+            L.d("day slot double tap, $index, $exactTime, $roundTime");
             showDialog<bool>(
                 context: context,
                 builder: (context) {
-                  return const ScheduleCreator(startTime: null);
+                  return ScheduleCreator(startTime: roundTime);
                 });
           },
           onEventTap: (Event event) {
@@ -161,7 +171,7 @@ class CalendarDeck extends ConsumerWidget {
                 maxLines: 1,
                 controller: ctl.calendarSearchInput,
                 decoration: InputDecoration(
-                  hintText: "Search calendars...",
+                  hintText: t.searchCalendarHint,
                   prefixIcon: Icon(Icons.search, size: 18),
                 ),
                 onChanged: (val) => ctl.onSearchInput(val),
@@ -184,7 +194,7 @@ class CalendarDeck extends ConsumerWidget {
                             child: ctl.searchResults.isEmpty
                                 ? Padding(
                                     padding: const EdgeInsets.all(16),
-                                    child: Text("No results found",
+                                    child: Text(t.noResults,
                                         style: TextStyle(color: cs.onSurfaceVariant)),
                                   )
                                 : ListView.builder(
@@ -254,11 +264,11 @@ class CalendarList extends ConsumerWidget {
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: Text("+ New Calendar"),
+                        child: Text(t.newCalendar),
                   ),
                 ),
                 _Section(
-                  title: "My Calendar",
+                    title: t.myCalendar,
                   expanded: ctl.myCalendarListMode,
                   onToggle: (v) {
                     ctl.myCalendarListMode = v;
@@ -269,14 +279,14 @@ class CalendarList extends ConsumerWidget {
                       .toList(),
                 ),
                 _Section(
-                  title: "Subscribed Calendar",
+                    title: t.subscribedCalendar,
                   expanded: ctl.subscribeCalendarListMode,
                   onToggle: (v) {
                     ctl.subscribeCalendarListMode = v;
                     ctl.updateCalendarList();
                   },
                   children: ctl.subCalendars
-                      .map((cal) => _CalendarRow(cal: cal, ctl: ctl, cs: cs))
+                      .map((cal) => _SubscribedCalendarRow(cal: cal, ctl: ctl, cs: cs))
                       .toList(),
                 ),
               ],
@@ -335,63 +345,102 @@ class _CalendarRow extends StatelessWidget {
     } else {
       calColor = cal.color != 0 ? Color(cal.color) : cs.primary;
     }
-    return PopupMenuButton(
-      onSelected: (int action) async {
-        switch (action) {
-          case 0:
-            await ctl.toggleCalendarEnable(cal);
-            break;
-          case 1:
-            showDialog<bool>(
-                context: context,
-                builder: (context2) => ColorPickerDialog(
-                      currentColor: cal.color,
-                      onSelected: (newColor) async {
-                        await ctl.changeCalendarColor(cal.id, newColor);
-                      },
-                    ));
-            break;
-          case 2:
-            showDialog<bool>(
-                context: context,
-                builder: (context2) => CalendarCreator(
-                      editCalendar: cal,
-                    ));
-            break;
-          case 3:
-            await ctl.deleteCalendar(cal.id);
-            break;
-          case 4:
-            var req = CalendarUpdateRequest.create();
-            req.calendar = cal;
-            req.calendar.public = !cal.public;
-            await ctl.sdk.invokeAsync(Command.CALENDAR_UPDATE, req.writeToBuffer());
-            await ctl.refreshCalendarList();
-            break;
-        }
-      },
-      itemBuilder: (context) => [
-        PopupMenuItem(value: 0, child: Text(cal.enable ? "Disable" : "Enable")),
-        PopupMenuItem(value: 1, child: Text("Change Color")),
-        PopupMenuItem(value: 2, child: Text("Edit")),
-        PopupMenuItem(value: 3, child: Text("Delete")),
-        PopupMenuItem(value: 4, child: Text("Toggle Public")),
-      ],
-      child: Container(
-        child: Row(
-          children: [
-            Checkbox(
-              value: cal.enable,
-              activeColor: calColor,
-              checkColor: Colors.white,
-              onChanged: (val) async {
-                await ctl.toggleCalendarEnable(cal);
-              },
-            ),
-            SizedBox(width: 8),
-            Expanded(child: Text(cal.name, overflow: TextOverflow.ellipsis)),
-          ],
-        ),
+    return Container(
+      child: Row(
+        children: [
+          Checkbox(
+            value: cal.enable,
+            activeColor: calColor,
+            checkColor: Colors.white,
+            onChanged: (val) async {
+              await ctl.toggleCalendarEnable(cal);
+            },
+          ),
+          SizedBox(width: 8),
+          Expanded(child: Text(cal.name, overflow: TextOverflow.ellipsis)),
+        ],
+      ),
+    );
+  }
+}
+
+class _SubscribedCalendarRow extends StatelessWidget {
+  final Calendar cal;
+  final CalendarLogic ctl;
+  final ColorScheme cs;
+
+  const _SubscribedCalendarRow({required this.cal, required this.ctl, required this.cs});
+
+  @override
+  Widget build(BuildContext context) {
+    Color calColor = cal.color != 0 ? Color(cal.color) : cs.primary;
+    return Container(
+      child: Row(
+        children: [
+          Checkbox(
+            value: cal.enable,
+            activeColor: calColor,
+            checkColor: Colors.white,
+            onChanged: (val) async {
+              await ctl.toggleCalendarEnable(cal);
+            },
+          ),
+          SizedBox(width: 8),
+          Expanded(child: Text(cal.name, overflow: TextOverflow.ellipsis)),
+          IconButton(
+            icon: const Icon(Icons.close, size: 16),
+            onPressed: () => ctl.subscribeCalendar(cal.id, false),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            tooltip: t.subscribe,
+          ),
+          PopupMenuButton<int>(
+            icon: const Icon(Icons.more_horiz, size: 18),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+            onSelected: (int action) async {
+              switch (action) {
+                case 0:
+                  await ctl.toggleCalendarEnable(cal);
+                  break;
+                case 1:
+                  showDialog<bool>(
+                      context: context,
+                      builder: (context2) => ColorPickerDialog(
+                            currentColor: cal.color,
+                            onSelected: (newColor) async {
+                              await ctl.changeCalendarColor(cal.id, newColor);
+                            },
+                          ));
+                  break;
+                case 2:
+                  showDialog<bool>(
+                      context: context,
+                      builder: (context2) => CalendarCreator(
+                            editCalendar: cal,
+                          ));
+                  break;
+                case 3:
+                  await ctl.deleteCalendar(cal.id);
+                  break;
+                case 4:
+                  var req = CalendarUpdateRequest.create();
+                  req.calendar = cal;
+                  req.calendar.public = !cal.public;
+                  await ctl.sdk.invokeAsync(Command.CALENDAR_UPDATE, req.writeToBuffer());
+                  await ctl.refreshCalendarList();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(value: 0, child: Text(cal.enable ? t.disable : t.enable)),
+              PopupMenuItem(value: 1, child: Text(t.changeColor)),
+              PopupMenuItem(value: 2, child: Text(t.edit)),
+              PopupMenuItem(value: 3, child: Text(t.delete)),
+              PopupMenuItem(value: 4, child: Text(t.togglePublic)),
+            ],
+          ),
+        ],
       ),
     );
   }

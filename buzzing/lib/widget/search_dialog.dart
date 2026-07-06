@@ -1,7 +1,6 @@
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
-import 'package:buzzing/page/calendar/calendar_logic.dart';
 import 'package:buzzing/provider/page_providers.dart';
-import 'package:buzzing/res/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -49,7 +48,7 @@ class _CalendarSearchDialogState extends ConsumerState<CalendarSearchDialog> {
     final cs = Theme.of(context).colorScheme;
     final ctl = ref.read(calendarLogicProvider);
     return AlertDialog(
-      title: Text("Search Calendar"),
+      title: Text(t.searchCalendar),
       content: Container(
         width: 320,
         child: Column(
@@ -58,7 +57,7 @@ class _CalendarSearchDialogState extends ConsumerState<CalendarSearchDialog> {
             TextField(
               controller: _keyCtrl,
               decoration: InputDecoration(
-                hintText: "Search by name...",
+                hintText: t.searchByName,
                 suffixIcon: IconButton(
                   icon: Icon(Icons.search),
                   onPressed: _search,
@@ -88,9 +87,9 @@ class _CalendarSearchDialogState extends ConsumerState<CalendarSearchDialog> {
                       title: Text(cal.name),
                       subtitle: Text(cal.desc),
                       trailing: alreadySubscribed
-                          ? Text("Subscribed")
+                          ? Text(t.subscribed)
                           : ElevatedButton(
-                              child: Text("Subscribe"),
+                              child: Text(t.subscribe),
                               onPressed: () async {
                                 await ctl.subscribeCalendar(cal.id, !alreadySubscribed);
                                 ctl.notifyListeners();
@@ -102,13 +101,13 @@ class _CalendarSearchDialogState extends ConsumerState<CalendarSearchDialog> {
                 ),
               ),
             if (!_loading && _results.isEmpty && _keyCtrl.text.isNotEmpty)
-              Text("No results"),
+              Text(t.noResults),
           ],
         ),
       ),
       actions: [
         TextButton(
-          child: Text("Close"),
+          child: Text(t.close),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ],

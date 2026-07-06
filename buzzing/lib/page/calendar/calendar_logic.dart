@@ -16,13 +16,40 @@ import 'package:infinite_calendar_view/infinite_calendar_view.dart';
 class CalendarLogic extends ChangeNotifier {
   final SdkController sdk;
   CalendarLogic({required this.sdk});
-  var currentDate = DateTime(2025, 9, 2);
-  var currentMonth = DateFormat.yMMM().format(DateTime(2025, 9, 2));
+  var currentDate = DateTime.now();
+  var currentMonth = DateFormat.yMMM().format(DateTime.now());
   var calendarSearchInput = TextEditingController();
   final firstDay = DateTime(2000, 1, 1);
   final lastDay = DateTime(2030, 12, 30);
   DateTime? _viewStart;
   DateTime? _viewEnd;
+  final eventsPlannerKey = GlobalKey<EventsPlannerState>();
+
+  void goToDate(DateTime date) {
+    currentDate = date;
+    currentMonth = DateFormat.yMMM().format(date);
+    eventController.updateFocusedDay(date);
+    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      eventsPlannerKey.currentState?.jumpToDate(date);
+    });
+    fetchSchedules(
+      date.subtract(const Duration(days: 7)),
+      date.add(const Duration(days: 60)),
+    );
+  }
+
+  void goToToday() {
+    goToDate(DateTime.now());
+  }
+
+  void previousMonth() {
+    goToDate(DateTime(currentDate.year, currentDate.month - 1, 1));
+  }
+
+  void nextMonth() {
+    goToDate(DateTime(currentDate.year, currentDate.month + 1, 1));
+  }
 
   void updateViewRange(DateTime start, DateTime end) {
     _viewStart = start;
