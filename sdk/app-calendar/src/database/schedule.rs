@@ -49,7 +49,7 @@ struct ScheduleExtra {
 }
 
 const FIELD_SCHEDULE: &str = "id, calendar_id, dirty, type, tenant_id, owner, cycle_rule_id, chat_id, version, full_day, exception, start_time, end_time, extra";
-const FIELD_COUNT: usize = 15;
+const FIELD_COUNT: usize = 14;
 
 pub(crate) fn init_tables(conn: &Connection) -> Result<()> {
     conn.execute(

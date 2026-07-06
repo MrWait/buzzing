@@ -1709,6 +1709,80 @@ class SchedulePullByCycleResponse extends $pb.GeneratedMessage {
   $pb.PbList<$0.Schedule> get schedules => $_getList(0);
 }
 
+/// 服务端/SDK → 客户端：日程变更影响范围推送
+class SchedulePushByRange extends $pb.GeneratedMessage {
+  factory SchedulePushByRange({
+    $core.Iterable<$fixnum.Int64>? calendarIds,
+    $fixnum.Int64? startTime,
+    $fixnum.Int64? endTime,
+  }) {
+    final result = create();
+    if (calendarIds != null) result.calendarIds.addAll(calendarIds);
+    if (startTime != null) result.startTime = startTime;
+    if (endTime != null) result.endTime = endTime;
+    return result;
+  }
+
+  SchedulePushByRange._();
+
+  factory SchedulePushByRange.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SchedulePushByRange.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SchedulePushByRange',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'calendar'),
+      createEmptyInstance: create)
+    ..p<$fixnum.Int64>(
+        1, _omitFieldNames ? '' : 'calendarIds', $pb.PbFieldType.K6)
+    ..aInt64(2, _omitFieldNames ? '' : 'startTime')
+    ..aInt64(3, _omitFieldNames ? '' : 'endTime')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SchedulePushByRange clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SchedulePushByRange copyWith(void Function(SchedulePushByRange) updates) =>
+      super.copyWith((message) => updates(message as SchedulePushByRange))
+          as SchedulePushByRange;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SchedulePushByRange create() => SchedulePushByRange._();
+  @$core.override
+  SchedulePushByRange createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SchedulePushByRange getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SchedulePushByRange>(create);
+  static SchedulePushByRange? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<$fixnum.Int64> get calendarIds => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get startTime => $_getI64(1);
+  @$pb.TagNumber(2)
+  set startTime($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasStartTime() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearStartTime() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get endTime => $_getI64(2);
+  @$pb.TagNumber(3)
+  set endTime($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasEndTime() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearEndTime() => $_clearField(3);
+}
+
 /// 服务端→客户端：批量日程删除推送
 class ScheduleDeletePush extends $pb.GeneratedMessage {
   factory ScheduleDeletePush({

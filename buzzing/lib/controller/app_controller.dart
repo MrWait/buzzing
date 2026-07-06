@@ -68,7 +68,7 @@ class AppController {
       windows: initializationSettingsWindows,
     );
     await flutterLocalNotificationPlugin.initialize(
-      initializationSettings,
+      settings: initializationSettings,
       onDidReceiveNotificationResponse: (notificationResponse) {},
     );
     if (!Platform.isWindows) {
@@ -187,9 +187,9 @@ class AppController {
           AndroidFlutterLocalNotificationsPlugin
         >()
         ?.startForegroundService(
-          1,
-          /*packageInfo!.appName*/ "buzzing",
-          t.serviceNotificationBody,
+          id: 1,
+          title: /*packageInfo!.appName*/ "buzzing",
+          body: t.serviceNotificationBody,
           notificationDetails: androidPlatformChannelSpecifiecs,
           payload: '',
         );

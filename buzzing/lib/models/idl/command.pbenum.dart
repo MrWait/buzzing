@@ -187,6 +187,8 @@ class Command extends $pb.ProtobufEnum {
       Command._(1617, _omitEnumNames ? '' : 'PUSH_SCHEDULE_REMINDER');
   static const Command PUSH_SCHEDULE_DELETE =
       Command._(1618, _omitEnumNames ? '' : 'PUSH_SCHEDULE_DELETE');
+  static const Command PUSH_SCHEDULE_UPDATE_BY_RANGE =
+      Command._(1619, _omitEnumNames ? '' : 'PUSH_SCHEDULE_UPDATE_BY_RANGE');
 
   static const $core.List<Command> values = <Command>[
     COMMAND_UNKNOWN,
@@ -272,6 +274,7 @@ class Command extends $pb.ProtobufEnum {
     SCHEDULE_PUSH_UPDATE,
     PUSH_SCHEDULE_REMINDER,
     PUSH_SCHEDULE_DELETE,
+    PUSH_SCHEDULE_UPDATE_BY_RANGE,
   ];
 
   static final $core.Map<$core.int, Command> _byValue =

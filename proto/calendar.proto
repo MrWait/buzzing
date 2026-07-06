@@ -112,6 +112,13 @@ message SchedulePullByCycleResponse {
     repeated entity.Schedule schedules = 1;
 }
 
+// 服务端/SDK → 客户端：日程变更影响范围推送
+message SchedulePushByRange {
+    repeated int64 calendar_ids = 1;
+    int64 start_time = 2;
+    int64 end_time = 3;
+}
+
 // 服务端→客户端：批量日程删除推送
 message ScheduleDeletePush {
     repeated int64 ids = 1;           // 逐个删：实例 ID 列表

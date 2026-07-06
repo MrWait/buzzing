@@ -6,14 +6,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class CalendarSearchDialog extends ConsumerStatefulWidget {
+  final String initialText;
+  CalendarSearchDialog({this.initialText = ''});
+
   @override
   _CalendarSearchDialogState createState() => _CalendarSearchDialogState();
 }
 
 class _CalendarSearchDialogState extends ConsumerState<CalendarSearchDialog> {
-  final _keyCtrl = TextEditingController();
+  late final _keyCtrl = TextEditingController(text: widget.initialText);
   var _results = <Calendar>[];
   var _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialText.isNotEmpty) {
+      _search();
+    }
+  }
+
+  @override
+  void dispose() {
+    _keyCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _search() async {
     var key = _keyCtrl.text.trim();
@@ -75,7 +92,7 @@ class _CalendarSearchDialogState extends ConsumerState<CalendarSearchDialog> {
                           : ElevatedButton(
                               child: Text("Subscribe"),
                               onPressed: () async {
-                                await ctl.subscribeCalendar(cal.id);
+                                await ctl.subscribeCalendar(cal.id, !alreadySubscribed);
                                 ctl.notifyListeners();
                                 Navigator.of(context).pop();
                               },
