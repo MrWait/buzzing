@@ -1,4 +1,4 @@
-import 'package:buzzing/page/calendar/calendar_logic.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/widget/modify_scope_dialog.dart';
 import 'package:buzzing/widget/schedule_creator.dart';
 import 'package:flutter/material.dart';
@@ -23,26 +23,26 @@ class ScheduleDetailPage extends ConsumerWidget {
     final endDT = DateTime.fromMillisecondsSinceEpoch(s.endTime.toInt());
 
     return AlertDialog(
-      title: Text(s.title.isNotEmpty ? s.title : "(No title)"),
+      title: Text(s.title.isNotEmpty ? s.title : t.noTitle),
       content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _infoRow(Icons.access_time, s.fullDay ? "All day" : "${dateFmt.format(startDT)} - ${dateFmt.format(endDT)}"),
+        _infoRow(Icons.access_time, s.fullDay ? t.allDay : "${dateFmt.format(startDT)} - ${dateFmt.format(endDT)}"),
         if (s.desc.isNotEmpty) _infoRow(Icons.description, s.desc),
         if (s.location.isNotEmpty) _infoRow(Icons.location_on, s.location),
         if (hasCycle) _infoRow(Icons.repeat, _recurrenceLabel(s)),
         if (s.notifyTime.isNotEmpty) _infoRow(Icons.notifications, s.notifyTime.map((m) {
-          if (m == 0) return "At time";
-          if (m < 60) return "${m} min";
-          if (m < 1440) return "${m ~/ 60} hr";
-          return "${m ~/ 1440} day";
+          if (m == 0) return t.atTime;
+          if (m < 60) return "${m}${t.minUnit}";
+          if (m < 1440) return "${m ~/ 60}${t.hrUnit}";
+          return "${m ~/ 1440}${t.dayUnit}";
         }).join(", ")),
       ]),
       actions: [
         TextButton(
-          child: const Text("Close"),
+          child: Text(t.close),
           onPressed: () => Navigator.of(context).pop(),
         ),
         TextButton(
-          child: Text(s.cycleRuleId.toInt() > 0 ? "Edit" : "Edit"),
+          child: Text(t.edit),
           onPressed: () async {
             if (hasCycle) {
               final scope = await showDialog<int>(context: context, builder: (_) => const ModifyScopeDialog());
@@ -57,16 +57,16 @@ class ScheduleDetailPage extends ConsumerWidget {
           },
         ),
         TextButton(
-          child: Text("Delete", style: TextStyle(color: Colors.red)),
+          child: Text(t.delete, style: TextStyle(color: Colors.red)),
           onPressed: () async {
             final confirmed = await showDialog<bool>(
               context: context,
               builder: (ctx) => AlertDialog(
-                title: const Text("Delete schedule"),
-                content: Text(hasCycle ? "Are you sure you want to delete this schedule?" : 'Delete "${s.title}"?'),
+                title: Text(t.deleteSchedule),
+                content: Text(hasCycle ? t.confirmDeleteSchedule : '${t.delete} "${s.title}"?'),
                 actions: [
-                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text("Cancel")),
-                  TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text("Delete", style: TextStyle(color: Colors.red))),
+                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(t.cancel)),
+                  TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(t.delete, style: TextStyle(color: Colors.red))),
                 ],
               ),
             );
@@ -102,9 +102,14 @@ class ScheduleDetailPage extends ConsumerWidget {
   String _recurrenceLabel(Schedule s) {
     if (!s.hasCycle()) return "";
     final rule = s.cycle.rule;
-    final typeStr = {
-      1: "Daily", 2: "Weekly", 3: "Monthly", 5: "Yearly"
-    }[rule.cycleType] ?? "Repeating";
-    return "Every $typeStr";
+    String typeStr;
+    switch (rule.cycleType) {
+      case 1: typeStr = t.daily; break;
+      case 2: typeStr = t.weekly; break;
+      case 3: typeStr = t.monthly; break;
+      case 5: typeStr = t.yearly; break;
+      default: typeStr = t.repeating;
+    }
+    return "${t.everyPrefix}$typeStr";
   }
 }

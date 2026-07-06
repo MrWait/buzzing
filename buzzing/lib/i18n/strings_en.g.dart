@@ -92,8 +92,8 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	/// en: 'Please enter verification code'
 	String get plsInputCode => 'Please enter verification code';
 
-	/// en: ' after'
-	String get after => ' after';
+	/// en: 'After'
+	String get after => 'After';
 
 	/// en: 'resend verification code'
 	String get resendVerifyCode => 'resend verification code';
@@ -304,6 +304,15 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 
 	/// en: 'Hangup'
 	String get hangup => 'Hangup';
+
+	/// en: 'Mute mic'
+	String get muteMic => 'Mute mic';
+
+	/// en: 'Share screen'
+	String get shareScreen => 'Share screen';
+
+	/// en: 'Self'
+	String get self => 'Self';
 
 	/// en: 'Pickup'
 	String get pickup => 'Pickup';
@@ -685,6 +694,15 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 
 	/// en: 'Outgoing call'
 	String get outgoingCall => 'Outgoing call';
+
+	/// en: 'Connect'
+	String get connect => 'Connect';
+
+	/// en: 'Peers'
+	String get peers => 'Peers';
+
+	/// en: 'No peers available'
+	String get noPeers => 'No peers available';
 
 	/// en: '%s invite you to a group video call'
 	String get groupCallVideoInvite => '%s invite you to a group video call';
@@ -1727,6 +1745,21 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	/// en: 'Star Contacts'
 	String get starContacts => 'Star Contacts';
 
+	/// en: 'Calendar'
+	String get calendar => 'Calendar';
+
+	/// en: 'Today'
+	String get today => 'Today';
+
+	/// en: 'Week'
+	String get week => 'Week';
+
+	/// en: 'Month'
+	String get month => 'Month';
+
+	/// en: 'New Schedule'
+	String get newSchedule => 'New Schedule';
+
 	/// en: 'Schedule Meeting'
 	String get scheduleMeeting => 'Schedule Meeting';
 
@@ -1756,6 +1789,222 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 
 	/// en: 'Please enter the port'
 	String get plsInputPort => 'Please enter the port';
+
+	/// en: 'Search calendars...'
+	String get searchCalendarHint => 'Search calendars...';
+
+	/// en: 'Title'
+	String get scheduleTitle => 'Title';
+
+	/// en: 'Calendar'
+	String get scheduleCalendar => 'Calendar';
+
+	/// en: 'All day'
+	String get allDay => 'All day';
+
+	/// en: 'Start date'
+	String get startDate => 'Start date';
+
+	/// en: 'End date'
+	String get endDate => 'End date';
+
+	/// en: 'Start'
+	String get startTime => 'Start';
+
+	/// en: 'End'
+	String get endTime => 'End';
+
+	/// en: 'Repeat: '
+	String get repeat => 'Repeat: ';
+
+	/// en: 'End: '
+	String get endLabel => 'End: ';
+
+	/// en: 'Daily'
+	String get daily => 'Daily';
+
+	/// en: 'Weekly'
+	String get weekly => 'Weekly';
+
+	/// en: 'Monthly'
+	String get monthly => 'Monthly';
+
+	/// en: 'Yearly'
+	String get yearly => 'Yearly';
+
+	/// en: 'Never'
+	String get never => 'Never';
+
+	/// en: 'On date'
+	String get onDate => 'On date';
+
+	/// en: ' every '
+	String get every => ' every ';
+
+	/// en: ' times'
+	String get times => ' times';
+
+	/// en: 'day(s)'
+	String get recurrenceUnitDay => 'day(s)';
+
+	/// en: 'week(s)'
+	String get recurrenceUnitWeek => 'week(s)';
+
+	/// en: 'month(s)'
+	String get recurrenceUnitMonth => 'month(s)';
+
+	/// en: 'year(s)'
+	String get recurrenceUnitYear => 'year(s)';
+
+	/// en: 'Every '
+	String get everyPrefix => 'Every ';
+
+	/// en: 'Reminders: '
+	String get reminders => 'Reminders: ';
+
+	/// en: 'At time'
+	String get atTime => 'At time';
+
+	/// en: ' min'
+	String get minUnit => ' min';
+
+	/// en: ' hr'
+	String get hrUnit => ' hr';
+
+	/// en: ' day'
+	String get dayUnit => ' day';
+
+	/// en: '(No title)'
+	String get noTitle => '(No title)';
+
+	/// en: 'Delete schedule'
+	String get deleteSchedule => 'Delete schedule';
+
+	/// en: 'Are you sure you want to delete this schedule?'
+	String get confirmDeleteSchedule => 'Are you sure you want to delete this schedule?';
+
+	/// en: 'Schedule reminder'
+	String get scheduleReminder => 'Schedule reminder';
+
+	/// en: 'Repeating'
+	String get repeating => 'Repeating';
+
+	/// en: '+ New Calendar'
+	String get newCalendar => '+ New Calendar';
+
+	/// en: 'My Calendar'
+	String get myCalendar => 'My Calendar';
+
+	/// en: 'Subscribed Calendar'
+	String get subscribedCalendar => 'Subscribed Calendar';
+
+	/// en: 'No results found'
+	String get noResults => 'No results found';
+
+	/// en: 'Enable'
+	String get enable => 'Enable';
+
+	/// en: 'Disable'
+	String get disable => 'Disable';
+
+	/// en: 'Change Color'
+	String get changeColor => 'Change Color';
+
+	/// en: 'Toggle Public'
+	String get togglePublic => 'Toggle Public';
+
+	/// en: 'Search Calendar'
+	String get searchCalendar => 'Search Calendar';
+
+	/// en: 'Search by name...'
+	String get searchByName => 'Search by name...';
+
+	/// en: 'Subscribed'
+	String get subscribed => 'Subscribed';
+
+	/// en: 'Subscribe'
+	String get subscribe => 'Subscribe';
+
+	/// en: 'Choose Color'
+	String get chooseColor => 'Choose Color';
+
+	/// en: 'Create Calendar'
+	String get createCalendar => 'Create Calendar';
+
+	/// en: 'Edit Calendar'
+	String get editCalendar => 'Edit Calendar';
+
+	/// en: 'Color'
+	String get colorPickerLabel => 'Color';
+
+	/// en: 'Public'
+	String get publicLabel => 'Public';
+
+	/// en: 'Name'
+	String get name => 'Name';
+
+	/// en: 'This event'
+	String get thisEvent => 'This event';
+
+	/// en: 'All events'
+	String get allEvents => 'All events';
+
+	/// en: 'This and future events'
+	String get futureEvents => 'This and future events';
+
+	/// en: 'Change only this occurrence'
+	String get changeOnlyThis => 'Change only this occurrence';
+
+	/// en: 'Change all occurrences in the series'
+	String get changeAll => 'Change all occurrences in the series';
+
+	/// en: 'Change this and all future occurrences'
+	String get changeFuture => 'Change this and all future occurrences';
+
+	/// en: 'How would you like to apply changes?'
+	String get howToApply => 'How would you like to apply changes?';
+
+	/// en: 'Edit repeating schedule'
+	String get editRepeatingSchedule => 'Edit repeating schedule';
+
+	/// en: 'Delete repeating schedule'
+	String get deleteRepeatingSchedule => 'Delete repeating schedule';
+
+	/// en: 'Mon'
+	String get weekdayMon => 'Mon';
+
+	/// en: 'Tue'
+	String get weekdayTue => 'Tue';
+
+	/// en: 'Wed'
+	String get weekdayWed => 'Wed';
+
+	/// en: 'Thu'
+	String get weekdayThu => 'Thu';
+
+	/// en: 'Fri'
+	String get weekdayFri => 'Fri';
+
+	/// en: 'Sat'
+	String get weekdaySat => 'Sat';
+
+	/// en: 'Sun'
+	String get weekdaySun => 'Sun';
+
+	/// en: 'Description'
+	String get description => 'Description';
+
+	/// en: 'Close'
+	String get close => 'Close';
+
+	/// en: 'View'
+	String get view => 'View';
+
+	/// en: 'Edit Schedule'
+	String get editSchedule => 'Edit Schedule';
+
+	/// en: 'Create Schedule'
+	String get createSchedule => 'Create Schedule';
 }
 
 /// The flat map containing all translations for locale <en>.
@@ -1783,7 +2032,7 @@ extension on Translations {
 			'nowRegister' => 'Sign up now',
 			'verifyCodeSentToPhone' => 'The verification code has been sent to the phone',
 			'plsInputCode' => 'Please enter verification code',
-			'after' => ' after',
+			'after' => 'After',
 			'resendVerifyCode' => 'resend verification code',
 			'sendVerifyCode' => 'send verification code',
 			'plsSetupPwd' => 'Please set password',
@@ -1854,6 +2103,9 @@ extension on Translations {
 			'convertVoice' => 'Go to voice call',
 			'switchCamera' => 'Switch camera',
 			'hangup' => 'Hangup',
+			'muteMic' => 'Mute mic',
+			'shareScreen' => 'Share screen',
+			'self' => 'Self',
 			'pickup' => 'Pickup',
 			'refuse' => 'Refuse',
 			'micOpen' => 'Microphone is on',
@@ -1981,6 +2233,9 @@ extension on Translations {
 			'missedCall' => 'Missed call',
 			'incomingCall' => 'Incoming call',
 			'outgoingCall' => 'Outgoing call',
+			'connect' => 'Connect',
+			'peers' => 'Peers',
+			'noPeers' => 'No peers available',
 			'groupCallVideoInvite' => '%s invite you to a group video call',
 			'groupCallVoiceInvite' => '%s invite you to a group voice call',
 			'xPersonGroupVideoCalling' => '%s people are in a video call',
@@ -2330,6 +2585,11 @@ extension on Translations {
 			'internalContacts' => 'Internal Contacts',
 			'externalContacts' => 'External Contacts',
 			'starContacts' => 'Star Contacts',
+			'calendar' => 'Calendar',
+			'today' => 'Today',
+			'week' => 'Week',
+			'month' => 'Month',
+			'newSchedule' => 'New Schedule',
 			'scheduleMeeting' => 'Schedule Meeting',
 			'comingMeeting' => 'Coming Meeting',
 			'historyMeeting' => 'History Meeting',
@@ -2340,6 +2600,78 @@ extension on Translations {
 			'addServer' => 'Add Server',
 			'plsInputServerAddress' => 'Please enter the server address',
 			'plsInputPort' => 'Please enter the port',
+			'searchCalendarHint' => 'Search calendars...',
+			'scheduleTitle' => 'Title',
+			'scheduleCalendar' => 'Calendar',
+			'allDay' => 'All day',
+			'startDate' => 'Start date',
+			'endDate' => 'End date',
+			'startTime' => 'Start',
+			'endTime' => 'End',
+			'repeat' => 'Repeat: ',
+			'endLabel' => 'End: ',
+			'daily' => 'Daily',
+			'weekly' => 'Weekly',
+			'monthly' => 'Monthly',
+			'yearly' => 'Yearly',
+			'never' => 'Never',
+			'onDate' => 'On date',
+			'every' => ' every ',
+			'times' => ' times',
+			'recurrenceUnitDay' => 'day(s)',
+			'recurrenceUnitWeek' => 'week(s)',
+			'recurrenceUnitMonth' => 'month(s)',
+			'recurrenceUnitYear' => 'year(s)',
+			'everyPrefix' => 'Every ',
+			'reminders' => 'Reminders: ',
+			'atTime' => 'At time',
+			'minUnit' => ' min',
+			'hrUnit' => ' hr',
+			'dayUnit' => ' day',
+			'noTitle' => '(No title)',
+			'deleteSchedule' => 'Delete schedule',
+			'confirmDeleteSchedule' => 'Are you sure you want to delete this schedule?',
+			'scheduleReminder' => 'Schedule reminder',
+			'repeating' => 'Repeating',
+			'newCalendar' => '+ New Calendar',
+			'myCalendar' => 'My Calendar',
+			'subscribedCalendar' => 'Subscribed Calendar',
+			'noResults' => 'No results found',
+			'enable' => 'Enable',
+			'disable' => 'Disable',
+			'changeColor' => 'Change Color',
+			'togglePublic' => 'Toggle Public',
+			'searchCalendar' => 'Search Calendar',
+			'searchByName' => 'Search by name...',
+			'subscribed' => 'Subscribed',
+			'subscribe' => 'Subscribe',
+			'chooseColor' => 'Choose Color',
+			'createCalendar' => 'Create Calendar',
+			'editCalendar' => 'Edit Calendar',
+			'colorPickerLabel' => 'Color',
+			'publicLabel' => 'Public',
+			'name' => 'Name',
+			'thisEvent' => 'This event',
+			'allEvents' => 'All events',
+			'futureEvents' => 'This and future events',
+			'changeOnlyThis' => 'Change only this occurrence',
+			'changeAll' => 'Change all occurrences in the series',
+			'changeFuture' => 'Change this and all future occurrences',
+			'howToApply' => 'How would you like to apply changes?',
+			'editRepeatingSchedule' => 'Edit repeating schedule',
+			'deleteRepeatingSchedule' => 'Delete repeating schedule',
+			'weekdayMon' => 'Mon',
+			'weekdayTue' => 'Tue',
+			'weekdayWed' => 'Wed',
+			'weekdayThu' => 'Thu',
+			'weekdayFri' => 'Fri',
+			'weekdaySat' => 'Sat',
+			'weekdaySun' => 'Sun',
+			'description' => 'Description',
+			'close' => 'Close',
+			'view' => 'View',
+			'editSchedule' => 'Edit Schedule',
+			'createSchedule' => 'Create Schedule',
 			_ => null,
 		};
 	}
