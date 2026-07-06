@@ -1,4 +1,5 @@
 import 'package:buzzing/controller/sdk_controller.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/provider/sdk_provider.dart';
 import 'package:buzzing/page/calendar/calendar_logic.dart';
@@ -37,9 +38,9 @@ class _ScheduleCreatorState extends ConsumerState<ScheduleCreator> {
   int startSlot = 0;
   int endSlot = 1;
 
-  var recurrenceType = "None";
+  var recurrenceType = 0;
   var recurrenceIntervalCtrl = TextEditingController(text: "1");
-  var recurrenceEndType = "Never";
+  var recurrenceEndType = 0;
   var recurrenceCountCtrl = TextEditingController(text: "10");
   var recurrenceEndDate = DateTime.now().add(const Duration(days: 365));
   var weekDays = <int>[];
@@ -70,16 +71,11 @@ class _ScheduleCreatorState extends ConsumerState<ScheduleCreator> {
       reminderMinutes.addAll(s.notifyTime);
       if (s.hasCycle()) {
         final cycle = s.cycle;
-        switch (cycle.rule.cycleType) {
-          case 1: recurrenceType = "Daily"; break;
-          case 2: recurrenceType = "Weekly"; break;
-          case 3: recurrenceType = "Monthly"; break;
-          case 5: recurrenceType = "Yearly"; break;
-        }
+        recurrenceType = cycle.rule.cycleType;
         recurrenceIntervalCtrl.text = cycle.rule.seq.toString();
         weekDays.addAll(cycle.rule.weekSeqs);
         if (cycle.stopAt.toInt() > 0) {
-          recurrenceEndType = "On date";
+          recurrenceEndType = 3;
           recurrenceEndDate = DateTime.fromMillisecondsSinceEpoch(cycle.stopAt.toInt());
         }
       }
@@ -112,7 +108,7 @@ class _ScheduleCreatorState extends ConsumerState<ScheduleCreator> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(isEditing ? "Edit Schedule" : "Create Schedule"),
+      title: Text(isEditing ? t.editSchedule : t.createSchedule),
       content: Container(
         width: 0.5.sw,
         child: SingleChildScrollView(
@@ -120,7 +116,7 @@ class _ScheduleCreatorState extends ConsumerState<ScheduleCreator> {
             // Calendar picker
             DropdownButtonFormField<Int64>(
               value: selectedCalendarId,
-              decoration: const InputDecoration(labelText: "Calendar", isDense: true),
+              decoration: InputDecoration(labelText: t.scheduleCalendar, isDense: true),
               items: calendars.map((c) => DropdownMenuItem(
                 value: c.id,
                 child: Row(children: [
@@ -134,33 +130,33 @@ class _ScheduleCreatorState extends ConsumerState<ScheduleCreator> {
             const SizedBox(height: 8),
 
             // Title
-            TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: "Title", isDense: true)),
+            TextField(controller: titleCtrl, decoration: InputDecoration(labelText: t.scheduleTitle, isDense: true)),
             const SizedBox(height: 8),
 
             // All-day toggle
             Row(children: [
-              const Text("All day", style: TextStyle(fontSize: 13)),
+              Text(t.allDay, style: const TextStyle(fontSize: 13)),
               Switch(value: isAllDay, onChanged: (v) => setState(() => isAllDay = v), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
             ]),
 
             // Date/time pickers
             Row(children: [
-              Expanded(child: _dateField("Start date", startDate, (d) => setState(() => startDate = d))),
-              if (!isAllDay) Expanded(child: _slotDropdown("Start", startSlot, (v) => setState(() => startSlot = v!))),
+              Expanded(child: _dateField(t.startDate, startDate, (d) => setState(() => startDate = d))),
+              if (!isAllDay) Expanded(child: _slotDropdown(t.startTime, startSlot, (v) => setState(() => startSlot = v!))),
             ]),
             const SizedBox(height: 4),
             Row(children: [
-              Expanded(child: _dateField("End date", endDate, (d) => setState(() => endDate = d))),
-              if (!isAllDay) Expanded(child: _slotDropdown("End", endSlot, (v) => setState(() => endSlot = v!))),
+              Expanded(child: _dateField(t.endDate, endDate, (d) => setState(() => endDate = d))),
+              if (!isAllDay) Expanded(child: _slotDropdown(t.endTime, endSlot, (v) => setState(() => endSlot = v!))),
             ]),
             const SizedBox(height: 8),
 
             // Description
-            TextField(controller: descCtrl, decoration: const InputDecoration(labelText: "Description", isDense: true), maxLines: 2),
+            TextField(controller: descCtrl, decoration: InputDecoration(labelText: t.description, isDense: true), maxLines: 2),
             const SizedBox(height: 8),
 
             // Location
-            TextField(controller: locationCtrl, decoration: const InputDecoration(labelText: "Location", isDense: true)),
+            TextField(controller: locationCtrl, decoration: InputDecoration(labelText: t.location, isDense: true)),
             const SizedBox(height: 12),
 
             // Recurrence
@@ -177,8 +173,8 @@ class _ScheduleCreatorState extends ConsumerState<ScheduleCreator> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text("Cancel")),
-        TextButton(onPressed: _onSubmit, child: Text(isEditing ? "Save" : "Create")),
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(t.cancel)),
+        TextButton(onPressed: _onSubmit, child: Text(isEditing ? t.save : t.createSchedule)),
       ],
     );
   }
@@ -212,37 +208,48 @@ class _ScheduleCreatorState extends ConsumerState<ScheduleCreator> {
     );
   }
 
+  static const _recurrenceLabels = ["None", "Daily", "Weekly", "Monthly", "Yearly"];
+  static const _recurrenceValues = [0, 1, 2, 3, 5];
+  static const _endLabels = ["Never", "After", "On date"];
+  static const _endValues = [0, 1, 3];
+
   Widget _buildRecurrence() {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        const Text("Repeat: ", style: TextStyle(fontSize: 13)),
-        DropdownButton<String>(
+        Text(t.repeat, style: const TextStyle(fontSize: 13)),
+        DropdownButton<int>(
           value: recurrenceType,
           style: const TextStyle(fontSize: 13),
-          items: ["None", "Daily", "Weekly", "Monthly", "Yearly"].map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+          items: List.generate(_recurrenceValues.length, (i) => DropdownMenuItem(
+            value: _recurrenceValues[i],
+            child: Text(_recurrenceText(_recurrenceLabels[i])),
+          )),
           onChanged: (v) => setState(() => recurrenceType = v!),
         ),
-        if (recurrenceType != "None") ...[
-          const Text(" every ", style: TextStyle(fontSize: 13)),
+        if (recurrenceType != 0) ...[
+          Text(t.every, style: const TextStyle(fontSize: 13)),
           SizedBox(width: 40, child: TextField(controller: recurrenceIntervalCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(isDense: true, hintText: "1"))),
           Text(" ${_recurrenceUnit(recurrenceType)}", style: const TextStyle(fontSize: 13)),
         ],
       ]),
-      if (recurrenceType != "None") ...[
+      if (recurrenceType != 0) ...[
         const SizedBox(height: 4),
         Row(children: [
-          const Text("End: ", style: TextStyle(fontSize: 13)),
-          DropdownButton<String>(
+          Text(t.endLabel, style: const TextStyle(fontSize: 13)),
+          DropdownButton<int>(
             value: recurrenceEndType,
             style: const TextStyle(fontSize: 13),
-            items: ["Never", "After", "On date"].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+            items: List.generate(_endValues.length, (i) => DropdownMenuItem(
+              value: _endValues[i],
+              child: Text(_endText(_endLabels[i])),
+            )),
             onChanged: (v) => setState(() => recurrenceEndType = v!),
           ),
-          if (recurrenceEndType == "After") ...[
+          if (recurrenceEndType == 1) ...[
             SizedBox(width: 40, child: TextField(controller: recurrenceCountCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(isDense: true, hintText: "10"))),
-            const Text(" times", style: TextStyle(fontSize: 13)),
+            Text(t.times, style: const TextStyle(fontSize: 13)),
           ],
-          if (recurrenceEndType == "On date")
+          if (recurrenceEndType == 3)
             TextButton(
               child: Text(DateFormat.yMd().format(recurrenceEndDate)),
               onPressed: () async {
@@ -251,9 +258,9 @@ class _ScheduleCreatorState extends ConsumerState<ScheduleCreator> {
               },
             ),
         ]),
-        if (recurrenceType == "Weekly") ...[
+        if (recurrenceType == 2) ...[
           const SizedBox(height: 4),
-          Wrap(spacing: 4, children: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].asMap().entries.map((e) => FilterChip(
+          Wrap(spacing: 4, children: [t.weekdayMon, t.weekdayTue, t.weekdayWed, t.weekdayThu, t.weekdayFri, t.weekdaySat, t.weekdaySun].asMap().entries.map((e) => FilterChip(
             label: Text(e.value, style: const TextStyle(fontSize: 11)),
             selected: weekDays.contains(e.key),
             onSelected: (sel) => setState(() { if (sel) weekDays.add(e.key); else weekDays.remove(e.key); }),
@@ -265,25 +272,51 @@ class _ScheduleCreatorState extends ConsumerState<ScheduleCreator> {
     ]);
   }
 
+  String _recurrenceText(String label) {
+    switch (label) {
+      case "None": return t.never;
+      case "Daily": return t.daily;
+      case "Weekly": return t.weekly;
+      case "Monthly": return t.monthly;
+      case "Yearly": return t.yearly;
+      default: return label;
+    }
+  }
+
+  String _endText(String label) {
+    switch (label) {
+      case "Never": return t.never;
+      case "After": return t.after;
+      case "On date": return t.onDate;
+      default: return label;
+    }
+  }
+
   Widget _buildReminders() {
-    const options = [
-      ("At time", 0), ("5 min", 5), ("10 min", 10), ("30 min", 30),
-      ("1 hr", 60), ("2 hr", 120), ("1 day", 1440),
-    ];
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text("Reminders: ", style: TextStyle(fontSize: 13)),
+      Text(t.reminders, style: const TextStyle(fontSize: 13)),
       const SizedBox(height: 4),
-      Wrap(spacing: 4, children: options.map((o) {
-        final sel = reminderMinutes.contains(o.$2);
-        return FilterChip(
-          label: Text(o.$1, style: const TextStyle(fontSize: 11)),
-          selected: sel,
-          onSelected: (v) => setState(() { if (v) reminderMinutes.add(o.$2); else reminderMinutes.remove(o.$2); }),
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          visualDensity: VisualDensity.compact,
-        );
-      }).toList()),
+      Wrap(spacing: 4, children: [
+        _reminderChip(t.atTime, 0),
+        _reminderChip("5${t.minUnit}", 5),
+        _reminderChip("10${t.minUnit}", 10),
+        _reminderChip("30${t.minUnit}", 30),
+        _reminderChip("1${t.hrUnit}", 60),
+        _reminderChip("2${t.hrUnit}", 120),
+        _reminderChip("1${t.dayUnit}", 1440),
+      ]),
     ]);
+  }
+
+  Widget _reminderChip(String label, int minutes) {
+    final sel = reminderMinutes.contains(minutes);
+    return FilterChip(
+      label: Text(label, style: const TextStyle(fontSize: 11)),
+      selected: sel,
+      onSelected: (v) => setState(() { if (v) reminderMinutes.add(minutes); else reminderMinutes.remove(minutes); }),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+    );
   }
 
   void _onSubmit() async {
@@ -302,17 +335,17 @@ class _ScheduleCreatorState extends ConsumerState<ScheduleCreator> {
     schedule.memberIds.add(sdk.userId);
     schedule.notifyTime.addAll(reminderMinutes);
 
-    if (recurrenceType != "None") {
+    if (recurrenceType != 0) {
       schedule.cycle = ScheduleCycleRule.create();
       schedule.cycle.startAt = schedule.startTime;
       schedule.cycle.rule = CycleRule.create();
-      schedule.cycle.rule.cycleType = {"Daily": 1, "Weekly": 2, "Monthly": 3, "Yearly": 5}[recurrenceType] ?? 0;
+      schedule.cycle.rule.cycleType = recurrenceType;
       schedule.cycle.rule.seq = int.tryParse(recurrenceIntervalCtrl.text) ?? 1;
-      if (recurrenceType == "Weekly") schedule.cycle.rule.weekSeqs.addAll(weekDays);
-      if (recurrenceEndType == "After") {
+      if (recurrenceType == 2) schedule.cycle.rule.weekSeqs.addAll(weekDays);
+      if (recurrenceEndType == 1) {
         final count = int.tryParse(recurrenceCountCtrl.text) ?? 10;
         schedule.cycle.stopAt = Int64(schedule.startTime.toInt() + count * schedule.cycle.rule.seq * 86400000);
-      } else if (recurrenceEndType == "On date") {
+      } else if (recurrenceEndType == 3) {
         schedule.cycle.stopAt = Int64(recurrenceEndDate.millisecondsSinceEpoch);
       }
     }
@@ -329,12 +362,12 @@ class _ScheduleCreatorState extends ConsumerState<ScheduleCreator> {
     if (mounted) Navigator.of(context).pop();
   }
 
-  String _recurrenceUnit(String type) {
+  String _recurrenceUnit(int type) {
     switch (type) {
-      case "Daily": return "day(s)";
-      case "Weekly": return "week(s)";
-      case "Monthly": return "month(s)";
-      case "Yearly": return "year(s)";
+      case 1: return t.recurrenceUnitDay;
+      case 2: return t.recurrenceUnitWeek;
+      case 3: return t.recurrenceUnitMonth;
+      case 5: return t.recurrenceUnitYear;
       default: return "";
     }
   }

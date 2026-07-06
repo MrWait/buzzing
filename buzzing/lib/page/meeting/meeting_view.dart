@@ -1,20 +1,12 @@
-import 'package:buzzing/models/const.dart';
-import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/i18n/strings.g.dart';
+import 'package:buzzing/page/meeting/widgets/meeting_video_view.dart';
+import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/res/theme.dart';
-import 'package:buzzing/widget/button.dart';
-import 'package:buzzing/widget/code_input_box.dart';
-import 'package:buzzing/widget/debounce_button.dart';
 import 'package:buzzing/widget/header_bar.dart';
 import 'package:buzzing/widget/navigate_bar.dart';
-import 'package:buzzing/widget/phone_input_box.dart';
-import 'package:buzzing/widget/pwd_input_box.dart';
-import 'package:buzzing/widget/touch_close_keyboard.dart';
-import 'package:buzzing/controller/app_controller.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:buzzing/utils/screen_ext.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'meeting_logic.dart';
 
@@ -31,61 +23,33 @@ class MeetingPage extends ConsumerWidget {
           NaviBar(),
           Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Container(child: HeaderBarWindows()),
+                HeaderBarWindows(),
                 Expanded(
                   child: Row(
                     children: [
-                      Container(
-                        height: 1.sh,
-                        width: 260,
-                        color: cs.onSurfaceVariant,
-                        child: Column(
-                          children: [
-                            Text("Meeting", style: tt.bodyMedium),
-                            TextButton(
-                              child: Text(t.createMeeting),
-                              onPressed: () {
-                                ctl.createMeeting();
-                              },
-                            ),
-                            TextButton(
-                              child: Text(t.joinMeeting),
-                              onPressed: () {
-                                ctl.joinMeeting();
-                              },
-                            ),
-                            TextButton(
-                              child: Text(t.scheduleMeeting),
-                              onPressed: () {},
-                            ),
-                            Container(
-                              alignment: Alignment.topLeft,
-                              child: Text(t.comingMeeting),
-                            ),
-                            Container(
-                              alignment: Alignment.topLeft,
-                              child: Text(t.historyMeeting),
-                            ),
-                          ],
-                        ),
-                      ),
+                      _MeetingSidebar(ctl: ctl, tt: tt, cs: cs),
                       Expanded(
                         child: Container(
-                          height: 1.sh,
+                          color: cs.surfaceVariant,
                           child: Column(
                             children: [
-                              TextButton(
-                                child: Text("connect"),
-                                onPressed: () async {
-                                  ctl.connect(context);
-                                },
+                              _MeetingToolbar(ctl: ctl),
+                              Expanded(
+                                child: ctl.inCalling
+                                    ? MeetingVideoView(
+                                        localRenderer: ctl.localRenderer,
+                                        remoteRenderer: ctl.remoteRenderer,
+                                        inCalling: ctl.inCalling,
+                                        onSwitchCamera: ctl.switchCamera,
+                                        onScreenShare: () => _selectScreenSource(context),
+                                        onHangUp: ctl.hangUp,
+                                        onMuteMic: ctl.muteMic,
+                                      )
+                                    : _PeerListView(ctl: ctl),
                               ),
-                              Container(height: 500, child: MeetingView()),
                             ],
                           ),
-                          color: cs.surfaceVariant,
                         ),
                       ),
                     ],
@@ -98,148 +62,168 @@ class MeetingPage extends ConsumerWidget {
       ),
     );
   }
+
+  Future<void> _selectScreenSource(BuildContext context) async {}
 }
 
-class MeetingView extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ctl = ref.watch(meetingLogicProvider);
-    final cs = Theme.of(context).colorScheme;
-    return ListenableBuilder(
-      listenable: ctl,
-      builder: (ctx, _) => Scaffold(
-        appBar: AppBar(title: Text("Meeting View")),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton: ctl.inCalling
-            ? SizedBox(
-                width: 240.0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    FloatingActionButton(
-                      child: const Icon(Icons.switch_camera),
-                      tooltip: "Camera",
-                      onPressed: ctl.switchCamera,
-                    ),
-                    FloatingActionButton(
-                      child: const Icon(Icons.desktop_mac),
-                      tooltip: "Screen Sharing",
-                      onPressed: () => selectScreenSourceDialog(context),
-                    ),
-                    FloatingActionButton(
-                      child: const Icon(Icons.call_end),
-                      tooltip: "Hangup",
-                      onPressed: ctl.hangUp,
-                      backgroundColor: cs.error,
-                    ),
-                    FloatingActionButton(
-                      child: const Icon(Icons.mic_off),
-                      tooltip: "Mute Mic",
-                      onPressed: ctl.muteMic,
-                    ),
-                  ],
-                ),
-              )
-            : null,
-        body: ctl.inCalling
-            ? OrientationBuilder(
-                builder: (context, orientation) {
-                  return Container(
-                    child: Stack(
-                      children: <Widget>[
-                        Positioned(
-                          left: 0.0,
-                          right: 0.0,
-                          top: 0.0,
-                          bottom: 0.0,
-                          child: Container(
-                            margin: EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
-                            width: MediaQuery.of(context).size.width,
-                            height: MediaQuery.of(context).size.height,
-                            child: RTCVideoView(ctl.remoteRenderer),
-                            decoration: BoxDecoration(
-                              color: cs.onSurface,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          left: 20.0,
-                          top: 20.0,
-                          child: Container(
-                            width: orientation == Orientation.portrait
-                                ? 90.0
-                                : 120.0,
-                            height: orientation == Orientation.portrait
-                                ? 120.0
-                                : 90.0,
-                            child: RTCVideoView(
-                              ctl.localRenderer,
-                              mirror: true,
-                            ),
-                            decoration: BoxDecoration(
-                              color: cs.onSurface,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              )
-            : ListView.builder(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.all(0.0),
-                  itemCount: (ctl.peers != null ? ctl.peers.length : 0),
-                  itemBuilder: (context, i) {
-                    return buildRow(context, ctl, ctl.peers[i]);
-                  },
-                ),
-      ),
-    );
-  }
+class _MeetingSidebar extends StatelessWidget {
+  final MeetingLogic ctl;
+  final TextTheme tt;
+  final ColorScheme cs;
 
-  Widget buildRow(BuildContext context, MeetingLogic ctl, peer) {
-    final cs = Theme.of(context).colorScheme;
-    var self = (peer['id'] == ctl.uid);
-    return ListBody(
-      children: <Widget>[
-        ListTile(
-          title: Text(
-            self
-                ? peer['name'] + ', ID: ${peer['id']}' + ' [Your Self]'
-                : peer['name'] + ', ID: ${peer['id']}',
+  const _MeetingSidebar({
+    required this.ctl,
+    required this.tt,
+    required this.cs,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 260,
+      color: cs.surfaceVariant,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            alignment: Alignment.centerLeft,
+            child: Text(t.meeting, style: tt.titleMedium),
           ),
-          onTap: null,
-          trailing: SizedBox(
-            width: 100.0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Divider(height: 1, color: cs.outlineVariant),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                IconButton(
-                  icon: Icon(
-                    self ? Icons.close : Icons.videocam,
-                    color: self ? Colors.grey : cs.onSurface,
-                  ),
-                  onPressed: () => ctl.invitePeer(context, peer['id'], false),
-                  tooltip: "Video Calling",
+                _SidebarBtn(
+                  label: t.createMeeting,
+                  onTap: ctl.createMeeting,
                 ),
-                IconButton(
-                  icon: Icon(
-                    self ? Icons.close : Icons.screen_share,
-                    color: self ? Colors.grey : cs.onSurface,
-                  ),
-                  onPressed: () => ctl.invitePeer(context, peer['id'], true),
-                  tooltip: "Screen Sharing",
+                const SizedBox(height: 8),
+                _SidebarBtn(
+                  label: t.joinMeeting,
+                  onTap: ctl.joinMeeting,
+                ),
+                const SizedBox(height: 8),
+                _SidebarBtn(
+                  label: t.scheduleMeeting,
+                  onTap: () {},
                 ),
               ],
             ),
           ),
-          subtitle: Text('[' + peer['user_agent'] + ']'),
-        ),
-        Divider(),
-      ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(t.comingMeeting, style: tt.titleSmall),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(t.historyMeeting, style: tt.titleSmall),
+          ),
+        ],
+      ),
     );
   }
+}
 
-  Future<void> selectScreenSourceDialog(BuildContext context) async {}
+class _SidebarBtn extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _SidebarBtn({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: double.infinity,
+      child: TextButton(
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          backgroundColor: cs.primaryContainer,
+          foregroundColor: cs.onPrimaryContainer,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        onPressed: onTap,
+        child: Text(label),
+      ),
+    );
+  }
+}
+
+class _MeetingToolbar extends StatelessWidget {
+  final MeetingLogic ctl;
+
+  const _MeetingToolbar({required this.ctl});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
+      ),
+      child: Row(
+        children: [
+          TextButton.icon(
+            icon: Icon(Icons.link, size: 18, color: cs.primary),
+            label: Text(t.connect),
+            onPressed: () => ctl.connect(context),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+            ),
+          ),
+          const Spacer(),
+          Text(
+            '${t.peers}: ${ctl.peers.length}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PeerListView extends StatelessWidget {
+  final MeetingLogic ctl;
+
+  const _PeerListView({required this.ctl});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    if (ctl.peers.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.videocam, size: 48, color: cs.onSurfaceVariant),
+            const SizedBox(height: 16),
+            Text(t.noPeers, style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: ctl.peers.length,
+      itemBuilder: (context, i) {
+        final peer = ctl.peers[i];
+        final isSelf = peer['id'] == ctl.uid;
+        return PeerListItem(
+          peer: peer,
+          isSelf: isSelf,
+          onVideoCall: () => ctl.invitePeer(context, peer['id'], false),
+          onScreenShare: () => ctl.invitePeer(context, peer['id'], true),
+        );
+      },
+    );
+  }
 }

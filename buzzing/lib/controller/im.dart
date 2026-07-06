@@ -45,7 +45,7 @@ class ImController extends ChangeNotifier {
   var msgCtrl = ScrollController();
   Map<Int64, UserVer> userVers = {};
 
-  var _focusNode = FocusNode();
+  var focusNode = FocusNode();
   var quillController = QuillController.basic();
   var showMentionPopup = false;
   Offset popuppOffset = Offset.zero;

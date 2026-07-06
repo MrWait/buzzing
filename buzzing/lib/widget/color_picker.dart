@@ -1,3 +1,4 @@
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:flutter/material.dart';
 
 class ColorPickerDialog extends StatelessWidget {
@@ -27,7 +28,7 @@ class ColorPickerDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Choose Color'),
+      title: Text(t.chooseColor),
       content: Wrap(
         spacing: 8,
         runSpacing: 8,
