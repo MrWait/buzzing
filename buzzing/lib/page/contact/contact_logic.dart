@@ -91,22 +91,13 @@ class ContactController extends ChangeNotifier {
 
     _deptCache.addAll(resp.depts);
 
-    var dept = resp.depts[deptId];
-    if (dept == null) return;
-
-    if (addToPath && (navPath.isEmpty || navPath.last.id != deptId)) {
+    var dept = _deptCache[deptId];
+    if (addToPath && dept != null && (navPath.isEmpty || navPath.last.id != deptId)) {
       navPath.add(DeptNav(id: deptId, name: dept.name));
     }
 
-    currentDepts = dept.subDepartmentIds
-        .map((id) => _deptCache[id])
-        .whereType<Department>()
-        .toList();
-
-    currentUsers = dept.memberIds
-        .map((id) => resp.users[id])
-        .whereType<User>()
-        .toList();
+    currentDepts = resp.depts.values.toList();
+    currentUsers = resp.users.values.toList();
     currentUsers.sort((a, b) => a.name.compareTo(b.name));
 
     notifyListeners();

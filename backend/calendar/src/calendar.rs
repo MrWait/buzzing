@@ -256,7 +256,7 @@ pub(crate) async fn calendar_search(
     let mut resp = calendar::CalendarSearchResponse::default();
     let limit_val = if req.limit > 0 { req.limit as u64 } else { 20 };
     let offset_val = if req.offset > 0 { req.offset as u64 } else { 0 };
-    let mut calendars = CalendarModel::search(&ctx.db, &req.key, limit_val, offset_val).await?;
+    let mut calendars = CalendarModel::search(&ctx.db, &req.key, brief.tenant_id, limit_val, offset_val).await?;
     resp.calendars = calendars
         .drain(..)
         .map(|c| CalendarModel(c).into())
@@ -311,6 +311,7 @@ pub(crate) async fn calendar_subscribe(
         let mut calendar = cal.write().await;
         now = current_ms() as i64;
         if req.subscribe && !calendar.subscribers.subscribers.contains_key(&brief.id) {
+            // TODO: check if already sub
             calendar.subscribers.subscribers.insert(
                 brief.id,
                 entity::calendar::Subscriber {
@@ -320,6 +321,8 @@ pub(crate) async fn calendar_subscribe(
                     color: PresetColor::rand().into(),
                 },
             );
+
+            debug!("calendar subscribed: {:?}", calendar.subscribers);
             let _ = User2CalendarModel::upsert_subscriber(
                 &ctx.db, brief.id, req.id,
                 PresetColor::rand().into(),

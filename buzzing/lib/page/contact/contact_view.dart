@@ -45,70 +45,75 @@ class ContactSidebar extends ConsumerWidget {
     final tt = Theme.of(context).textTheme;
     final ctl = ref.watch(contactLogicProvider);
 
-    return Container(
-      width: 220,
-      color: cs.surfaceVariant,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(t.contacts, style: tt.titleSmall),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: TextField(
-              onChanged: (v) => ctl.search(v),
-              decoration: InputDecoration(
-                hintText: t.search,
-                hintStyle: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
-                prefixIcon:
-                    Icon(Icons.search, color: cs.onSurfaceVariant, size: 18),
-                filled: true,
-                fillColor: cs.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                isDense: true,
+    return ListenableBuilder(
+      listenable: ctl,
+      builder: (context, _) {
+        return Container(
+          width: 220,
+          color: cs.surfaceVariant,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(t.contacts, style: tt.titleSmall),
               ),
-            ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                child: TextField(
+                  onChanged: (v) => ctl.search(v),
+                  decoration: InputDecoration(
+                    hintText: t.search,
+                    hintStyle: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                    prefixIcon:
+                        Icon(Icons.search, color: cs.onSurfaceVariant, size: 18),
+                    filled: true,
+                    fillColor: cs.surface,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              _CategoryItem(
+                icon: Icons.account_tree_outlined,
+                label: t.contacts,
+                selected: ctl.mode == 0,
+                onTap: () {
+                  if (ctl.mode != 0) {
+                    ctl.setMode(0);
+                    ctl.enterOrgRoot();
+                  }
+                },
+              ),
+              const Divider(height: 1),
+              _CategoryItem(
+                icon: Icons.star_border,
+                label: t.starContacts,
+                selected: ctl.mode == 1,
+                onTap: () => ctl.setMode(1),
+              ),
+              _CategoryItem(
+                icon: Icons.contacts_outlined,
+                label: t.externalContacts,
+                selected: ctl.mode == 2,
+                onTap: () => ctl.setMode(2),
+              ),
+              _CategoryItem(
+                icon: Icons.person_add_outlined,
+                label: t.newFriendApplication,
+                selected: ctl.mode == 3,
+                onTap: () => ctl.setMode(3),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          _CategoryItem(
-            icon: Icons.account_tree_outlined,
-            label: t.contacts,
-            selected: ctl.mode == 0,
-            onTap: () {
-              if (ctl.mode != 0) {
-                ctl.setMode(0);
-                ctl.enterOrgRoot();
-              }
-            },
-          ),
-          const Divider(height: 1),
-          _CategoryItem(
-            icon: Icons.star_border,
-            label: t.starContacts,
-            selected: ctl.mode == 1,
-            onTap: () => ctl.setMode(1),
-          ),
-          _CategoryItem(
-            icon: Icons.contacts_outlined,
-            label: t.externalContacts,
-            selected: ctl.mode == 2,
-            onTap: () => ctl.setMode(2),
-          ),
-          _CategoryItem(
-            icon: Icons.person_add_outlined,
-            label: t.newFriendApplication,
-            selected: ctl.mode == 3,
-            onTap: () => ctl.setMode(3),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -118,12 +123,17 @@ class ContentArea extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ctl = ref.watch(contactLogicProvider);
 
-    switch (ctl.mode) {
-      case 0:
-        return OrganizationView();
-      default:
-        return _PlaceholderView();
-    }
+    return ListenableBuilder(
+      listenable: ctl,
+      builder: (context, _) {
+        switch (ctl.mode) {
+          case 0:
+            return OrganizationView();
+          default:
+            return _PlaceholderView();
+        }
+      },
+    );
   }
 }
 
@@ -134,33 +144,39 @@ class OrganizationView extends ConsumerWidget {
     final tt = Theme.of(context).textTheme;
     final ctl = ref.watch(contactLogicProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _BreadcrumbBar(),
-        const Divider(height: 1),
-        Expanded(
-          child: ctl.currentDepts.isEmpty && ctl.currentUsers.isEmpty
-              ? Center(
-                  child: Text('暂无数据',
-                      style: tt.bodyMedium
-                          ?.copyWith(color: cs.onSurfaceVariant)))
-              : ListView.separated(
-                  padding: EdgeInsets.zero,
-                  itemCount: ctl.currentDepts.length + ctl.filteredUsers.length,
-                  itemBuilder: (context, index) {
-                    if (index < ctl.currentDepts.length) {
-                      return _DeptItem(dept: ctl.currentDepts[index]);
-                    }
-                    return _UserItem(
-                        user:
-                            ctl.filteredUsers[index - ctl.currentDepts.length]);
-                  },
-                  separatorBuilder: (_, __) =>
-                      Divider(height: 1, indent: 60),
-                ),
-        ),
-      ],
+    return ListenableBuilder(
+      listenable: ctl,
+      builder: (context, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _BreadcrumbBar(),
+            const Divider(height: 1),
+            Expanded(
+              child: ctl.currentDepts.isEmpty && ctl.currentUsers.isEmpty
+                  ? Center(
+                      child: Text('暂无数据',
+                          style: tt.bodyMedium
+                              ?.copyWith(color: cs.onSurfaceVariant)))
+                  : ListView.separated(
+                      padding: EdgeInsets.zero,
+                      itemCount:
+                          ctl.currentDepts.length + ctl.filteredUsers.length,
+                      itemBuilder: (context, index) {
+                        if (index < ctl.currentDepts.length) {
+                          return _DeptItem(dept: ctl.currentDepts[index]);
+                        }
+                        return _UserItem(
+                            user: ctl
+                                .filteredUsers[index - ctl.currentDepts.length]);
+                      },
+                      separatorBuilder: (_, __) =>
+                          Divider(height: 1, indent: 60),
+                    ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

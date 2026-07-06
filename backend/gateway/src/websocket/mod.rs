@@ -212,7 +212,7 @@ async fn handle_client(
                         let cmd = packet.cmd;
                         let (code, data) = match crate::handle_client_packet(conn_id, packet.cmd, ctx, &detail.brief, &packet, true).await {
                             Ok((code, data)) => {
-                                debug!("handle cmd ok, cmd: {}, cost: {}, data len: {:?}",  cmd, now.elapsed().as_millis(), data.len());
+                                debug!("handle cmd ok, cmd: {}, code: {}, cost: {}, data len: {:?}",  cmd, code, now.elapsed().as_millis(), data.len());
                                 (code, data)
                             }
                             Err(err) => {

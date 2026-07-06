@@ -217,6 +217,7 @@ async fn handle_ffi_command(
 }
 
 pub(crate) fn invoke_response(seq: i32, status: i32, payload: Vec<u8>) {
+    debug!("invoke response: seq: {}, code: {}, len: {}", seq, status, payload.len());
     let resp = sdk::InvokeResponse {
         seq,
         status,
@@ -238,6 +239,7 @@ pub(crate) fn invoke_response(seq: i32, status: i32, payload: Vec<u8>) {
 
 pub(crate) fn push_packet(cmd: i32, payload: Vec<u8>) {
     let seq = PUSH_SEQ.fetch_add(1, Ordering::Relaxed);
+    debug!("push packet to client, cmd: {cmd}, len: {}", payload.len());
     let resp = sdk::SdkPushPacket {
         command: cmd,
         user_id: 0,

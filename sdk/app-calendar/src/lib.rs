@@ -80,6 +80,7 @@ impl AppTrait for AppCalendar {
             Command::CalendarPushUpdate as i32,
             // schedule
             Command::SchedulePushUpdate as i32,
+            Command::PushScheduleUpdateByRange as i32,
             // push
             Command::PushEntityChange as i32,
             Command::PushScheduleDelete as i32,
@@ -114,6 +115,7 @@ impl AppTrait for AppCalendar {
             Command::CalendarPushList => self.handle_push_calendar_list(params).await,
             Command::CalendarPushUpdate => self.handle_push_calendar(params).await,
             Command::SchedulePushUpdate => self.handle_push_schedule_update(params).await,
+            Command::PushScheduleUpdateByRange => self.handle_push_schedule_update_by_range(params).await,
             Command::PushEntityChange => self.handle_entity_changed(params).await,
             Command::PushScheduleDelete => self.handle_push_schedule_delete(params).await,
             Command::PushScheduleReminder => self.handle_push_schedule_reminder(params).await,

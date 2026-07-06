@@ -240,6 +240,8 @@ pub(crate) async fn schedule_pull_by_calendar_ids(
         }
     }
 
+    debug!("schedule pull by calendar ids, resp: {resp:?}");
+
     Ok((0, resp.encode_to_vec()))
 }
 
@@ -258,6 +260,7 @@ pub(crate) async fn schedule_pull_by_ids(
         .drain(..)
         .map(|s| ScheduleModel(s).into())
         .collect();
+    debug!("schedule pull by ids, resp: {resp:?}");
     Ok((0, resp.encode_to_vec()))
 }
 
@@ -405,6 +408,8 @@ pub(crate) async fn schedule_update(
     tokio::spawn(async move {
         let _ = generate_reminders_immediate(&ctx_clone, &schedule_clone).await;
     });
+
+    debug!("schedule update, resp: {resp:?}");
 
     Ok((0, resp.encode_to_vec()))
 }

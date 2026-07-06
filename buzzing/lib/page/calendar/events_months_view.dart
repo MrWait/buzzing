@@ -6,15 +6,18 @@ class EventsMonthsView extends StatelessWidget {
   const EventsMonthsView({
     super.key,
     required this.controller,
+    this.onMonthChange,
   });
 
   final EventsController controller;
+  final void Function(DateTime monthFirstDay)? onMonthChange;
 
   @override
   Widget build(BuildContext context) {
     return EventsMonths(
       controller: controller,
       automaticAdjustScrollToStartOfMonth: true,
+      onMonthChange: onMonthChange,
       daysParam: DaysParam(
         // custom builder : add drag and drop
         dayEventBuilder: (event, width, height) {
