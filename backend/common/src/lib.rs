@@ -51,6 +51,8 @@ pub struct Settings {
     pub union_id: Option<u16>,
     pub client_config: Option<String>,
     pub union_hub: Option<String>,
+    pub cert: Option<String>,
+    pub cert_key: Option<String>,
 }
 
 #[derive(Debug, Default)]

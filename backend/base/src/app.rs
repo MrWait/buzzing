@@ -13,7 +13,7 @@ use loco_rs::{
 use migration::Migrator;
 use tokio::signal;
 use std::{net::SocketAddr, time::Duration};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::workers::downloader::DownloadWorker;
 use crate::{controllers, initializers, models::_entities::users, tasks};
@@ -129,19 +129,19 @@ impl Hooks for App {
         let _ = crate::util::cache_get(ctx).await;
         tracing::debug!("cache init ok");
 
+        let settings = ctx
+            .config
+            .settings
+            .as_ref()
+            .and_then(|v| serde_json::from_value::<common::Settings>(v.clone()).ok())
+            .expect("config settings not found");
+
+        let cert_path = settings.cert.as_deref().expect("config settings.cert not found");
+        let key_path = settings.cert_key.as_deref().expect("config settings.cert_key not found");
+
         let config = axum_server::tls_rustls::RustlsConfig::from_pem_file(
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("..")
-                .join("base")
-                .join("assets")
-                .join("cert")
-                .join("www.buzzing-im.com+2.pem"),
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("..")
-                .join("base")
-                .join("assets")
-                .join("cert")
-                .join("www.buzzing-im.com+2-key.pem"),
+            cert_path,
+            key_path,
         )
         .await?;
 
