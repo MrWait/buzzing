@@ -69,18 +69,18 @@ Buzzing 是一个企业级协作平台（类飞书/钉钉/Slack），包含完�
 
 ## 文档导航
 
-| 文档 | 内容 |
+| 文档 | 描述 |
 |------|------|
-| `docs/architecture.md` | 整体架构、技术栈、分层设计 |
-| `docs/server.md` | 后端模块划分、路由、命令分发 |
-| `docs/sdk.md` | SDK trait 层、FFI 桥接、双通道网络 |
-| `docs/client.md` | Flutter 页面结构、状态管理、路由 |
-| `docs/protocol.md` | Protobuf 协议、命令枚举、数据流 |
-| `docs/database.md` | 数据库表结构、CMV 位向量 |
-| `docs/calendar-layout-algorithm.md` | 日历重叠日程排列算法 |
-| `docs/calendar/calendar_p1.md` | 日历业务功能 PRD (Phase 1) |
-| `docs/theme.md` | 客户端主题设计方案 |
-| `docs/backend_test.md` | 服务端测试套件 |
+| [架构概览](docs/architecture.md) | 整体架构、技术栈、分层设计 |
+| [服务端](docs/server.md) | 后端模块划分、路由、数据库、关键设计 |
+| [SDK](docs/sdk.md) | Rust SDK 模块划分、FFI 桥接、网络层 |
+| [客户端](docs/client.md) | Flutter 客户端页面、状态管理、路由 |
+| [协议与 API](docs/protocol.md) | Protobuf 协议、命令枚举、数据流 |
+| [数据库](docs/database.md) | 数据库表结构、关系说明 |
+| [主题设计系统](docs/theme.md) | 颜色/字体/ThemeExtension 设计方案 |
+| [日历业务](docs/calendar/calendar_p1.md) | 日历业务功能 PRD (Phase 1) |
+| [日历排列](docs/calendar-layout-algorithm.md) | 日历重叠日程排列算法 |
+| [服务端测试](docs/backend_test.md) | 服务端测试套件 |
 
 
 ## 编译命令

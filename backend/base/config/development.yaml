@@ -152,3 +152,5 @@ settings:
   union_id: 1024
   client_config: "config/1024.json"
   union_hub: "http://localhost:8892"
+  cert: "assets/cert/www.buzzing-im.com+2.pem"
+  cert_key: "assets/cert/www.buzzing-im.com+2-key.pem"
