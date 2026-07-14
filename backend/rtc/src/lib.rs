@@ -12,7 +12,6 @@ use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::path::PathBuf;
 use std::sync::{Arc, LazyLock, Mutex};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -60,25 +59,11 @@ WebSocketServerConfig{
                 TurnServerPath: "/api/turn",
         }
 */
-async fn serve() -> Result<()> {
+async fn serve(cert_path: &str, key_path: &str) -> Result<()> {
     let app = ARouter::new()
         .route("/meeting", any(ws_handler))
         .route("/ws", any(signaling::meeting_handler));
-    let config = RustlsConfig::from_pem_file(
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("..")
-            .join("base")
-            .join("assets")
-            .join("cert")
-            .join("www.buzzing-im.com+2.pem"),
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("..")
-            .join("base")
-            .join("assets")
-            .join("cert")
-            .join("www.buzzing-im.com+2-key.pem"),
-    )
-    .await?;
+    let config = RustlsConfig::from_pem_file(cert_path, key_path).await?;
     let addr = SocketAddr::from(([0, 0, 0, 0], 8088));
     let _ = axum_server::bind_rustls(addr, config)
         .serve(app.into_make_service())
@@ -126,7 +111,7 @@ async fn handle_socket(ws: WebSocket) {
 }
 
 /*
-pub async fn serve() {
+pub async fn serve(cert_path: &str, key_path: &str) {
     let clients: Clients = Arc::new(Mutex::new(HashMap::new()));
 
     let ws_route = warp::path("ws")
@@ -140,8 +125,8 @@ pub async fn serve() {
     debug!("start rtc server");
     warp::serve(routes)
         .tls()
-        .cert_path("assets/cert/localhost+3.pem")
-        .key_path("assets/cert/localhost+3-key.pem")
+        .cert_path(cert_path)
+        .key_path(key_path)
         .run(([0, 0, 0, 0], 8891))
         .await;
     debug!("rtc server done");

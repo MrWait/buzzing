@@ -10,8 +10,12 @@ const proto = require('./proto.js');
 const protobuf = require('protobufjs')
 
 
-// axios.defaults.baseURL = 'http://127.0.0.1:5150';
-axios.defaults.baseURL = 'https://www.buzzing-im.com:5150';
+const baseUrl = process.env.BUZZING_BASE_URL;
+if (!baseUrl) {
+  console.error('BUZZING_BASE_URL environment variable is required');
+  process.exit(1);
+}
+axios.defaults.baseURL = baseUrl;
 axios.defaults.transformResponse = [
   function (data) {
     const json = jsonbig({storeAsString: true})
