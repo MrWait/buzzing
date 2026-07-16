@@ -9,15 +9,18 @@ use app_chat::AppChat;
 use app_common::AppCommon;
 use app_ffi::AppFfi;
 use app_network::AppNetwork;
+use app_office::AppOffice;
 use app_todo::AppTodo;
 use base_util::{gen_i32, thread_id};
 use proto::idl::{command, sdk};
 use service::{
     account::DefaultAccount, calendar::DefaultCalendar, chat::DefaultChat, common::DefaultCommon,
-    ffi::DefaultFfi, network::DefaultNetwork, todo::DefaultTodo,
+    ffi::DefaultFfi, network::DefaultNetwork, office::DefaultOffice, todo::DefaultTodo,
 };
 use service::{AppTrait, BizHub, InitRequest, LoginRequest, UnionClientConfig};
-use service::{BizAccount, BizCalendar, BizChat, BizCommon, BizFfi, BizNetwork, BizTodo};
+use service::{
+    BizAccount, BizCalendar, BizChat, BizCommon, BizFfi, BizNetwork, BizOffice, BizTodo,
+};
 
 #[allow(dead_code)]
 pub enum FfiType {
@@ -68,15 +71,8 @@ pub fn init_sdk(param: &[u8], tpy: FfiType) -> i32 {
     let ffi = Box::new(AppFfi::new(push_packet));
     let network = Box::new(AppNetwork::new());
     let calendar = Box::new(AppCalendar::new());
+    let office = Box::new(AppOffice::new());
     let todo = Box::new(AppTodo::new());
-
-    // let account = Box::new(DefaultAccount);
-    // let chat = Box::new(DefaultChat);
-    // let common = Box::new(DefaultCommon);
-    // let ffi = Box::new(DefaultFfi);
-    // let network = Box::new(DefaultNetwork);
-    // let calendar = Box::new(DefaultCalendar);
-    // let todo = Box::new(DefaultTodo);
 
     let app = BizHub {
         app_account: Arc::new(account.clone() as Box<dyn AppTrait>),
@@ -85,6 +81,7 @@ pub fn init_sdk(param: &[u8], tpy: FfiType) -> i32 {
         app_ffi: Arc::new(ffi.clone() as Box<dyn AppTrait>),
         app_network: Arc::new(network.clone() as Box<dyn AppTrait>),
         app_calendar: Arc::new(calendar.clone() as Box<dyn AppTrait>),
+        app_office: Arc::new(office.clone() as Box<dyn AppTrait>),
 
         ffi_handlers: dashmap::DashMap::new(),
         net_handlers: dashmap::DashMap::new(),
@@ -95,6 +92,7 @@ pub fn init_sdk(param: &[u8], tpy: FfiType) -> i32 {
         common: Arc::new(common.clone() as Box<dyn BizCommon>),
         ffi: Arc::new(ffi.clone() as Box<dyn BizFfi>),
         network: Arc::new(network.clone() as Box<dyn BizNetwork>),
+        office: Arc::new(office.clone() as Box<dyn BizOffice>),
         todo: Arc::new(todo.clone() as Box<dyn BizTodo>),
     };
 

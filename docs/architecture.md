@@ -30,7 +30,7 @@
 | SDK HTTP | **reqwest** 0.12 | 支持 multipart |
 | SDK 本地 DB | **SQLite** (base-db) | 本地缓存 |
 | 客户端框架 | **Flutter** ^3.9.2 | 桌面端为主 |
-| 状态管理 | **GetX** 4.6.6 | Controllers + Reactive |
+| 状态管理 | **Riverpod** | Notifier + ref.watch |
 | FFI 桥接 | **flutter_rust_bridge** 2.11 | Dart ↔ Rust |
 | 网络 (Dart) | **Dio** 5.5 | HTTP 拦截器 |
 | WebRTC | **flutter_webrtc** 1.2 | 音视频通话 |
@@ -47,10 +47,10 @@
 ## 协议流
 
 ```
-用户操作 → GetX Controller → SdkController.invokeAsync()
+用户操作 → Riverpod Notifier → SdkController.invokeAsync()
   → FFI (invoke) → Rust SDK 本地处理
   → app-network WebSocket/HTTP → 服务端 Gateway
   → AppHub 命令分发 → 模块 Handler → DB 操作
   → 响应回传 + 通过 BizGateway 推送其他用户
-  → 接收端 WebSocket Push → FFI 回调 → GetBuilder UI 更新
+  → 接收端 WebSocket Push → FFI 回调 → ref.watch UI 更新
 ```

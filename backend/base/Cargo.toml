@@ -7,6 +7,9 @@ publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+embed = ["rust-embed"]
+
 [dependencies]
 anyhow = { workspace = true }
 async-trait = { workspace = true }
@@ -35,6 +38,8 @@ yrs-axum = { workspace = true }
 yrs = { workspace = true }
 # yjs
 tower-http = { workspace = true }
+rust-embed = { workspace = true, optional = true }
+mime_guess = { workspace = true }
 # view engine i18n
 fluent-templates = { workspace = true }
 unic-langid = { workspace = true }

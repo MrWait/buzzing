@@ -88,6 +88,10 @@ async fn register(
             .calendar
             .create_user_default(&ctx, user.id, user.tenant_id, &user.name)
             .await;
+        let _ = biz
+            .office
+            .create_user_default(&ctx, user.id, user.tenant_id, &user.name)
+            .await;
     }
 
     tracing::info!("create user success: {:?}", user);

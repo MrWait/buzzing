@@ -6,6 +6,7 @@ pub mod ffi;
 mod get;
 pub mod model;
 pub mod network;
+pub mod office;
 pub mod todo;
 
 use anyhow::Result;
@@ -25,6 +26,7 @@ pub use common::BizCommon;
 pub use ffi::BizFfi;
 pub use model::Setting;
 pub use network::BizNetwork;
+pub use office::BizOffice;
 pub use todo::BizTodo;
 
 static BIZ_HUB: OnceLock<Arc<BizHub>> = OnceLock::new();
@@ -59,6 +61,7 @@ pub struct BizHub {
     pub app_ffi: Arc<Box<dyn AppTrait>>,
     pub app_network: Arc<Box<dyn AppTrait>>,
     pub app_calendar: Arc<Box<dyn AppTrait>>,
+    pub app_office: Arc<Box<dyn AppTrait>>,
 
     pub ffi_handlers: DashMap<i32, Arc<Box<dyn AppTrait>>>,
     pub net_handlers: DashMap<i32, Arc<Box<dyn AppTrait>>>,
@@ -70,6 +73,7 @@ pub struct BizHub {
     pub network: Arc<Box<dyn BizNetwork>>,
     pub calendar: Arc<Box<dyn BizCalendar>>,
     pub todo: Arc<Box<dyn BizTodo>>,
+    pub office: Arc<Box<dyn BizOffice>>,
 }
 
 impl BizHub {
@@ -102,6 +106,7 @@ impl BizHub {
         services.push(self.app_ffi.clone());
         services.push(self.app_network.clone());
         services.push(self.app_calendar.clone());
+        services.push(self.app_office.clone());
         services
     }
 

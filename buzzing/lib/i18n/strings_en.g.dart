@@ -2005,6 +2005,42 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 
 	/// en: 'Create Schedule'
 	String get createSchedule => 'Create Schedule';
+
+	/// en: 'Office'
+	String get office => 'Office';
+
+	/// en: 'New Space'
+	String get addSpace => 'New Space';
+
+	/// en: 'New Space'
+	String get newSpace => 'New Space';
+
+	/// en: 'Space name'
+	String get spaceNameHint => 'Space name';
+
+	/// en: 'Confirm'
+	String get confirm => 'Confirm';
+
+	/// en: 'Delete'
+	String get deleteConfirm => 'Delete';
+
+	/// en: 'Delete space'
+	String get deleteSpace => 'Delete space';
+
+	/// en: 'New Document'
+	String get newDoc => 'New Document';
+
+	/// en: 'Document title'
+	String get docTitle => 'Document title';
+
+	/// en: 'No documents'
+	String get emptyDocs => 'No documents';
+
+	/// en: 'Delete document'
+	String get deleteDoc => 'Delete document';
+
+	/// en: 'No spaces yet'
+	String get noSpaces => 'No spaces yet';
 }
 
 /// The flat map containing all translations for locale <en>.
@@ -2527,14 +2563,14 @@ extension on Translations {
 			'meetingDurationIs' => 'Meeting duration: %s',
 			'meetingNumberIs' => 'Meeting ID: %s',
 			'meetingMessageClickHint' => 'Click this message to join the meeting directly',
+			_ => null,
+		} ?? switch (path) {
 			'meetingMessage' => 'Meeting news',
 			'openMeeting' => 'Open meeting',
 			'didNotStart' => 'Did not start',
 			'started' => 'Started',
 			'meetingInitiator' => 'Meeting initiated by %s',
 			'k10001' => '请求参数错误',
-			_ => null,
-		} ?? switch (path) {
 			'k10002' => '数据库错误',
 			'k10003' => '服务器错误',
 			'k10006' => '记录不存在',
@@ -2672,6 +2708,18 @@ extension on Translations {
 			'view' => 'View',
 			'editSchedule' => 'Edit Schedule',
 			'createSchedule' => 'Create Schedule',
+			'office' => 'Office',
+			'addSpace' => 'New Space',
+			'newSpace' => 'New Space',
+			'spaceNameHint' => 'Space name',
+			'confirm' => 'Confirm',
+			'deleteConfirm' => 'Delete',
+			'deleteSpace' => 'Delete space',
+			'newDoc' => 'New Document',
+			'docTitle' => 'Document title',
+			'emptyDocs' => 'No documents',
+			'deleteDoc' => 'Delete document',
+			'noSpaces' => 'No spaces yet',
 			_ => null,
 		};
 	}
