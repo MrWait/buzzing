@@ -53,10 +53,6 @@ class Config {
     runApp();
   }
 
-  static String serverIp() {
-    return "127.0.0.1";
-  }
-
   static String apiUrl() {
     return union.apiUrl();
   }

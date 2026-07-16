@@ -65,7 +65,7 @@
     → reg_push_handler sink
       → Dart SdkController.handlePush()
         → ImController.onPushMessages()
-          → mergeEntity() → GetBuilder UI 更新
+          → mergeEntity() → ref.watch UI 更新
 ```
 
 ### 离线推送

@@ -10,7 +10,13 @@ tower-http = { workspace = true }
 yrs = { workspace = true }
 futures-util = { workspace = true }
 yrs-axum = { workspace = true }
-moka = { workspace = true }
 loco-rs = { workspace = true }
+rust-embed = { workspace = true }
+mime_guess = { workspace = true }
 
 common = { workspace = true }
+base = { workspace = true }
+sea-orm = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }

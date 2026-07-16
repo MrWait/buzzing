@@ -17,7 +17,7 @@ pub use entity::{EntityStatus, EntityType, Operate};
 pub use model::{PresetColor, UserBrief};
 use proto::idl::entity::{self, EntityId};
 pub use service::{AppHub, BizHub};
-pub use service::{BizCalendar, BizGateway, BizSetting, BizStore, BizUser, ExternApp};
+pub use service::{BizCalendar, BizGateway, BizOffice, BizSetting, BizStore, BizUser, ExternApp};
 pub use text_image::{extra_name, extra};
 pub use time::*;
 pub use vecbool::VecBool;

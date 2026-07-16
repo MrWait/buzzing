@@ -106,18 +106,21 @@ impl Hooks for App {
     }
 
     async fn serve(
-        app: axum::Router,
+        mut app: axum::Router,
         ctx: &AppContext,
         _server_params: &ServeParams,
     ) -> Result<()> {
-        use std::net::{IpAddr, Ipv4Addr};
-
         if let Ok(hub) = AppHub::get() {
             let apps = hub.get_all();
-            for app in apps.iter() {
-                app.serve(ctx);
+            for ext_app in apps.iter() {
+                ext_app.serve(ctx);
             }
         }
+
+        // Root SPA catch-all (must be after all API routes)
+        app = app
+            .route("/", axum::routing::get(crate::embed::spa_index_handler))
+            .route("/{*path}", axum::routing::get(crate::embed::spa_handler));
 
         let handle = axum_server::Handle::new();
         let handle_clone = handle.clone();
