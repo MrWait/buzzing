@@ -52,6 +52,7 @@ pub struct BizHub {
     pub gateway: Arc<Box<dyn BizGateway>>,
     pub setting: Arc<Box<dyn BizSetting>>,
     pub calendar: Arc<Box<dyn BizCalendar>>,
+    pub office: Arc<Box<dyn BizOffice>>,
     pub user: Arc<Box<dyn BizUser>>,
 }
 impl BizHub {
@@ -234,6 +235,30 @@ impl BizSetting for DefaultBizSetting {
         _t: i32,
         _f: Box<dyn Fn(entity::Setting) -> Result<entity::Setting> + Send + Sync>,
     ) -> Result<entity::Setting> {
+        Err(Error::NotFound)
+    }
+}
+
+#[async_trait]
+pub trait BizOffice: Send + Sync {
+    async fn create_user_default(
+        &self,
+        ctx: &AppContext,
+        user_id: i64,
+        tenant_id: i64,
+        user_name: &str,
+    ) -> Result<()>;
+}
+pub struct DefaultBizOffice {}
+#[async_trait]
+impl BizOffice for DefaultBizOffice {
+    async fn create_user_default(
+        &self,
+        _ctx: &AppContext,
+        _user_id: i64,
+        _tenant_id: i64,
+        _user_name: &str,
+    ) -> Result<()> {
         Err(Error::NotFound)
     }
 }

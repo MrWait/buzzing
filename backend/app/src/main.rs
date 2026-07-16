@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use base::app::App;
 use calendar::AppCalendar;
-use common::{AppHub, BizCalendar, BizGateway, BizHub, BizSetting, BizStore, BizUser, ExternApp};
+use common::{AppHub, BizCalendar, BizGateway, BizHub, BizOffice, BizSetting, BizStore, BizUser, ExternApp};
 use gateway::AppGateway;
 use im::AppIm;
 use office::AppOffice;
@@ -50,6 +50,7 @@ async fn main() -> loco_rs::Result<()> {
         gateway: Arc::new(gateway as Box<dyn BizGateway + Send + Sync>),
         setting: Arc::new(setting as Box<dyn BizSetting + Send + Sync>),
         calendar: Arc::new(calendar as Box<dyn BizCalendar + Send + Sync>),
+        office: Arc::new(office as Box<dyn BizOffice + Send + Sync>),
         user: Arc::new(user as Box<dyn BizUser + Send + Sync>),
     };
 

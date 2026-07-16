@@ -692,6 +692,18 @@ class TranslationsZh with BaseTranslations<AppLocale, Translations> implements T
 	@override String get view => '查看';
 	@override String get editSchedule => '编辑日程';
 	@override String get createSchedule => '创建日程';
+	@override String get office => '文档';
+	@override String get addSpace => '新建空间';
+	@override String get newSpace => '新建空间';
+	@override String get spaceNameHint => '空间名称';
+	@override String get confirm => '确认';
+	@override String get deleteConfirm => '删除确认';
+	@override String get deleteSpace => '删除空间';
+	@override String get newDoc => '新建文档';
+	@override String get docTitle => '文档标题';
+	@override String get emptyDocs => '暂无文档';
+	@override String get deleteDoc => '删除文档';
+	@override String get noSpaces => '暂无空间';
 }
 
 /// The flat map containing all translations for locale <zh>.
@@ -1214,14 +1226,14 @@ extension on TranslationsZh {
 			'meetingDurationIs' => '会议时长：%s',
 			'meetingNumberIs' => '会议号：%s',
 			'meetingMessageClickHint' => '点击此消息可直接加入会议',
+			_ => null,
+		} ?? switch (path) {
 			'meetingMessage' => '会议消息',
 			'openMeeting' => '未结束会议',
 			'didNotStart' => '未开始',
 			'started' => '已开始',
 			'meetingInitiator' => '%s发起的视频会议',
 			'k10001' => '请求参数错误',
-			_ => null,
-		} ?? switch (path) {
 			'k10002' => '数据库错误',
 			'k10003' => '服务器错误',
 			'k10006' => '记录不存在',
@@ -1359,6 +1371,18 @@ extension on TranslationsZh {
 			'view' => '查看',
 			'editSchedule' => '编辑日程',
 			'createSchedule' => '创建日程',
+			'office' => '文档',
+			'addSpace' => '新建空间',
+			'newSpace' => '新建空间',
+			'spaceNameHint' => '空间名称',
+			'confirm' => '确认',
+			'deleteConfirm' => '删除确认',
+			'deleteSpace' => '删除空间',
+			'newDoc' => '新建文档',
+			'docTitle' => '文档标题',
+			'emptyDocs' => '暂无文档',
+			'deleteDoc' => '删除文档',
+			'noSpaces' => '暂无空间',
 			_ => null,
 		};
 	}

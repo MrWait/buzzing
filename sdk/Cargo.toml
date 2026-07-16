@@ -7,6 +7,7 @@ members = [
 "app-common",
 "app-ffi",
 "app-network",
+"app-office",
 "app-todo",
 "base-db",
 "base-log",
@@ -58,6 +59,7 @@ app-chat = { path = "./app-chat" }
 app-common = { path = "./app-common" }
 app-ffi = { path = "./app-ffi" }
 app-network = { path = "./app-network" }
+app-office = { path = "./app-office" }
 app-todo = { path = "./app-todo" }
 base-db = { path = "./base-db" }
 base-log = { path = "./base-log" }

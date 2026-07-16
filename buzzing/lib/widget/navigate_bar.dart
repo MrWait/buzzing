@@ -64,6 +64,10 @@ class NaviBar extends ConsumerWidget {
                 final router = GoRouter.of(context);
                 router.go(AppRoute.CONTACT);
               }, Icons.contact_page),
-            ])));
+              NaviButton(context, () {
+                final router = GoRouter.of(context);
+                router.go(AppRoute.OFFICE);
+              }, Icons.description),
+              ])));
   }
 }

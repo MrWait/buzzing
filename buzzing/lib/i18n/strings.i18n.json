@@ -653,5 +653,17 @@
   "close": "Close",
   "view": "View",
   "editSchedule": "Edit Schedule",
-  "createSchedule": "Create Schedule"
+  "createSchedule": "Create Schedule",
+  "office": "Office",
+  "addSpace": "New Space",
+  "newSpace": "New Space",
+  "spaceNameHint": "Space name",
+  "confirm": "Confirm",
+  "deleteConfirm": "Delete",
+  "deleteSpace": "Delete space",
+  "newDoc": "New Document",
+  "docTitle": "Document title",
+  "emptyDocs": "No documents",
+  "deleteDoc": "Delete document",
+  "noSpaces": "No spaces yet"
 }

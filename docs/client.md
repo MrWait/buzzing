@@ -30,12 +30,12 @@ buzzing/lib/
 │   ├── meeting/               # 会议/音视频
 │   └── screenshot/            # 截图 (多窗口桌面)
 ├── widget/                    # 33 个可复用组件
-├── routes/                    # GetX 路由
+├── routes/                    # GoRouter 路由
 ├── res/                       # 资源 (字符串、主题、图片)
 └── utils/                     # 工具类
 ```
 
-## 状态管理 (GetX)
+## 状态管理 (Riverpod)
 
 ### SdkController (`controller/sdk_controller.dart`)
 - FFI 生命周期管理 (init/login/logout)
@@ -108,7 +108,7 @@ buzzing/lib/
 
 ## 响应式 UI
 
-使用 GetX 的 `GetBuilder<T>` + 字符串 ID 实现精细更新：
+使用 Riverpod 的 `Notifier` + `ref.watch` 实现精细更新：
 - `ConstKey.KeyFeedList` — Feed 列表刷新
 - `ConstKey.KeyChatMessage` — 消息列表刷新
 - `ConstKey.KeyBadge` — 徽标刷新
