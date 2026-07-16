@@ -24,6 +24,7 @@ class SdkController {
   final EventBus eventBus;
   final initCh = Channel<int>();
   var userId = Int64(0);
+  String? token;
 
   final invokeCh = Map<int, Channel<Uint8List>>();
   final pushCallback = Map<int, Function>();
@@ -167,6 +168,7 @@ class SdkController {
     req.tenantId = tenantId;
     req.accessToken = token;
     req.unionClientConfig = unionClientConfig;
+    this.token = token;
     var data = await invokeAsync(Command.USER_LOGIN, req.writeToBuffer());
     L.d("invoke login return ${data}");
     L.d("call login finish");

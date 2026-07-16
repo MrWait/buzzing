@@ -200,6 +200,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "app-office"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base-db",
+ "base-log",
+ "base-runtime",
+ "base-util",
+ "prost",
+ "proto",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "service",
+ "tracing",
+]
+
+[[package]]
 name = "app-todo"
 version = "0.1.0"
 dependencies = [
@@ -366,6 +385,7 @@ dependencies = [
  "app-common",
  "app-ffi",
  "app-network",
+ "app-office",
  "app-todo",
  "base-db",
  "base-log",

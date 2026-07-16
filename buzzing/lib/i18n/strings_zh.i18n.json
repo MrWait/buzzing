@@ -653,5 +653,17 @@
   "close": "关闭",
   "view": "查看",
   "editSchedule": "编辑日程",
-  "createSchedule": "创建日程"
+  "createSchedule": "创建日程",
+  "office": "文档",
+  "addSpace": "新建空间",
+  "newSpace": "新建空间",
+  "spaceNameHint": "空间名称",
+  "confirm": "确认",
+  "deleteConfirm": "删除确认",
+  "deleteSpace": "删除空间",
+  "newDoc": "新建文档",
+  "docTitle": "文档标题",
+  "emptyDocs": "暂无文档",
+  "deleteDoc": "删除文档",
+  "noSpaces": "暂无空间"
 }

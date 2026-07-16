@@ -10,9 +10,17 @@ dm:
 de:
     cd backend/base && cargo loco db entities
 
-# 服务端启动
+# 服务端启动（开发模式，读取 frontend/dist 文件系统，修改前端后无需重编）
+sd:
+    cd backend && cargo run -p app --no-default-features
+
+# 服务端启动（生产模式，embed 前端资源到二进制）
 ss:
     cd backend/base && cargo loco start
+
+# 服务端构建 release（embed 前端资源到二进制）
+sr:
+    cd backend && cargo build --release -p app --features base/embed
 
 # 客户端在 macos 平台启动
 csm:
@@ -77,3 +85,15 @@ backend_test_smoke:
 # install protoc-gen-dart
 install_protoc_dart:
     dart pub global activate protoc_plugin
+
+# Web 前端开发服务器 (http://localhost:5173)
+fw:
+    cd frontend && pnpm dev
+
+# Web 前端构建
+fb:
+    cd frontend && pnpm build
+
+# Web 前端安装依赖
+fi:
+    cd frontend && pnpm install

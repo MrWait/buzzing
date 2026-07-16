@@ -96,6 +96,10 @@ pub async fn join(
             .calendar
             .create_user_default(&ctx, user.id, user.tenant_id, &user.name)
             .await;
+        let _ = biz
+            .office
+            .create_user_default(&ctx, user.id, user.tenant_id, &user.name)
+            .await;
     }
 
     format::json(user)
@@ -130,6 +134,10 @@ pub async fn create(
         let biz = BizHub::get()?;
         let _ = biz
             .calendar
+            .create_user_default(&ctx, user.id, user.tenant_id, &user.name)
+            .await;
+        let _ = biz
+            .office
             .create_user_default(&ctx, user.id, user.tenant_id, &user.name)
             .await;
     }

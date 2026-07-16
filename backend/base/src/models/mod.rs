@@ -14,3 +14,6 @@ pub mod cycleds;
 pub mod schedules;
 pub mod calendars;
 pub mod user2_calendars;
+pub mod documents;
+pub mod document_spaces;
+pub mod document_members;
