@@ -1,61 +1,79 @@
 <template>
-  <div class="prose-editor">
+  <div
+    class="prose-editor"
+    @mouseenter="mouseInEditor = true"
+    @mouseleave="mouseInEditor = false"
+  >
     <div ref="editorContainer" class="editor-container"></div>
+    <FloatingToolbar @link="showLinkDialog = true" />
+    <SlashMenu />
+    <LinkDialog :open="showLinkDialog" @close="showLinkDialog = false" />
+    <ImageUpload ref="imageUploadRef" />
+    <BlockMenuTrigger />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, inject, onMounted, onUnmounted } from 'vue'
-import { EditorState } from 'prosemirror-state'
-import { EditorView } from 'prosemirror-view'
-import { Schema } from 'prosemirror-model'
-import { schema as basicSchema } from 'prosemirror-schema-basic'
-import { addListNodes } from 'prosemirror-schema-list'
-import { exampleSetup } from 'prosemirror-example-setup'
-import { keymap } from 'prosemirror-keymap'
-import { ySyncPlugin, yCursorPlugin, yUndoPlugin, undo, redo } from 'y-prosemirror'
+import { ref, inject, onMounted, onUnmounted, provide, computed, watch } from 'vue'
+import { useEditorSchema } from '../composables/useEditorSchema'
+import FloatingToolbar from './FloatingToolbar.vue'
+import SlashMenu from './SlashMenu.vue'
+import LinkDialog from './LinkDialog.vue'
+import ImageUpload from './ImageUpload.vue'
+import BlockMenuTrigger from './BlockMenuTrigger.vue'
 import type { XmlFragment } from 'yjs'
 import type { WebsocketProvider } from 'y-websocket'
 
-const editorContainer = ref<HTMLDivElement>()
-let view: EditorView | null = null
+const props = defineProps<{ docId: string; readonly?: boolean }>()
 
 const type = inject<XmlFragment>('yjs-type')!
 const provider = inject<WebsocketProvider>('yjs-provider')!
 
+const showLinkDialog = ref(false)
+const imageUploadRef = ref<InstanceType<typeof ImageUpload> | null>(null)
+
+const mouseInEditor = ref(true)
+const editorContainer = ref<HTMLDivElement | null>(null)
+const editable = computed(() => !props.readonly)
+
+const { editorView, schema, mount, destroy } = useEditorSchema(
+  type,
+  provider,
+  editorContainer,
+  {
+    onImagePaste: (file: File) => imageUploadRef.value?.uploadFile(file),
+    onLinkShortcut: () => {
+      if (!props.readonly) showLinkDialog.value = true
+    },
+  },
+  { editable },
+)
+provide('editorView', editorView)
+provide('schema', schema)
+provide('triggerImageUpload', () => imageUploadRef.value?.trigger())
+provide('mouseInEditor', mouseInEditor)
+
+// editable 变化时同步 ProseMirror DOM contentEditable
+watch(editable, (val) => {
+  if (editorView.value) {
+    editorView.value.dom.contentEditable = val ? 'true' : 'false'
+  }
+})
+
 onMounted(() => {
-  if (!editorContainer.value) return
-
-  const schema = new Schema({
-    nodes: addListNodes(basicSchema.spec.nodes, 'paragraph block*', 'block'),
-    marks: basicSchema.spec.marks,
-  })
-
-  const plugins = [
-    ySyncPlugin(type),
-    yCursorPlugin(provider.awareness),
-    yUndoPlugin(),
-    keymap({ 'Mod-z': undo, 'Mod-y': redo, 'Shift-Mod-z': redo }),
-    ...exampleSetup({ schema, history: false, menuBar: false }),
-  ]
-
-  const state = EditorState.create({ schema, plugins })
-  view = new EditorView(editorContainer.value, { state })
+  mount()
 })
-
-onUnmounted(() => {
-  view?.destroy()
-})
+onUnmounted(destroy)
 </script>
 
 <style scoped>
 .prose-editor {
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
 }
 .editor-container {
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   max-width: 800px;
@@ -63,9 +81,10 @@ onUnmounted(() => {
   margin: 0 auto;
   padding: 24px;
   outline: none;
+  background: #fff;
 }
 .editor-container :deep(.ProseMirror) {
-  flex: 1;
+  flex: 1 1 auto;
   outline: none;
 }
 .editor-container :deep(.ProseMirror p) {

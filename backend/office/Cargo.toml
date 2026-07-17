@@ -20,3 +20,7 @@ sea-orm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 async-trait = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+rand = { workspace = true }
+bcrypt = "0.15"
