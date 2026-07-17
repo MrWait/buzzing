@@ -8,6 +8,7 @@ use common::BizOffice;
 
 pub mod controllers;
 pub mod models;
+pub mod permission;
 pub mod ws;
 pub mod yjs_store;
 
@@ -25,6 +26,22 @@ impl ExternApp for AppOffice {
         let ctx_clone = ctx.clone();
         tokio::spawn(async move {
             ws::periodic_save_loop(ctx_clone).await;
+        });
+
+        // M3: 定时清理回收站到期文档 (每天 03:00 检查一次，粒度到小时即可)
+        let ctx_clone = ctx.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3600));
+            loop {
+                interval.tick().await;
+                match controllers::trash::cleanup_expired(&ctx_clone).await {
+                    Ok(n) if n > 0 => {
+                        tracing::info!(count = n, "office: cleaned expired trashed docs");
+                    }
+                    Ok(_) => {}
+                    Err(e) => tracing::warn!(err = %e, "office: trash cleanup failed"),
+                }
+            }
         });
     }
 }
@@ -49,7 +66,7 @@ impl BizOffice for AppOffice {
                 tenant_id: ActiveValue::set(tenant_id),
                 creator: ActiveValue::set(user_id),
                 name: ActiveValue::set(space_name),
-                sp_type: ActiveValue::set(1),
+                sp_type: ActiveValue::set(0),
                 ..Default::default()
             },
         )

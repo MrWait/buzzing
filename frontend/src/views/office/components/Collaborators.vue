@@ -1,59 +1,37 @@
 <template>
   <div class="collaborators">
     <div
-      v-for="(state, clientId) in cursorStates"
-      :key="clientId"
+      v-for="user in users"
+      :key="user.clientId"
       class="collaborator-avatar"
-      :style="{ backgroundColor: state.user?.color ?? '#999' }"
-      :title="state.user?.name ?? 'Unknown'"
+      :style="{ backgroundColor: user.color }"
+      :title="user.name"
     >
-      {{ (state.user?.name ?? '?')[0] }}
+      <span class="initial">{{ initial(user.name) }}</span>
+      <span class="name-tag">{{ user.name }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { inject, ref, onMounted, onUnmounted } from 'vue'
-import type { WebsocketProvider } from 'y-websocket'
+defineProps<{
+  users: Array<{ clientId: number; name: string; color: string }>
+}>()
 
-interface AwarenessState {
-  user?: { name: string; color: string }
+function initial(name: string): string {
+  const trimmed = (name ?? '').trim()
+  return trimmed ? trimmed[0].toUpperCase() : '?'
 }
-
-const provider = inject<WebsocketProvider>('yjs-provider')!
-const cursorStates = ref<Record<number, AwarenessState>>({})
-
-let unsub: (() => void) | null = null
-
-onMounted(() => {
-  const update = () => {
-    const states: Record<number, AwarenessState> = {}
-    provider.awareness.getStates().forEach((state: AwarenessState, id: number) => {
-      const localId = provider.awareness.clientID
-      if (id !== localId && state.user) {
-        states[id] = state
-      }
-    })
-    cursorStates.value = states
-  }
-  provider.awareness.on('change', update)
-  unsub = () => provider.awareness.off('change', update)
-})
-
-onUnmounted(() => {
-  unsub?.()
-})
 </script>
 
 <style scoped>
 .collaborators {
-  position: fixed;
-  top: 56px;
-  right: 16px;
   display: flex;
   gap: 4px;
+  align-items: center;
 }
 .collaborator-avatar {
+  position: relative;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -63,5 +41,28 @@ onUnmounted(() => {
   color: #fff;
   font-size: 12px;
   font-weight: 600;
+  box-shadow: 0 0 0 2px #fff;
+  cursor: default;
+}
+.collaborator-avatar .name-tag {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 20;
+}
+.collaborator-avatar:hover .name-tag {
+  opacity: 1;
+  transform: translateY(0);
 }
 </style>
