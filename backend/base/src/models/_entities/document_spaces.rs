@@ -14,6 +14,11 @@ pub struct Model {
     pub creator: i64,
     pub name: String,
     pub sp_type: i32,
+    // M3 扩展
+    pub icon: Option<String>,
+    pub color: Option<String>,
+    pub sort_order: i32,
+    pub archived_at: Option<DateTimeWithTimeZone>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

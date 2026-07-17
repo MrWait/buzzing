@@ -55,7 +55,7 @@ pub fn text_to_image(content: &str, dest: &Path) -> Result<()> {
 }
 
 pub fn extra_name(content: &str, len: usize) -> String {
-    content.chars().rev().take(len).collect()
+    content.chars().rev().take(len).collect::<Vec<_>>().into_iter().rev().collect()
 }
 
 pub fn extra(content: &str, len: usize) -> String {

@@ -1,42 +1,51 @@
 <template>
-  <div class="editor-view">
-    <Toolbar :title="title" @save="handleSave" />
-    <ProseEditor />
-    <Collaborators />
+  <div class="editor-layout">
+    <SpaceSidebar
+      @search="searchOpen = true"
+      @switch-view="navigateToView"
+      @collapse-change="(c) => editorShifted = c"
+    />
+    <div class="editor-view" :class="{ 'sidebar-collapsed': editorShifted }">
+      <EditorContent :key="docId" :doc-id="docId" v-model:search-open="searchOpen" />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, provide, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import api from '@/services/api'
-import { useYjs } from '@/composables/useYjs'
-import Toolbar from './components/Toolbar.vue'
-import ProseEditor from './components/ProseEditor.vue'
-import Collaborators from './components/Collaborators.vue'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import SpaceSidebar from './components/SpaceSidebar.vue'
+import EditorContent from './components/EditorContent.vue'
 
 const route = useRoute()
-const docId = route.params.docId as string
-const title = ref('')
+const router = useRouter()
+const docId = computed(() => route.params.docId as string)
+const searchOpen = ref(false)
+const editorShifted = ref(false)
 
-onMounted(async () => {
-  const res = await api.get(`/office/docs/${docId}`)
-  title.value = res.data.title
-})
-
-const { provider, type } = useYjs(docId)
-provide('yjs-type', type)
-provide('yjs-provider', provider)
-
-function handleSave() {
-  // persistence is handled by Yjs periodic save on server
+function navigateToView(view: string) {
+  if (view === 'trash') {
+    router.push({ name: 'OfficeTrash' })
+  } else {
+    router.push({ name: 'OfficeHome' })
+  }
 }
 </script>
 
 <style scoped>
+.editor-layout {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
 .editor-view {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  overflow-y: auto;
+}
+.editor-view.sidebar-collapsed {
+  padding-left: 60px;
 }
 </style>

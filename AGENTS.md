@@ -77,6 +77,15 @@ Buzzing 是一个企业级协作平台（类飞书/钉钉/Slack），包含完�
 - 前端 SPA 使用 `@/` 别名映射到 `frontend/src/`。
 - 前端开发命令：`npm run dev`（开发服务器）、`npm run build`（类型检查+构建）。
 - 编写各端代码，添加必要的注释和日志。
+- 文件上传下载统一使用 `store` 模块 (`backend/store/`) 的方案：**`object_store` crate (Apache Arrow) + `files` 数据库表**。
+  - 存储层：`object_store::LocalFileSystem`，路径前缀通过环境变量 `BUZZING_STORAGE_DIR` 配置（默认 `storage/`）。
+  - 元数据层：`files` 表记录上传者、文件名、MIME 类型、大小、MD5、存储 key 等。
+  - API：`POST /api/files/upload` 上传，`GET /api/files/{id}` 下载（自动设置正确 Content-Type，图片 inline），`GET /api/files/{id}/info` 查询元数据，`DELETE /api/files/{id}` 软删除。
+  - 头像文字图片生成：`common::text_image::text_to_image` 生成 → `store::services::text_image_to_store` 存入 object_store → 写入 `files` 表。
+  - 存储 key 格式：`{category}/{yyyy}/{mm}/{snowflake_id}.{ext}`。
+  - 存储后端可切换：开发用 `LocalFileSystem`，生产可改为 `AmazonS3` / `GoogleCloudStorage`（仅改初始化代码，业务层无感知）。
+- 所有文件上传下载操作都必须通过 store 模块的 API 端点，不允许直接读写文件系统。
+- 项目目标是独立部署、结构简单，服务端优先考虑单体结构，且 DB 尽量只使用 PG。
 
 ## 文档导航
 

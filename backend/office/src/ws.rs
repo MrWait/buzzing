@@ -1,3 +1,4 @@
+use std::env;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::sync::OnceLock;
@@ -11,8 +12,10 @@ use futures_util::StreamExt;
 use loco_rs::app::AppContext;
 use loco_rs::prelude::*;
 use tokio::sync::RwLock;
+use yrs::encoding::write::Write;
 use yrs::sync::awareness::Awareness;
 use yrs::updates::decoder::Decode;
+use yrs::updates::encoder::{Encoder, EncoderV1};
 use yrs::{Doc, Transact, Update};
 use yrs_axum::broadcast::BroadcastGroup;
 use yrs_axum::ws::{AxumSink, AxumStream};
@@ -21,6 +24,28 @@ use yrs_axum::AwarenessRef;
 use crate::yjs_store;
 
 pub static YJS_MANAGER: OnceLock<Arc<YjsManager>> = OnceLock::new();
+
+/// 自定义 Yjs 消息类型：文档已保存
+/// payload 结构：`varuint(MSG_CUSTOM_SAVED) | varuint(saved_at_ms)`
+/// 客户端在 y-websocket 中注册对应的 messageHandler 消费。
+pub const MSG_CUSTOM_SAVED: u32 = 100;
+/// 自定义 Yjs 消息类型：文档正在同步
+pub const MSG_CUSTOM_SYNCING: u32 = 101;
+
+fn broadcast_capacity() -> usize {
+    env::var("BUZZING_YJS_MAX_CLIENTS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(128)
+}
+
+/// 构造一条自定义广播消息（saved / syncing）。
+fn build_status_msg(msg_type: u32, ts_ms: i64) -> Vec<u8> {
+    let mut encoder = EncoderV1::new();
+    encoder.write_var(msg_type);
+    encoder.write_var(ts_ms as u64);
+    encoder.to_vec()
+}
 
 pub struct DocState {
     pub doc: Doc,
@@ -60,13 +85,23 @@ impl YjsManager {
         }
 
         let awareness = Arc::new(RwLock::new(Awareness::new(doc.clone())));
-        let bcast = Arc::new(BroadcastGroup::new(awareness.clone(), 32).await);
+        let capacity = broadcast_capacity();
+        let bcast = Arc::new(BroadcastGroup::new(awareness.clone(), capacity).await);
 
+        // dirty 标记：只要文档发生 update 就置为 true。
+        // 只在从 clean→dirty 过渡的第一次广播 syncing 提示，避免高频输入淹没客户端。
         let dirty = Arc::new(AtomicBool::new(false));
         let dirty_clone = dirty.clone();
+        let bcast_clone = bcast.clone();
         let sub = doc
             .observe_update_v1(move |_txn, _event| {
-                dirty_clone.store(true, Ordering::SeqCst);
+                let was_clean = dirty_clone
+                    .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+                    .is_ok();
+                if was_clean {
+                    let msg = build_status_msg(MSG_CUSTOM_SYNCING, common::time::current_ms() as i64);
+                    let _ = bcast_clone.broadcast(msg);
+                }
             })
             .map_err(|e| Error::Message(format!("observe_update failed: {}", e)))?;
 
@@ -98,9 +133,38 @@ pub async fn ws_handler(
         .ok_or_else(|| Error::Message("YjsManager not initialized".to_string()))?;
 
     let jwt_secret = manager.ctx.config.get_jwt_config()?;
-    loco_rs::auth::jwt::JWT::new(&jwt_secret.secret)
+    let claims = loco_rs::auth::jwt::JWT::new(&jwt_secret.secret)
         .validate(&token)
         .map_err(|_| Error::Unauthorized("invalid token".to_string()))?;
+
+    // M4 权限校验：区分两类 pid
+    //   1. 普通用户 pid = UserBrief 编码字符串 → 走 permission::resolve_role
+    //   2. 分享临时 JWT pid = "share:{share_id}:{doc_id}" → 校验 doc_id 匹配
+    let user_pid = &claims.claims.pid;
+    if let Some(rest) = user_pid.strip_prefix("share:") {
+        // pid 形如 "share:{share_id}:{doc_id}"
+        let parts: Vec<&str> = rest.split(':').collect();
+        let share_doc_id: i64 = parts
+            .get(1)
+            .and_then(|s| s.parse().ok())
+            .ok_or_else(|| Error::Unauthorized("bad share token".into()))?;
+        if share_doc_id != doc_id {
+            return Err(Error::Unauthorized("share token doc mismatch".into()));
+        }
+        // 分享 token 通过，允许连接（viewer 角色由客户端强制只读）
+    } else {
+        let user = common::model::UserBrief::from_string(user_pid)
+            .map_err(|_| Error::Unauthorized("bad user token".into()))?;
+        // 至少需要 viewer
+        crate::permission::require_role(
+            &manager.ctx,
+            user.id,
+            doc_id,
+            crate::permission::Role::Viewer,
+        )
+        .await
+        .map_err(|_| Error::Unauthorized("no access to doc".into()))?;
+    }
 
     let doc_state = manager.get_or_create(doc_id).await?;
 
@@ -136,10 +200,17 @@ pub async fn periodic_save_loop(ctx: AppContext) {
             if !state.dirty.load(Ordering::Relaxed) {
                 continue;
             }
-            if let Err(e) = yjs_store::save_document(&ctx.db, doc_id, &state.doc).await {
-                eprintln!("failed to save doc {}: {}", doc_id, e);
-            } else {
-                state.dirty.store(false, Ordering::Relaxed);
+            match yjs_store::save_document(&ctx.db, doc_id, &state.doc).await {
+                Ok(()) => {
+                    state.dirty.store(false, Ordering::Relaxed);
+                    // 广播 saved 消息给所有在线客户端。
+                    let now = common::time::current_ms() as i64;
+                    let msg = build_status_msg(MSG_CUSTOM_SAVED, now);
+                    let _ = state.bcast.broadcast(msg);
+                }
+                Err(e) => {
+                    eprintln!("failed to save doc {}: {}", doc_id, e);
+                }
             }
         }
     }
