@@ -47,6 +47,7 @@ const routes: RouteRecordRaw[] = [
     beforeEnter: tenantGuard,
     children: [
       { path: '', name: 'OfficeHome', component: () => import('@/views/office/HomeView.vue') },
+      { path: 'trash', name: 'OfficeTrash', component: () => import('@/views/office/TrashView.vue') },
       {
         path: 'editor/:docId',
         name: 'OfficeEditor',
@@ -69,6 +70,11 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: '', name: 'MeetingRoom', component: () => import('@/views/meeting/MeetingRoomView.vue') },
     ],
+  },
+  {
+    path: '/share/:token',
+    name: 'OfficeShare',
+    component: () => import('@/views/office/ShareView.vue'),
   },
   { path: '/:pathMatch(.*)*', name: 'NotFound', component: () => import('@/views/error/NotFound.vue') },
 ]

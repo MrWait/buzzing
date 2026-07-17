@@ -20,8 +20,11 @@ mod m20250808_110001_calendars_enable;
 mod m20250808_120001_cycleds_expand;
 mod m20250808_130001_user2calendars_recreate;
 mod m20250715_000001_office_documents;
+mod m20250715_000002_files;
 mod m20250808_140001_schedule_reminders;
 mod m20250809_000001_meetings;
+mod m20260720_100001_office_m3;
+mod m20260720_100002_office_m4;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -49,6 +52,9 @@ impl MigratorTrait for Migrator {
             Box::new(m20250808_140001_schedule_reminders::Migration),
             Box::new(m20250809_000001_meetings::Migration),
             Box::new(m20250715_000001_office_documents::Migration),
+            Box::new(m20250715_000002_files::Migration),
+            Box::new(m20260720_100001_office_m3::Migration),
+            Box::new(m20260720_100002_office_m4::Migration),
         ]
     }
 }
