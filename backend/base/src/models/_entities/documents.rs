@@ -18,6 +18,14 @@ pub struct Model {
     pub version: i64,
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
     pub content: Vec<u8>,
+    // M3 扩展
+    pub parent_id: Option<i64>,
+    pub trashed_at: Option<DateTimeWithTimeZone>,
+    pub icon: Option<String>,
+    pub cover: Option<String>,
+    pub plain_text: Option<String>,
+    // M4 扩展：是否继承空间权限
+    pub inherit_from_space: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

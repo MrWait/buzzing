@@ -51,9 +51,6 @@ class CommonUtils {
   }
 
   static String fixResourceUrl(String url) {
-    if (url.contains("http://localhost:5150")) {
-      return url.replaceAll("http://localhost:5150", Config.apiUrl());
-    }
     return url;
   }
 }
