@@ -28,6 +28,7 @@ const moduleName = computed(() => {
   if (path.startsWith('/office')) return '办公文档'
   if (path.startsWith('/calendar')) return '日历'
   if (path.startsWith('/todo')) return '任务'
+  if (path.startsWith('/meeting')) return '视频会议'
   return ''
 })
 

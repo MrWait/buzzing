@@ -1,8 +1,10 @@
 import 'package:buzzing/i18n/strings.g.dart';
+import 'package:buzzing/routes/app_routes.dart';
 import 'package:buzzing/widget/modify_scope_dialog.dart';
 import 'package:buzzing/widget/schedule_creator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:intl/intl.dart';
@@ -18,6 +20,7 @@ class ScheduleDetailPage extends ConsumerWidget {
     final ctl = ref.read(calendarLogicProvider);
     final s = schedule;
     final hasCycle = s.hasCycle() || s.cycleRuleId.toInt() > 0;
+    final isMeeting = s.type == 1 && s.hasRoomId() && s.roomId.toInt() > 0;
     final dateFmt = DateFormat('yyyy-MM-dd HH:mm');
     final startDT = DateTime.fromMillisecondsSinceEpoch(s.startTime.toInt());
     final endDT = DateTime.fromMillisecondsSinceEpoch(s.endTime.toInt());
@@ -35,12 +38,25 @@ class ScheduleDetailPage extends ConsumerWidget {
           if (m < 1440) return "${m ~/ 60}${t.hrUnit}";
           return "${m ~/ 1440}${t.dayUnit}";
         }).join(", ")),
+        if (isMeeting)
+          _infoRow(Icons.videocam, '视频会议: ${s.roomId.toInt()}'),
       ]),
       actions: [
         TextButton(
           child: Text(t.close),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        if (isMeeting)
+          TextButton(
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.videocam, size: 16, color: Colors.blue),
+              const SizedBox(width: 4),
+              Text(t.joinMeeting, style: TextStyle(color: Colors.blue)),
+            ]),
+            onPressed: () {
+              GoRouter.of(context).go(AppRoute.MEETING);
+            },
+          ),
         TextButton(
           child: Text(t.edit),
           onPressed: () async {

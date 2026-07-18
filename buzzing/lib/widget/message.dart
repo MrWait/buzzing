@@ -2,7 +2,9 @@ import 'dart:convert';
 
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
+import 'package:buzzing/models/idl/meeting.pb.dart';
 import 'package:buzzing/provider/im_provider.dart';
+import 'package:buzzing/provider/page_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,6 +49,10 @@ class MessageBox extends ConsumerWidget {
         } catch (_) {
           render = Text(msg.summary, style: tt.bodyMedium);
         }
+        break;
+      case 12:
+        final invite = MeetingInvite.fromBuffer(msg.content);
+        render = _MeetingInviteCard(invite: invite, isSelf: isSelf, cs: cs, tt: tt);
         break;
       default:
         render = Text(msg.summary, style: tt.bodyMedium);
@@ -126,5 +132,75 @@ class MessageBox extends ConsumerWidget {
   String _formatTime(Int64 ms) {
     var dt = DateTime.fromMillisecondsSinceEpoch(ms.toInt());
     return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+class _MeetingInviteCard extends ConsumerWidget {
+  final MeetingInvite invite;
+  final bool isSelf;
+  final ColorScheme cs;
+  final TextTheme tt;
+
+  const _MeetingInviteCard({
+    required this.invite,
+    required this.isSelf,
+    required this.cs,
+    required this.tt,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ctl = ref.read(meetingLogicProvider);
+    return InkWell(
+      borderRadius: BorderRadius.circular(6),
+      onTap: () async {
+        // 直接打开预加入窗口；入会 API 由 VcLogic.confirmJoin 在用户确认后调用
+        ctl.joinMeeting(invite.roomId, roomTitle: invite.title);
+      },
+      child: Container(
+        width: 260,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: cs.outlineVariant),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(children: [
+              Icon(Icons.videocam, size: 16, color: cs.primary),
+              const SizedBox(width: 6),
+              Text('会议邀请', style: tt.labelSmall?.copyWith(color: cs.primary)),
+            ]),
+            const SizedBox(height: 8),
+            Text(invite.title.isNotEmpty ? invite.title : '未命名会议',
+                style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            if (invite.hostName.isNotEmpty)
+              Text('发起人: ${invite.hostName}',
+                  style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+            Text('会议号: ${invite.roomId}',
+                style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: null,
+                style: TextButton.styleFrom(
+                  backgroundColor: cs.primaryContainer,
+                  foregroundColor: cs.onPrimaryContainer,
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                child: Text('加入会议', style: tt.labelSmall),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

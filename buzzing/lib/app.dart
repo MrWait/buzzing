@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:buzzing/provider/app_state_provider.dart';
 import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/widget/app_view.dart';
@@ -9,10 +7,53 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:buzzing/router/router.dart';
+import 'package:window_manager/window_manager.dart';
 
-class BuzzingApp extends ConsumerWidget {
-  BuzzingApp({Key? key, required this.channel}) : super(key: key) {
-    channel.setMethodCallHandler((call) async {
+class BuzzingApp extends ConsumerStatefulWidget {
+  const BuzzingApp({Key? key, required this.channel}) : super(key: key);
+
+  final WindowMethodChannel channel;
+
+  @override
+  ConsumerState<BuzzingApp> createState() => _BuzzingAppState();
+}
+
+class _BuzzingAppState extends ConsumerState<BuzzingApp> with WindowListener {
+  @override
+  void initState() {
+    super.initState();
+    // 监听主窗口原生关闭事件（如 macOS 红点、Cmd+Q），以便销毁常驻子窗口
+    windowManager.addListener(this);
+    // 拦截原生关闭：onWindowClose 中先销毁常驻子窗口再真正退出
+    windowManager.setPreventClose(true);
+  }
+
+  @override
+  void dispose() {
+    windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  @override
+  void onWindowClose() async {
+    // 主窗口关闭前，通知所有常驻子窗口销毁 engine，避免内存泄漏
+    final app = ref.read(appControllerProvider);
+    await app.destroyAllSubWindows();
+    await windowManager.setPreventClose(false);
+    await windowManager.close();
+    super.onWindowClose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final router = ref.watch(routerProvider);
+    final appState = ref.watch(appStateProvider);
+    final themeMode = switch (appState.theme) {
+      1 => ThemeMode.light,
+      2 => ThemeMode.dark,
+      _ => ThemeMode.system,
+    };
+    widget.channel.setMethodCallHandler((call) async {
       switch (call.method) {
         case 'meeting_end':
           break;
@@ -22,21 +63,7 @@ class BuzzingApp extends ConsumerWidget {
           break;
       }
     });
-  }
-  final WindowMethodChannel channel;
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(routerProvider);
-    final appState = ref.watch(appStateProvider);
-    final themeMode = switch (appState.theme) {
-      1 => ThemeMode.light,
-      2 => ThemeMode.dark,
-      _ => ThemeMode.system,
-    };
-    Future.delayed(Duration(milliseconds: 0), () async {
-      return;
-    });
     return AppView(
       builder: ((locale, builder) => MaterialApp.router(
         debugShowCheckedModeBanner: true,

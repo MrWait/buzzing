@@ -13,6 +13,8 @@ pub mod users;
 pub mod cycleds;
 pub mod schedules;
 pub mod calendars;
+pub mod meeting_members;
+pub mod meetings;
 pub mod user2_calendars;
 pub mod documents;
 pub mod document_spaces;

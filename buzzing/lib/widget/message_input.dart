@@ -1,13 +1,12 @@
-import 'dart:io';
-
-import 'package:buzzing/utils/screencapture_pc.dart';
+import 'package:buzzing/controller/im.dart';
+import 'package:buzzing/provider/page_providers.dart';
+import 'package:buzzing/utils/data_persistence.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
-import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
-import 'package:flutter_macos_permissions/flutter_macos_permissions.dart';
 
 class MessageInput extends ConsumerWidget {
   @override
@@ -58,6 +57,10 @@ class MessageInput extends ConsumerWidget {
                   _ToolbarBtn(icon: Icons.attach_file, onTap: () async {}),
                   _ToolbarBtn(icon: Icons.emoji_emotions_outlined, onTap: () async {}),
                   _ToolbarBtn(icon: Icons.alternate_email, onTap: () async {}),
+                  _ToolbarBtn(
+                    icon: Icons.videocam,
+                    onTap: () => _createMeetingAndShare(context, ref, im),
+                  ),
                   const Spacer(),
                   _ToolbarBtn(
                     icon: Icons.send,
@@ -71,6 +74,42 @@ class MessageInput extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _createMeetingAndShare(
+      BuildContext context, WidgetRef ref, ImController im) async {
+    if (im.chatId == Int64(0)) return;
+
+    final meetingHome = ref.read(meetingHomeLogicProvider);
+    final account = DataPersistence.getAccount();
+    final hostName = account?.loginUser?.user.name ?? '';
+
+    var resp = await meetingHome.createMeeting(title: '群聊会议');
+    if (resp == null || !resp.hasMeeting()) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('创建会议失败')),
+        );
+      }
+      return;
+    }
+
+    await meetingHome.shareMeetingToChat(
+      im: im,
+      chatId: im.chatId,
+      roomId: resp.meeting.roomId,
+      title: resp.meeting.title,
+      hostName: hostName,
+    );
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('已发送会议邀请'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 }
 
