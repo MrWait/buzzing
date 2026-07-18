@@ -1,5 +1,7 @@
 import 'package:buzzing/controller/sdk_controller.dart';
 import 'package:buzzing/i18n/strings.g.dart';
+import 'package:buzzing/models/idl/meeting.pb.dart';
+import 'package:buzzing/page/meeting/meeting_api.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/provider/sdk_provider.dart';
 import 'package:buzzing/page/calendar/calendar_logic.dart';
@@ -45,6 +47,7 @@ class _ScheduleCreatorState extends ConsumerState<ScheduleCreator> {
   var recurrenceEndDate = DateTime.now().add(const Duration(days: 365));
   var weekDays = <int>[];
   var reminderMinutes = <int>[];
+  var createMeeting = false;
 
   bool get isEditing => widget.editSchedule != null;
 
@@ -158,6 +161,14 @@ class _ScheduleCreatorState extends ConsumerState<ScheduleCreator> {
             // Location
             TextField(controller: locationCtrl, decoration: InputDecoration(labelText: t.location, isDense: true)),
             const SizedBox(height: 12),
+
+            // Meeting toggle
+            Row(children: [
+              Text('视频会议', style: const TextStyle(fontSize: 13)),
+              const Spacer(),
+              Switch(value: createMeeting, onChanged: (v) => setState(() => createMeeting = v), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
+            ]),
+            const SizedBox(height: 8),
 
             // Recurrence
             const Divider(height: 1),
@@ -334,6 +345,22 @@ class _ScheduleCreatorState extends ConsumerState<ScheduleCreator> {
 
     schedule.memberIds.add(sdk.userId);
     schedule.notifyTime.addAll(reminderMinutes);
+
+    if (createMeeting) {
+      schedule.type = 1;
+      schedule.memberCreateMeeting = true;
+      if (!isEditing) {
+        final meetingReq = MeetingCreateRequest(
+          title: titleCtrl.text,
+          scheduledAt: Int64(startDT.millisecondsSinceEpoch),
+          maxParticipants: 50,
+        );
+        final resp = await MeetingApi(sdk).create(meetingReq);
+        if (resp.meeting.roomId.isNotEmpty) {
+          schedule.roomId = Int64(int.parse(resp.meeting.roomId));
+        }
+      }
+    }
 
     if (recurrenceType != 0) {
       schedule.cycle = ScheduleCycleRule.create();

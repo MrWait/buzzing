@@ -6,6 +6,7 @@ members = [
 "app-chat",
 "app-common",
 "app-ffi",
+"app-meeting",
 "app-network",
 "app-office",
 "app-todo",
@@ -58,6 +59,7 @@ app-calendar = { path = "./app-calendar" }
 app-chat = { path = "./app-chat" }
 app-common = { path = "./app-common" }
 app-ffi = { path = "./app-ffi" }
+app-meeting = { path = "./app-meeting" }
 app-network = { path = "./app-network" }
 app-office = { path = "./app-office" }
 app-todo = { path = "./app-todo" }

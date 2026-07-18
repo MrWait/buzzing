@@ -39,6 +39,9 @@ pub mod idl {
     pub mod calendar {
         include!("idl/calendar.rs");
     }
+    pub mod meeting {
+        include!("idl/meeting.rs");
+    }
 }
 
 pub fn get_build_info() -> HashMap<&'static str, &'static str> {

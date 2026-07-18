@@ -1865,6 +1865,8 @@ class ScheduleRemindPush extends $pb.GeneratedMessage {
     $core.String? title,
     $core.String? location,
     $core.int? notifyMinute,
+    $core.int? type,
+    $fixnum.Int64? roomId,
   }) {
     final result = create();
     if (scheduleId != null) result.scheduleId = scheduleId;
@@ -1873,6 +1875,8 @@ class ScheduleRemindPush extends $pb.GeneratedMessage {
     if (title != null) result.title = title;
     if (location != null) result.location = location;
     if (notifyMinute != null) result.notifyMinute = notifyMinute;
+    if (type != null) result.type = type;
+    if (roomId != null) result.roomId = roomId;
     return result;
   }
 
@@ -1895,6 +1899,8 @@ class ScheduleRemindPush extends $pb.GeneratedMessage {
     ..aOS(4, _omitFieldNames ? '' : 'title')
     ..aOS(5, _omitFieldNames ? '' : 'location')
     ..aI(6, _omitFieldNames ? '' : 'notifyMinute')
+    ..aI(7, _omitFieldNames ? '' : 'type')
+    ..aInt64(8, _omitFieldNames ? '' : 'roomId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1969,6 +1975,24 @@ class ScheduleRemindPush extends $pb.GeneratedMessage {
   $core.bool hasNotifyMinute() => $_has(5);
   @$pb.TagNumber(6)
   void clearNotifyMinute() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.int get type => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set type($core.int value) => $_setSignedInt32(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasType() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearType() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $fixnum.Int64 get roomId => $_getI64(7);
+  @$pb.TagNumber(8)
+  set roomId($fixnum.Int64 value) => $_setInt64(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasRoomId() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearRoomId() => $_clearField(8);
 }
 
 const $core.bool _omitFieldNames =

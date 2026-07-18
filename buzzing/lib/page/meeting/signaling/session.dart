@@ -8,4 +8,5 @@ class Session {
   RTCPeerConnection? pc;
   RTCDataChannel? dc;
   List<RTCIceCandidate> remoteCandidates = [];
+  List<RTCRtpSender> rtpSenders = [];
 }

@@ -33,6 +33,7 @@ app-account = { workspace = true }
 app-chat = { workspace = true }
 app-common = { workspace = true }
 app-ffi = { workspace = true }
+app-meeting = { workspace = true }
 app-network = { workspace = true }
 app-calendar = { workspace = true }
 app-office = { workspace = true }

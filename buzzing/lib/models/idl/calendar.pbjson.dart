@@ -593,6 +593,8 @@ const ScheduleRemindPush$json = {
     {'1': 'title', '3': 4, '4': 1, '5': 9, '10': 'title'},
     {'1': 'location', '3': 5, '4': 1, '5': 9, '10': 'location'},
     {'1': 'notify_minute', '3': 6, '4': 1, '5': 5, '10': 'notifyMinute'},
+    {'1': 'type', '3': 7, '4': 1, '5': 5, '10': 'type'},
+    {'1': 'room_id', '3': 8, '4': 1, '5': 3, '10': 'roomId'},
   ],
 };
 
@@ -601,4 +603,5 @@ final $typed_data.Uint8List scheduleRemindPushDescriptor = $convert.base64Decode
     'ChJTY2hlZHVsZVJlbWluZFB1c2gSHwoLc2NoZWR1bGVfaWQYASABKANSCnNjaGVkdWxlSWQSHQ'
     'oKc3RhcnRfdGltZRgCIAEoA1IJc3RhcnRUaW1lEhkKCGVuZF90aW1lGAMgASgDUgdlbmRUaW1l'
     'EhQKBXRpdGxlGAQgASgJUgV0aXRsZRIaCghsb2NhdGlvbhgFIAEoCVIIbG9jYXRpb24SIwoNbm'
-    '90aWZ5X21pbnV0ZRgGIAEoBVIMbm90aWZ5TWludXRl');
+    '90aWZ5X21pbnV0ZRgGIAEoBVIMbm90aWZ5TWludXRlEhIKBHR5cGUYByABKAVSBHR5cGUSFwoH'
+    'cm9vbV9pZBgIIAEoA1IGcm9vbUlk');

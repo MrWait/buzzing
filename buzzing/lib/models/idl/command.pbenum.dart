@@ -190,6 +190,28 @@ class Command extends $pb.ProtobufEnum {
   static const Command PUSH_SCHEDULE_UPDATE_BY_RANGE =
       Command._(1619, _omitEnumNames ? '' : 'PUSH_SCHEDULE_UPDATE_BY_RANGE');
 
+  /// meeting: 1800 ~ 1899
+  static const Command MEETING_CREATE =
+      Command._(1800, _omitEnumNames ? '' : 'MEETING_CREATE');
+  static const Command MEETING_JOIN =
+      Command._(1801, _omitEnumNames ? '' : 'MEETING_JOIN');
+  static const Command MEETING_LEAVE =
+      Command._(1802, _omitEnumNames ? '' : 'MEETING_LEAVE');
+  static const Command MEETING_END =
+      Command._(1803, _omitEnumNames ? '' : 'MEETING_END');
+  static const Command MEETING_GET_INFO =
+      Command._(1804, _omitEnumNames ? '' : 'MEETING_GET_INFO');
+  static const Command MEETING_GET_LIST =
+      Command._(1805, _omitEnumNames ? '' : 'MEETING_GET_LIST');
+  static const Command MEETING_KICK =
+      Command._(1806, _omitEnumNames ? '' : 'MEETING_KICK');
+  static const Command MEETING_SET_ROLE =
+      Command._(1807, _omitEnumNames ? '' : 'MEETING_SET_ROLE');
+  static const Command MEETING_INVITE =
+      Command._(1808, _omitEnumNames ? '' : 'MEETING_INVITE');
+  static const Command MEETING_PUSH_UPDATE =
+      Command._(1809, _omitEnumNames ? '' : 'MEETING_PUSH_UPDATE');
+
   static const $core.List<Command> values = <Command>[
     COMMAND_UNKNOWN,
     ACK,
@@ -275,6 +297,16 @@ class Command extends $pb.ProtobufEnum {
     PUSH_SCHEDULE_REMINDER,
     PUSH_SCHEDULE_DELETE,
     PUSH_SCHEDULE_UPDATE_BY_RANGE,
+    MEETING_CREATE,
+    MEETING_JOIN,
+    MEETING_LEAVE,
+    MEETING_END,
+    MEETING_GET_INFO,
+    MEETING_GET_LIST,
+    MEETING_KICK,
+    MEETING_SET_ROLE,
+    MEETING_INVITE,
+    MEETING_PUSH_UPDATE,
   ];
 
   static final $core.Map<$core.int, Command> _byValue =

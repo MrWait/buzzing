@@ -35,4 +35,7 @@ pub mod idl {
     pub mod calendar {
         include!(concat!("./idl/calendar.rs"));
     }
+    pub mod meeting {
+        include!(concat!("./idl/meeting.rs"));
+    }
 }

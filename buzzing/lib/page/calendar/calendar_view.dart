@@ -4,6 +4,7 @@ import 'package:buzzing/models/idl/calendar.pb.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/model.dart';
 import 'package:buzzing/page/calendar/events_view_bar.dart';
+import 'package:buzzing/page/meeting/meeting_home_logic.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/widget/calendar_creator.dart';
@@ -16,6 +17,7 @@ import 'package:buzzing/utils/logger_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:infinite_calendar_view/infinite_calendar_view.dart';
+import 'package:go_router/go_router.dart';
 
 import 'calendar_logic.dart';
 import 'events_planner_draggable_events_view.dart';
@@ -33,28 +35,51 @@ class CalendarPage extends ConsumerWidget {
       final reminder = next.latestReminder;
       if (reminder != null) {
         next.clearReminder();
-        final sched = Schedule.create()
-          ..id = reminder.scheduleId
-          ..title = reminder.title
-          ..startTime = reminder.startTime
-          ..endTime = reminder.endTime
-          ..location = reminder.location;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(
-              content: Text(reminder.title.isNotEmpty
-                  ? "${t.scheduleReminder}: ${reminder.title}"
-                  : t.scheduleReminder),
-              action: SnackBarAction(
-                label: t.view,
-                onPressed: () {
-                  showDialog<bool>(
-                    context: context,
-                    builder: (_) => ScheduleDetailPage(schedule: sched),
-                  );
-                },
-              ),
-              duration: const Duration(seconds: 5),
-            ));
+        final isMeeting = reminder.type == 1 && reminder.hasRoomId() && reminder.roomId.toInt() > 0;
+        if (isMeeting) {
+          final meetingHome = ref.read(meetingHomeLogicProvider);
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(
+                content: Text(reminder.title.isNotEmpty
+                    ? "${t.scheduleReminder}: ${reminder.title}"
+                    : t.scheduleReminder),
+                action: SnackBarAction(
+                  label: t.joinMeeting,
+                  onPressed: () async {
+                    var ok = await meetingHome.joinMeeting(
+                      reminder.roomId.toInt().toString(),
+                    );
+                    if (ok && context.mounted) {
+                      context.go('/meeting');
+                    }
+                  },
+                ),
+                duration: const Duration(seconds: 10),
+              ));
+        } else {
+          final sched = Schedule.create()
+            ..id = reminder.scheduleId
+            ..title = reminder.title
+            ..startTime = reminder.startTime
+            ..endTime = reminder.endTime
+            ..location = reminder.location;
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(
+                content: Text(reminder.title.isNotEmpty
+                    ? "${t.scheduleReminder}: ${reminder.title}"
+                    : t.scheduleReminder),
+                action: SnackBarAction(
+                  label: t.view,
+                  onPressed: () {
+                    showDialog<bool>(
+                      context: context,
+                      builder: (_) => ScheduleDetailPage(schedule: sched),
+                    );
+                  },
+                ),
+                duration: const Duration(seconds: 5),
+              ));
+        }
       }
     });
 

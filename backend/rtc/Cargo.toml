@@ -4,10 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+async-trait = { workspace = true }
 axum = { workspace = true, features = ["ws"] }
 axum-server = { workspace = true }
 futures-util = { workspace = true }
 loco-rs = { workspace = true }
+prost = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 strum = { workspace = true }
@@ -19,5 +21,10 @@ webrtc = "0.14.0"
 hmac = "0.12"
 sha2 = "0.10"
 base64 = "0.22"
+bcrypt = "0.15"
 
+sea-orm = { workspace = true }
+
+base = { workspace = true }
 common = { workspace = true }
+proto = { workspace = true }

@@ -116,6 +116,8 @@ async fn remind_cycle(ctx: &AppContext) -> Result<()> {
     for reminder in &due {
         if let Ok(schedules) = ScheduleModel::get_by_ids(&ctx.db, vec![reminder.schedule_id]).await {
             if let Some(schedule) = schedules.first() {
+                let extra = ScheduleExtra::decode(schedule.extra.as_slice())
+                    .unwrap_or_default();
                 let push = calendar::ScheduleRemindPush {
                     schedule_id: reminder.schedule_id,
                     start_time: schedule.start_time,
@@ -123,6 +125,8 @@ async fn remind_cycle(ctx: &AppContext) -> Result<()> {
                     title: schedule.title.clone(),
                     location: String::new(),
                     notify_minute: reminder.notify_minute,
+                    r#type: schedule.r#type,
+                    room_id: extra.room_id,
                 };
                 let _ = biz
                     .gateway
