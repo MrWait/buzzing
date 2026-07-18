@@ -55,6 +55,14 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/meeting',
+    component: () => import('@/layouts/ModuleLayout.vue'),
+    beforeEnter: tenantGuard,
+    children: [
+      { path: '', name: 'MeetingHome', component: () => import('@/views/meeting/MeetingHomeView.vue') },
+    ],
+  },
+  {
     path: '/meeting/:roomId',
     component: () => import('@/layouts/FullscreenLayout.vue'),
     beforeEnter: tenantGuard,

@@ -16,12 +16,17 @@ class SubWindow {
   final WindowController controller;
   int lastTick = DateTime.now().millisecondsSinceEpoch;
   final String id;
+  /// 窗口是否处于隐藏状态（常驻模式：onWindowClose 改为 hide）
+  /// true 表示窗口已隐藏但 engine 保留，可复用
+  bool isHidden = false;
 
   SubWindow({required this.controller, required this.id});
 
+  /// 窗口是否存活：未隐藏且 tick 在 10 秒内（hidden 时 tick 5 秒一次，阈值放宽）
   bool isAlive() {
+    if (isHidden) return true; // 隐藏窗口视为存活，等待复用
     var now = DateTime.now().millisecondsSinceEpoch;
-    return (now - lastTick) < 1000;
+    return (now - lastTick) < 10000;
   }
 }
 
@@ -76,10 +81,11 @@ class AppController {
     }
 
     mainChannel.setMethodCallHandler((call) async {
-      L.d("handle sub window event: ${call}");
       var argument = call.arguments as String;
       var arg = jsonDecode(argument) as Map<String, dynamic>;
-      L.d("arg: ${arg}");
+      if (call.method != "sub_window_tick" && call.method != "sub_window_log") {
+        L.d("handle sub window event: ${call}, arg: ${arg}");
+      }
       switch (call.method) {
         case "sub_window_close":
           {
@@ -100,17 +106,44 @@ class AppController {
           }
 
           break;
-        case "sub_window_tick":
+        case "sub_window_hide":
           {
+            // 常驻模式：子窗口隐藏而非关闭，保留 windows[tag] 以便复用
             var sub_id = arg['id'] as String;
             for (var win in windows.values) {
               if (win.id == sub_id) {
-                win.lastTick = DateTime.now().millisecondsSinceEpoch;
+                win.isHidden = true;
+                L.d("sub window hidden: ${win.id}, keep for reuse");
               }
             }
           }
           break;
-        default:
+          case "sub_window_tick":
+            {
+              var sub_id = arg['id'] as String;
+              for (var win in windows.values) {
+                if (win.id == sub_id) {
+                  win.lastTick = DateTime.now().millisecondsSinceEpoch;
+                  // 收到 tick 说明窗口已可见（reactivate 后），清除 hidden 标记
+                  win.isHidden = false;
+                }
+              }
+            }
+            break;
+          case "sub_window_log":
+            {
+              var level = arg['level'] as String? ?? 'D';
+              var msg = arg['msg'] as String? ?? '';
+              var tag = arg['tag'] as String? ?? 'SubWin';
+              switch (level) {
+                case 'E': L.e('[$tag] $msg'); break;
+                case 'W': L.w('[$tag] $msg'); break;
+                case 'I': L.i('[$tag] $msg'); break;
+                default:  L.d('[$tag] $msg'); break;
+              }
+            }
+            break;
+          default:
       }
     });
 
@@ -126,11 +159,31 @@ class AppController {
       return null;
     }
     var window = windows[tag];
+    L.d('createWindow: tag=$tag, existing=${window != null}, isAlive=${window?.isAlive()}, isHidden=${window?.isHidden}');
     if (window != null) {
       if (!window.isAlive()) {
+        // 子窗口已失联（tick 超时），从注册表中移除
+        L.d('createWindow: window $tag not alive, removing');
         windows.remove(tag);
+        window = null;
       } else {
-        return window.controller;
+        // 复用：显示窗口 + 通过 controller.invokeMethod 通知子窗口 reactivate
+        // 注意：必须用 controller.invokeMethod（基于 windowId 的 unidirectional channel），
+        // 不能用 WindowMethodChannel(tag)（bidirectional 模式，主窗口未注册会失败）
+        arguments['app'] = tag;
+        L.d("reuse window: $tag, args: ${arguments}");
+        try {
+          await window.controller.show();
+          await window.controller.invokeMethod('reactivate', jsonEncode(arguments));
+          L.d('reuse window $tag done');
+        } catch (e) {
+          L.e("reuse window failed: $e, will create new one");
+          windows.remove(tag);
+          window = null;
+        }
+        if (window != null) {
+          return window.controller;
+        }
       }
     }
 
@@ -147,6 +200,22 @@ class AppController {
 
     windows[tag] = SubWindow(controller: controller, id: controller.windowId);
     return controller;
+  }
+
+  /// 应用退出时调用：通知所有常驻子窗口强制销毁（释放 engine + 资源）
+  Future<void> destroyAllSubWindows() async {
+    L.d('destroy all sub windows: count=${windows.length}');
+    for (var tag in windows.keys.toList()) {
+      var win = windows[tag];
+      if (win == null) continue;
+      try {
+        // 用 controller.invokeMethod 直接调子窗口（基于 windowId 的 unidirectional channel）
+        await win.controller.invokeMethod('destroy', '{}');
+      } catch (e) {
+        L.e('destroy sub window $tag failed: $e');
+      }
+    }
+    windows.clear();
   }
 
   void _requestPermission() {

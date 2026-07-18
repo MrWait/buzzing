@@ -76,6 +76,7 @@ Buzzing 是一个企业级协作平台（类飞书/钉钉/Slack），包含完�
 - 前端 SPA 样式写在各 SFC 的 `<style scoped>` 中；ProseMirror 编辑器样式在 `frontend/src/styles/editor.css`。
 - 前端 SPA 使用 `@/` 别名映射到 `frontend/src/`。
 - 前端开发命令：`npm run dev`（开发服务器）、`npm run build`（类型检查+构建）。
+- 编写各端代码，添加必要的注释和日志。
 
 ## 文档导航
 

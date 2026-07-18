@@ -241,6 +241,7 @@ const MessageType$json = {
     {'1': 'VOTE', '2': 9},
     {'1': 'REDPACKET', '2': 10},
     {'1': 'RICH_TEXT_QUILL', '2': 11},
+    {'1': 'MEETING_INVITE', '2': 12},
   ],
 };
 
@@ -249,7 +250,7 @@ final $typed_data.Uint8List messageTypeDescriptor = $convert.base64Decode(
     'CgtNZXNzYWdlVHlwZRIYChRNRVNTQUdFX1RZUEVfVU5LTk9XThAAEggKBFRFWFQQARIJCgVJTU'
     'FHRRACEggKBEZJTEUQAxIJCgVWT0lDRRAEEgkKBU1FRElBEAUSDQoJUklDSF9URVhUEAYSDAoI'
     'TE9DQVRJT04QBxIICgRDQVJEEAgSCAoEVk9URRAJEg0KCVJFRFBBQ0tFVBAKEhMKD1JJQ0hfVE'
-    'VYVF9RVUlMTBAL');
+    'VYVF9RVUlMTBALEhIKDk1FRVRJTkdfSU5WSVRFEAw=');
 
 @$core.Deprecated('Use directDescriptor instead')
 const Direct$json = {

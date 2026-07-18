@@ -8,6 +8,7 @@ use app_calendar::AppCalendar;
 use app_chat::AppChat;
 use app_common::AppCommon;
 use app_ffi::AppFfi;
+use app_meeting::AppMeeting;
 use app_network::AppNetwork;
 use app_office::AppOffice;
 use app_todo::AppTodo;
@@ -19,7 +20,8 @@ use service::{
 };
 use service::{AppTrait, BizHub, InitRequest, LoginRequest, UnionClientConfig};
 use service::{
-    BizAccount, BizCalendar, BizChat, BizCommon, BizFfi, BizNetwork, BizOffice, BizTodo,
+    BizAccount, BizCalendar, BizChat, BizCommon, BizFfi, BizMeeting, BizNetwork, BizOffice,
+    BizTodo,
 };
 
 #[allow(dead_code)]
@@ -71,6 +73,7 @@ pub fn init_sdk(param: &[u8], tpy: FfiType) -> i32 {
     let ffi = Box::new(AppFfi::new(push_packet));
     let network = Box::new(AppNetwork::new());
     let calendar = Box::new(AppCalendar::new());
+    let meeting = Box::new(AppMeeting::new());
     let office = Box::new(AppOffice::new());
     let todo = Box::new(AppTodo::new());
 
@@ -81,6 +84,7 @@ pub fn init_sdk(param: &[u8], tpy: FfiType) -> i32 {
         app_ffi: Arc::new(ffi.clone() as Box<dyn AppTrait>),
         app_network: Arc::new(network.clone() as Box<dyn AppTrait>),
         app_calendar: Arc::new(calendar.clone() as Box<dyn AppTrait>),
+        app_meeting: Arc::new(meeting.clone() as Box<dyn AppTrait>),
         app_office: Arc::new(office.clone() as Box<dyn AppTrait>),
 
         ffi_handlers: dashmap::DashMap::new(),
@@ -92,6 +96,7 @@ pub fn init_sdk(param: &[u8], tpy: FfiType) -> i32 {
         common: Arc::new(common.clone() as Box<dyn BizCommon>),
         ffi: Arc::new(ffi.clone() as Box<dyn BizFfi>),
         network: Arc::new(network.clone() as Box<dyn BizNetwork>),
+        meeting: Arc::new(meeting.clone() as Box<dyn BizMeeting>),
         office: Arc::new(office.clone() as Box<dyn BizOffice>),
         todo: Arc::new(todo.clone() as Box<dyn BizTodo>),
     };

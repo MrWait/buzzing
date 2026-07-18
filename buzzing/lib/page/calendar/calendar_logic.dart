@@ -101,9 +101,14 @@ class CalendarLogic extends ChangeNotifier {
 
   void onScheduleRemind(List<int> data) {
     var push = ScheduleRemindPush.fromBuffer(data);
-    L.d("schedule reminder: ${push.title}");
+    L.d("schedule reminder: ${push.title}, type=${push.type}, roomId=${push.roomId}");
     latestReminder = push;
     notifyListeners();
+  }
+
+  bool get hasMeetingReminder {
+    if (latestReminder == null) return false;
+    return latestReminder!.type == 1 && latestReminder!.hasRoomId() && latestReminder!.roomId.toInt() > 0;
   }
 
   void clearReminder() {

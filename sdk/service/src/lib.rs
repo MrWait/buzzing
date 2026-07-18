@@ -4,6 +4,7 @@ pub mod chat;
 pub mod common;
 pub mod ffi;
 mod get;
+pub mod meeting;
 pub mod model;
 pub mod network;
 pub mod office;
@@ -24,6 +25,7 @@ pub use calendar::BizCalendar;
 pub use chat::BizChat;
 pub use common::BizCommon;
 pub use ffi::BizFfi;
+pub use meeting::BizMeeting;
 pub use model::Setting;
 pub use network::BizNetwork;
 pub use office::BizOffice;
@@ -61,6 +63,7 @@ pub struct BizHub {
     pub app_ffi: Arc<Box<dyn AppTrait>>,
     pub app_network: Arc<Box<dyn AppTrait>>,
     pub app_calendar: Arc<Box<dyn AppTrait>>,
+    pub app_meeting: Arc<Box<dyn AppTrait>>,
     pub app_office: Arc<Box<dyn AppTrait>>,
 
     pub ffi_handlers: DashMap<i32, Arc<Box<dyn AppTrait>>>,
@@ -72,6 +75,7 @@ pub struct BizHub {
     pub ffi: Arc<Box<dyn BizFfi>>,
     pub network: Arc<Box<dyn BizNetwork>>,
     pub calendar: Arc<Box<dyn BizCalendar>>,
+    pub meeting: Arc<Box<dyn BizMeeting>>,
     pub todo: Arc<Box<dyn BizTodo>>,
     pub office: Arc<Box<dyn BizOffice>>,
 }
@@ -106,6 +110,7 @@ impl BizHub {
         services.push(self.app_ffi.clone());
         services.push(self.app_network.clone());
         services.push(self.app_calendar.clone());
+        services.push(self.app_meeting.clone());
         services.push(self.app_office.clone());
         services
     }

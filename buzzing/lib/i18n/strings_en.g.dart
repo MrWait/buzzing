@@ -311,6 +311,21 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	/// en: 'Share screen'
 	String get shareScreen => 'Share screen';
 
+	/// en: 'Stop sharing'
+	String get stopScreenShare => 'Stop sharing';
+
+	/// en: 'Entire screen'
+	String get shareEntireScreen => 'Entire screen';
+
+	/// en: 'Share your entire desktop'
+	String get shareEntireScreenDesc => 'Share your entire desktop';
+
+	/// en: 'Application window'
+	String get shareWindow => 'Application window';
+
+	/// en: 'Share a specific application window'
+	String get shareWindowDesc => 'Share a specific application window';
+
 	/// en: 'Self'
 	String get self => 'Self';
 
@@ -1538,6 +1553,15 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	/// en: 'Join meeting'
 	String get joinMeeting => 'Join meeting';
 
+	/// en: 'Ready to join meeting'
+	String get readyToJoin => 'Ready to join meeting';
+
+	/// en: 'Microphone'
+	String get microphoneDevice => 'Microphone';
+
+	/// en: 'Camera'
+	String get cameraDevice => 'Camera';
+
 	/// en: 'Please enter a meeting subject'
 	String get plsInputMeetingSubject => 'Please enter a meeting subject';
 
@@ -2041,6 +2065,27 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 
 	/// en: 'No spaces yet'
 	String get noSpaces => 'No spaces yet';
+
+	/// en: 'Speaker'
+	String get speakerView => 'Speaker';
+
+	/// en: 'Grid'
+	String get gridView => 'Grid';
+
+	/// en: 'Meeting Chat'
+	String get meetingChat => 'Meeting Chat';
+
+	/// en: 'No messages yet'
+	String get noMessages => 'No messages yet';
+
+	/// en: 'Type a message...'
+	String get chatPlaceholder => 'Type a message...';
+
+	/// en: 'joined the meeting'
+	String get joinedMeeting => 'joined the meeting';
+
+	/// en: 'left the meeting'
+	String get leftMeeting => 'left the meeting';
 }
 
 /// The flat map containing all translations for locale <en>.
@@ -2141,6 +2186,11 @@ extension on Translations {
 			'hangup' => 'Hangup',
 			'muteMic' => 'Mute mic',
 			'shareScreen' => 'Share screen',
+			'stopScreenShare' => 'Stop sharing',
+			'shareEntireScreen' => 'Entire screen',
+			'shareEntireScreenDesc' => 'Share your entire desktop',
+			'shareWindow' => 'Application window',
+			'shareWindowDesc' => 'Share a specific application window',
 			'self' => 'Self',
 			'pickup' => 'Pickup',
 			'refuse' => 'Refuse',
@@ -2550,11 +2600,16 @@ extension on Translations {
 			'groupCallForbidden' => 'The current group is on a call, are you sure you want to join the current call?',
 			'launchMeeting' => 'Launch meeting',
 			'joinMeeting' => 'Join meeting',
+			'readyToJoin' => 'Ready to join meeting',
+			'microphoneDevice' => 'Microphone',
+			'cameraDevice' => 'Camera',
 			'plsInputMeetingSubject' => 'Please enter a meeting subject',
 			'meetingStartTime' => 'Starting time',
 			'meetingDuration' => 'Meeting duration',
 			'enterMeeting' => 'Enter the meeting',
 			'meetingNo' => 'Meeting number',
+			_ => null,
+		} ?? switch (path) {
 			'yourMeetingName' => 'Your name',
 			'plsInputMeetingNumber' => 'Please enter the meeting number',
 			'plsInputYouMeetingName' => 'Please enter your name',
@@ -2563,8 +2618,6 @@ extension on Translations {
 			'meetingDurationIs' => 'Meeting duration: %s',
 			'meetingNumberIs' => 'Meeting ID: %s',
 			'meetingMessageClickHint' => 'Click this message to join the meeting directly',
-			_ => null,
-		} ?? switch (path) {
 			'meetingMessage' => 'Meeting news',
 			'openMeeting' => 'Open meeting',
 			'didNotStart' => 'Did not start',
@@ -2720,6 +2773,13 @@ extension on Translations {
 			'emptyDocs' => 'No documents',
 			'deleteDoc' => 'Delete document',
 			'noSpaces' => 'No spaces yet',
+			'speakerView' => 'Speaker',
+			'gridView' => 'Grid',
+			'meetingChat' => 'Meeting Chat',
+			'noMessages' => 'No messages yet',
+			'chatPlaceholder' => 'Type a message...',
+			'joinedMeeting' => 'joined the meeting',
+			'leftMeeting' => 'left the meeting',
 			_ => null,
 		};
 	}

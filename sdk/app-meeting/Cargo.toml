@@ -1,0 +1,19 @@
+[package]
+name = "app-meeting"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+prost = { workspace = true }
+async-trait = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+base-db = { workspace = true }
+base-log = { workspace = true }
+base-runtime = { workspace = true }
+base-util = { workspace = true }
+proto = { workspace = true }
+service = { workspace = true }

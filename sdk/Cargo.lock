@@ -174,6 +174,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "app-meeting"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base-db",
+ "base-log",
+ "base-runtime",
+ "base-util",
+ "prost",
+ "proto",
+ "serde",
+ "serde_json",
+ "service",
+ "tracing",
+]
+
+[[package]]
 name = "app-network"
 version = "0.1.0"
 dependencies = [
@@ -384,6 +402,7 @@ dependencies = [
  "app-chat",
  "app-common",
  "app-ffi",
+ "app-meeting",
  "app-network",
  "app-office",
  "app-todo",

@@ -28,6 +28,7 @@ files = [
     "message.proto",
     "pipeline.proto",
     "calendar.proto",
+    "meeting.proto",
 ]
 
 class bcolors:
