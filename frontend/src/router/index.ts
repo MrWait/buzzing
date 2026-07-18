@@ -54,6 +54,14 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
+  {
+    path: '/meeting/:roomId',
+    component: () => import('@/layouts/FullscreenLayout.vue'),
+    beforeEnter: tenantGuard,
+    children: [
+      { path: '', name: 'MeetingRoom', component: () => import('@/views/meeting/MeetingRoomView.vue') },
+    ],
+  },
   { path: '/:pathMatch(.*)*', name: 'NotFound', component: () => import('@/views/error/NotFound.vue') },
 ]
 

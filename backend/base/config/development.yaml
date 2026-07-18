@@ -154,3 +154,4 @@ settings:
   union_hub: "http://localhost:8892"
   cert: "assets/cert/www.buzzing-im.com+2.pem"
   cert_key: "assets/cert/www.buzzing-im.com+2-key.pem"
+  turn_secret: "buzzing-turn-secret-dev"

@@ -27,11 +27,13 @@ enum VideoSource { Camera, Screen }
 class SignalingConfig {
   final String host;
   final int port;
+  final String token;
   Map<String, dynamic> iceServers;
 
   SignalingConfig({
     this.host = 'www.buzzing-im.com',
     this.port = 5150,
+    required this.token,
     Map<String, dynamic>? iceServers,
   }) : iceServers = iceServers ?? {
           'iceServers': [
@@ -41,7 +43,9 @@ class SignalingConfig {
 }
 
 class Signaling {
-  Signaling(this.context, {required String uid}) : uid = uid;
+  Signaling(this.context, {required String uid, required String token})
+      : uid = uid,
+        config = SignalingConfig(token: token);
 
   final JsonEncoder encoder = JsonEncoder();
   final JsonDecoder decoder = JsonDecoder();
@@ -49,13 +53,20 @@ class Signaling {
   SimpleWebSocket? socket;
   BuildContext? context;
 
-  var config = SignalingConfig();
+  late SignalingConfig config;
   var turnCredential;
   final Map<String, Session> sessions = {};
   MediaStream? localStream;
   final List<MediaStream> remoteStreams = <MediaStream>[];
   final List<RTCRtpSender> senders = <RTCRtpSender>[];
   VideoSource videoSource = VideoSource.Camera;
+
+  int _reconnectAttempts = 0;
+  Timer? _reconnectTimer;
+  Timer? _keepaliveTimer;
+  Timer? _keepaliveTimeout;
+  bool _intentionalClose = false;
+  bool _connected = false;
 
   Function(SignalingState state)? onSignalingStateChange;
   Function(Session session, CallState state)? onCallStateChange;
@@ -66,6 +77,7 @@ class Signaling {
   Function(Session session, RTCDataChannel dc, RTCDataChannelMessage data)?
       onDataChannelMessage;
   Function(Session session, RTCDataChannel dc)? onDataChannel;
+  Function()? onReconnect;
 
   String get sdpSemantics => 'unified-plan';
 
@@ -83,8 +95,12 @@ class Signaling {
 
   close() async {
     L.d('RTC close');
+    _intentionalClose = true;
+    _stopReconnect();
+    _stopKeepalive();
     await cleanSessions();
     socket?.close();
+    socket = null;
   }
 
   void switchCamera() {
@@ -100,16 +116,46 @@ class Signaling {
     }
   }
 
-  void switchToScreenSharing(MediaStream stream) {
-    L.d('RTC switch to screen sharing');
-    if (localStream != null && videoSource != VideoSource.Screen) {
-      senders.forEach((sender) {
-        if (sender.track!.kind == 'video') {
-          sender.replaceTrack(stream.getVideoTracks()[0]);
-        }
+  Future<void> startScreenSharing() async {
+    if (videoSource == VideoSource.Screen) return;
+    L.d('RTC start screen sharing');
+    try {
+      final stream = await rtc.navigator.mediaDevices.getDisplayMedia({
+        'video': {
+          'mandatory': {'minWidth': '1280', 'minHeight': '720'},
+        },
+        'audio': false,
       });
-      onLocalStream?.call(stream);
-      videoSource = VideoSource.Screen;
+      if (localStream != null && stream.getVideoTracks().isNotEmpty) {
+        for (final sender in senders) {
+          if (sender.track?.kind == 'video') {
+            await sender.replaceTrack(stream.getVideoTracks()[0]);
+          }
+        }
+        stream.getVideoTracks()[0].onEnded = () {
+          L.d('screen sharing stopped by system');
+          stopScreenSharing();
+        };
+        videoSource = VideoSource.Screen;
+        onLocalStream?.call(stream);
+      }
+    } catch (e) {
+      L.d('start screen sharing error: $e');
+    }
+  }
+
+  Future<void> stopScreenSharing() async {
+    if (videoSource != VideoSource.Screen) return;
+    L.d('RTC stop screen sharing');
+    if (localStream != null) {
+      final cameraStream = await _createCameraStream();
+      for (final sender in senders) {
+        if (sender.track?.kind == 'video' && cameraStream.getVideoTracks().isNotEmpty) {
+          await sender.replaceTrack(cameraStream.getVideoTracks()[0]);
+        }
+      }
+      videoSource = VideoSource.Camera;
+      onLocalStream?.call(cameraStream);
     }
   }
 
@@ -253,38 +299,49 @@ class Signaling {
         break;
       case 'keepalive':
         L.d('meeting conn keepalive response');
+        _keepaliveTimeout?.cancel();
         break;
     }
   }
 
   Future<void> connect() async {
+    _intentionalClose = false;
+    _reconnectAttempts = 0;
+    _stopReconnect();
+
     var url = 'https://${config.host}:${config.port}/ws';
+    socket?.close();
     socket = SimpleWebSocket(url);
     L.d('connect to url: $url');
 
     if (turnCredential == null) {
       try {
-        turnCredential = await getTurnCredential(config.host, config.port);
-        config.iceServers = {
-          'iceServers': [
-            {
-              'urls': turnCredential['uris'][0],
-              'username': turnCredential['username'],
-              'credential': turnCredential['password'],
-            },
-          ],
-        };
+        turnCredential = await getTurnCredential(config.host, config.port, token: config.token);
+        if (turnCredential['urls'] != null) {
+          config.iceServers = {
+            'iceServers': [
+              {
+                'urls': turnCredential['urls'][0],
+                'username': turnCredential['username'],
+                'credential': turnCredential['credential'],
+              },
+            ],
+          };
+        }
       } catch (_) {}
     }
 
     socket?.onOpen = () {
       L.d('meeting connect on open');
+      _connected = true;
+      _reconnectAttempts = 0;
       onSignalingStateChange?.call(SignalingState.ConnectionOpen);
       send('new', {
+        'token': config.token,
         'name': DeviceInfo.label,
-        'id': uid,
         'user_agent': DeviceInfo.userAgent,
       });
+      _startKeepalive();
     };
     socket?.onMessage = (message) {
       L.d('meeting received data: $message');
@@ -292,9 +349,121 @@ class Signaling {
     };
     socket?.onClose = (int? code, String? reason) {
       L.d('meeting conn closed by server, [$code => $reason]');
+      _connected = false;
+      _stopKeepalive();
       onSignalingStateChange?.call(SignalingState.ConnectionClosed);
+      if (!_intentionalClose) {
+        _reconnect();
+      }
     };
     await socket?.connect();
+  }
+
+  void _reconnect() {
+    if (_intentionalClose) return;
+    _stopReconnect();
+    final delay = _reconnectDelay();
+    _reconnectAttempts++;
+    L.d('reconnect attempt $_reconnectAttempts in ${delay}ms');
+    _reconnectTimer = Timer(Duration(milliseconds: delay), () {
+      onSignalingStateChange?.call(SignalingState.ConnectionError);
+      connect();
+    });
+  }
+
+  int _reconnectDelay() {
+    const maxDelay = 16000;
+    int delay = 1000;
+    for (int i = 1; i < _reconnectAttempts; i++) {
+      delay *= 2;
+    }
+    return delay > maxDelay ? maxDelay : delay;
+  }
+
+  void _stopReconnect() {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+  }
+
+  void _startKeepalive() {
+    _stopKeepalive();
+    _keepaliveTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (!_connected) return;
+      send('keepalive', {});
+      _keepaliveTimeout?.cancel();
+      _keepaliveTimeout = Timer(const Duration(seconds: 5), () {
+        L.d('keepalive timeout, triggering reconnect');
+        _connected = false;
+        socket?.close();
+      });
+    });
+  }
+
+  void _stopKeepalive() {
+    _keepaliveTimer?.cancel();
+    _keepaliveTimer = null;
+    _keepaliveTimeout?.cancel();
+    _keepaliveTimeout = null;
+  }
+
+  void _setupSimulcastEncodings(RTCRtpSender sender) async {
+    try {
+      final params = sender.parameters;
+      params.encodings = [
+        RTCRtpEncoding(
+          rid: 'q',
+          active: true,
+          scaleResolutionDownBy: 4.0,
+          maxBitrate: 100000,
+        ),
+        RTCRtpEncoding(
+          rid: 'h',
+          active: true,
+          scaleResolutionDownBy: 2.0,
+          maxBitrate: 500000,
+        ),
+        RTCRtpEncoding(
+          rid: 'f',
+          active: true,
+          scaleResolutionDownBy: 1.0,
+          maxBitrate: 1500000,
+        ),
+      ];
+      await sender.setParameters(params);
+      L.d('simulcast encodings set up');
+    } catch (e) {
+      L.d('simulcast setup error (non-fatal): $e');
+    }
+  }
+
+  void _onIceConnectionState(RTCIceConnectionState state, Session session) async {
+    L.d('ICE connection state: $state');
+    if (!senders.any((s) => s.track?.kind == 'video')) return;
+    try {
+      final videoSender = senders.firstWhere((s) => s.track?.kind == 'video');
+      final params = videoSender.parameters;
+      final encodings = params.encodings;
+      if (encodings == null || encodings.isEmpty) return;
+      switch (state) {
+        case RTCIceConnectionState.RTCIceConnectionStateConnected:
+        case RTCIceConnectionState.RTCIceConnectionStateCompleted:
+          for (final e in encodings) {
+            e.active = true;
+          }
+          break;
+        case RTCIceConnectionState.RTCIceConnectionStateDisconnected:
+        case RTCIceConnectionState.RTCIceConnectionStateFailed:
+          for (final e in encodings) {
+            e.active = false;
+          }
+          break;
+        default:
+          break;
+      }
+      await videoSender.setParameters(params);
+    } catch (e) {
+      L.d('BWE update error: $e');
+    }
   }
 
   Future<MediaStream> createStream(
@@ -302,6 +471,20 @@ class Signaling {
     bool userScreen, {
     BuildContext? context,
   }) async {
+    if (userScreen) {
+      final stream = await rtc.navigator.mediaDevices.getDisplayMedia({
+        'video': {
+          'mandatory': {'minWidth': '1280', 'minHeight': '720'},
+        },
+        'audio': false,
+      });
+      onLocalStream?.call(stream);
+      return stream;
+    }
+    return _createCameraStream();
+  }
+
+  Future<MediaStream> _createCameraStream() async {
     await FlutterMacosPermissions.requestCamera();
     var devices = await rtc.navigator.mediaDevices.enumerateDevices();
     for (var d in devices) {
@@ -316,6 +499,11 @@ class Signaling {
         },
         'facingMode': 'user',
         'optional': [],
+      },
+      'audio': {
+        'echoCancellation': true,
+        'noiseSuppression': true,
+        'autoGainControl': true,
       },
     };
     var stream = await rtc.navigator.mediaDevices.getUserMedia(mediaContraints);
@@ -355,7 +543,11 @@ class Signaling {
             }
           };
           localStream!.getTracks().forEach((track) async {
-            senders.add(await pc.addTrack(track, localStream!));
+            final sender = await pc.addTrack(track, localStream!);
+            senders.add(sender);
+            if (track.kind == 'video') {
+              _setupSimulcastEncodings(sender);
+            }
           });
           break;
       }
@@ -377,7 +569,9 @@ class Signaling {
       );
     };
 
-    pc.onIceConnectionState = (state) {};
+    pc.onIceConnectionState = (state) {
+      _onIceConnectionState(state, newSession);
+    };
     pc.onRemoveStream = (stream) {
       onRemoveRemoteStream?.call(newSession, stream);
       remoteStreams.removeWhere((it) => it.id == stream.id);
@@ -413,11 +607,15 @@ class Signaling {
     addDataChannel(session, channel);
   }
 
-  Future<void> createOffer(Session session, String media) async {
+  Future<void> createOffer(Session session, String media,
+      {bool iceRestart = false}) async {
     try {
-      RTCSessionDescription s = await session.pc!.createOffer(
-        media == 'data' ? dcConstraints : {},
-      );
+      final constraints = Map<String, dynamic>.from(
+          media == 'data' ? dcConstraints : {});
+      if (iceRestart) {
+        constraints['iceRestart'] = true;
+      }
+      RTCSessionDescription s = await session.pc!.createOffer(constraints);
       await session.pc!.setLocalDescription(fixSdp(s));
       send('offer', {
         'to': session.pid,
@@ -506,14 +704,15 @@ class Signaling {
   }
 }
 
-Future<Map> getTurnCredential(String host, int port) async {
+Future<Map> getTurnCredential(String host, int port, {String? token}) async {
   HttpClient client = HttpClient(context: SecurityContext());
   client.badCertificateCallback =
       (X509Certificate cert, String host, int port) {
     L.d('getTurnCredential: Allow self-signed certificate => $host:$port.');
     return true;
   };
-  var url = 'https://$host:$port/api/turn?service=turn&username=flutter-webrtc';
+  var queryParams = 'token=$token';
+  var url = 'https://$host:$port/api/turn?$queryParams';
   var request = await client.getUrl(Uri.parse(url));
   var response = await request.close();
   var responseBody = await response.transform(Utf8Decoder()).join();

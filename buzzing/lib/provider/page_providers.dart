@@ -6,6 +6,7 @@ import '../page/meeting/meeting_logic.dart';
 import '../page/contact/contact_logic.dart';
 import '../page/chat/chat_logic.dart';
 import '../page/feed/feed_logic.dart';
+import '../utils/data_persistence.dart';
 import 'sdk_provider.dart';
 import 'im_provider.dart';
 import 'app_state_provider.dart';
@@ -34,7 +35,9 @@ final calendarLogicProvider = Provider.autoDispose<CalendarLogic>((ref) {
 
 final meetingLogicProvider = Provider.autoDispose<MeetingLogic>((ref) {
   final app = ref.watch(appControllerProvider);
-  final logic = MeetingLogic(app: app);
+  final account = DataPersistence.getAccount();
+  final token = account?.loginUser?.token ?? '';
+  final logic = MeetingLogic(app: app, token: token);
   logic.init();
   return logic;
 });
