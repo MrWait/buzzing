@@ -1,32 +1,81 @@
-use axum::Router;
 use axum::extract::WebSocketUpgrade;
 use axum::extract::ws::{Message, WebSocket};
 use axum::response::IntoResponse;
-use axum::routing::any;
-use axum_server::tls_rustls::RustlsConfig;
 use futures_util::stream::StreamExt;
-use loco_rs::Error;
+use loco_rs::auth;
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::cell::OnceCell;
 use std::collections::HashMap;
-use std::net::SocketAddr;
-use std::path::PathBuf;
 use std::str::FromStr;
-use std::sync::{Arc, LazyLock, Mutex};
-use strum::{EnumCount, EnumString, FromRepr, IntoStaticStr};
-use tokio::signal;
+use std::sync::{Arc, LazyLock, OnceLock};
+use strum::{EnumString, IntoStaticStr};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::debug;
 
 use common::lock::RwLock;
-use common::{ExternApp, common_error};
+use common::{UserBrief, common_error};
 
 type WsConn = Arc<mpsc::UnboundedSender<Message>>;
-const SHARE_KEY: &str = "flutter-webrtc-turn-server-shared-key";
 static SIGNALER: LazyLock<RwLock<Signaler>> = LazyLock::new(|| RwLock::new(Signaler::default()));
+static JWT_SECRET: OnceLock<String> = OnceLock::new();
+
+pub fn init_jwt(secret: String) {
+    let _ = JWT_SECRET.set(secret);
+}
+
+pub fn validate_token(token: &str) -> Result<UserBrief, String> {
+    let secret = JWT_SECRET.get().ok_or("JWT not configured")?;
+    let claims = auth::jwt::JWT::new(secret)
+        .validate(token)
+        .map_err(|e| format!("invalid token: {e}"))?;
+    UserBrief::from_string(&claims.claims.pid).map_err(|e| format!("invalid claims: {e}"))
+}
+
+#[derive(Deserialize)]
+struct NewPeerRequest {
+    token: String,
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    user_agent: String,
+}
+
+async fn handle_new_peer(data: Value, tx: &mpsc::UnboundedSender<Message>) -> Result<String, String> {
+    let req: NewPeerRequest =
+        serde_json::from_value(data).map_err(|_| "invalid request".to_string())?;
+
+    let secret = JWT_SECRET.get().ok_or("JWT not configured")?;
+    let claims = auth::jwt::JWT::new(secret)
+        .validate(&req.token)
+        .map_err(|e| format!("invalid token: {e}"))?;
+
+    let brief = UserBrief::from_string(&claims.claims.pid)
+        .map_err(|e| format!("invalid claims: {e}"))?;
+
+    let peer_id = brief.id.to_string();
+    let info = PeerInfo {
+        id: peer_id.clone(),
+        name: req.name,
+        user_agent: req.user_agent,
+        user_id: brief.id,
+        tenant_id: brief.tenant_id,
+    };
+    debug!("new peer registered: {info:?}");
+
+    {
+        let mut signaler = SIGNALER.write();
+        signaler.peers.insert(peer_id.clone(), Peer {
+            info,
+            conn: Arc::new(tx.clone()),
+        });
+    }
+
+    Ok(peer_id)
+}
+
 pub async fn meeting_handler(ws: WebSocketUpgrade) -> impl IntoResponse {
     debug!("ws handler");
     ws.on_upgrade(move |socket| handle_socket_meeting(socket))
@@ -40,7 +89,7 @@ async fn handle_socket_meeting(ws: WebSocket) {
         let rx_stream = UnboundedReceiverStream::new(rx);
         let _ = rx_stream.map(Ok).forward(user_ws_tx).await;
     });
-    let mut peer_id: OnceCell<String> = OnceCell::new();
+    let peer_id: OnceCell<String> = OnceCell::new();
     while let Some(Ok(message)) = user_ws_rx.next().await {
         match message {
             Message::Text(msg) => {
@@ -48,20 +97,21 @@ async fn handle_socket_meeting(ws: WebSocket) {
                 if let Ok(req) = serde_json::from_str::<Request>(&msg) {
                     match SignalType::from_str(&req.r#type) {
                         Ok(SignalType::New) => {
-                            if let Ok(info) = serde_json::from_value::<PeerInfo>(req.data) {
-                                debug!("handle new peer request, ${info:?}");
-                                peer_id.set(info.id.clone());
-                                {
-                                    let mut signaler = SIGNALER.write();
-                                    signaler.peers.insert(
-                                        info.id.clone(),
-                                        Peer {
-                                            info,
-                                            conn: Arc::new(tx.clone()),
-                                        },
-                                    );
+                            match handle_new_peer(req.data, &tx).await {
+                                Ok(pid) => {
+                                    let _ = peer_id.set(pid);
+                                    let _ = notify_peers_update().await;
                                 }
-                                let _ = notify_peers_update().await;
+                                Err(err_msg) => {
+                                    let req = Request {
+                                        r#type: "error".to_owned(),
+                                        data: serde_json::json!({"reason": err_msg}),
+                                    };
+                                    if let Ok(s) = serde_json::to_string(&req) {
+                                        let _ = tx.send(Message::Text(s.into()));
+                                    }
+                                    break;
+                                }
                             }
                         }
                         Ok(SignalType::Bye) => {
@@ -97,13 +147,13 @@ async fn handle_socket_meeting(ws: WebSocket) {
                                             let signaler = SIGNALER.read();
                                             if let Some(peer) = signaler.peers.get(id) {
                                                 debug!("send bye to peer: {:?}, {s:?}", peer.info);
-                                                peer.conn.send(Message::Text(s.into()));
+                                                let _ = peer.conn.send(Message::Text(s.into()));
                                             }
                                         }
                                         Ok::<(), Error>(())
                                     };
-                                    send_bye(&bye.session_id, &ids[0]);
-                                    send_bye(&bye.session_id, &ids[1]);
+                                    let _ = send_bye(&bye.session_id, &ids[0]);
+                                    let _ = send_bye(&bye.session_id, &ids[1]);
                                 }
                             } else {
                                 debug!("parse bye message error");
@@ -157,11 +207,11 @@ async fn handle_socket_meeting(ws: WebSocket) {
 
 async fn notify_peers_update() -> Result<()> {
     let conns;
-    let mut req;
+    let req;
     {
-        let mut signaler = SIGNALER.write();
+        let signaler = SIGNALER.read();
         conns = signaler.conns();
-        let mut peers: Vec<PeerInfo> = signaler.peers.values().map(|p| p.info.clone()).collect();
+        let peers: Vec<PeerInfo> = signaler.peers.values().map(|p| p.info.clone()).collect();
         req = Request {
             r#type: "peers".to_owned(),
             data: serde_json::to_value(peers)?,
@@ -177,7 +227,7 @@ async fn notify_peers_update() -> Result<()> {
 fn send_to_peers(conns: Vec<WsConn>, msg: Message) {
     debug!("send to peers: {msg:?}");
     for conn in conns {
-        conn.send(msg.clone());
+        let _ = conn.send(msg.clone());
     }
 }
 
@@ -238,6 +288,10 @@ struct PeerInfo {
     pub id: String,
     pub name: String,
     pub user_agent: String,
+    #[serde(default)]
+    pub user_id: i64,
+    #[serde(default)]
+    pub tenant_id: i64,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
