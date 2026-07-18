@@ -1,9 +1,6 @@
-import 'dart:math';
-
 import 'package:buzzing/controller/app_controller.dart';
 import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/utils/logger_util.dart';
-import 'package:buzzing/utils/random_string.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
@@ -13,15 +10,16 @@ import 'signaling/signaling.dart';
 class MeetingLogic extends ChangeNotifier {
   var inCalling = false;
   Signaling? signaling;
-  String uid = randomNumeric(6);
+  String uid = '';
   List<dynamic> peers = [];
   final RTCVideoRenderer localRenderer = RTCVideoRenderer();
   final RTCVideoRenderer remoteRenderer = RTCVideoRenderer();
   Session? session;
   bool waitAccept = false;
   final AppController app;
+  final String token;
 
-  MeetingLogic({required this.app});
+  MeetingLogic({required this.app, required this.token});
 
   void init() {
     initRenderers();
@@ -33,7 +31,10 @@ class MeetingLogic extends ChangeNotifier {
   }
 
   void createMeeting() {
-    app.createWindow('VcWindow', true, true, {});
+    app.createWindow('VcWindow', true, true, {
+      'token': token,
+      'uid': uid,
+    });
   }
 
   void joinMeeting() {}
@@ -42,20 +43,29 @@ class MeetingLogic extends ChangeNotifier {
     signaling?.switchCamera();
   }
 
+  void startScreenSharing() {
+    signaling?.startScreenSharing();
+  }
+
+  void stopScreenSharing() {
+    signaling?.stopScreenSharing();
+  }
+
   void muteMic() {
     signaling?.muteMic();
   }
 
   void connect(BuildContext context) async {
-    signaling ??= Signaling(context, uid: uid)..connect();
-    signaling?.onSignalingStateChange = (SignalingState state) {
+    if (signaling == null) {
+      signaling = Signaling(context, uid: uid, token: token);
+    }
+    signaling!.connect();
+
+    signaling!.onSignalingStateChange = (SignalingState state) {
       L.d('[RTC] signaling state changed: $state');
-      if (state == SignalingState.ConnectionClosed) {
-        signaling = null;
-      }
     };
 
-    signaling?.onCallStateChange = (Session newSession, CallState state) async {
+    signaling!.onCallStateChange = (Session newSession, CallState state) async {
       L.d('[RTC] call state change: ${newSession.sid}, $state');
       switch (state) {
         case CallState.CallStateNew:
@@ -96,23 +106,29 @@ class MeetingLogic extends ChangeNotifier {
       }
     };
 
-    signaling?.onPeerUpdate = (event) {
+    signaling!.onPeerUpdate = (event) {
       L.d('[RTC] peer update: $event');
       uid = event['self'];
       peers = event['peers'];
       notifyListeners();
     };
-    signaling?.onLocalStream = (stream) {
+    signaling!.onLocalStream = (stream) {
       L.d('[RTC] local stream opened');
       localRenderer.srcObject = stream;
     };
-    signaling?.onAddRemoteStream = (_, stream) {
+    signaling!.onAddRemoteStream = (_, stream) {
       L.d('[RTC] add remote stream');
       remoteRenderer.srcObject = stream;
     };
-    signaling?.onRemoveRemoteStream = (_, stream) {
+    signaling!.onRemoveRemoteStream = (_, stream) {
       L.d('[RTC] remove remote stream');
       remoteRenderer.srcObject = null;
+    };
+    signaling!.onReconnect = () {
+      L.d('[RTC] signaling reconnected');
+      if (session != null && inCalling) {
+        signaling!.createOffer(session!, 'video', iceRestart: true);
+      }
     };
   }
 

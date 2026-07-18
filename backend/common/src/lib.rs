@@ -53,6 +53,7 @@ pub struct Settings {
     pub union_hub: Option<String>,
     pub cert: Option<String>,
     pub cert_key: Option<String>,
+    pub turn_secret: Option<String>,
 }
 
 #[derive(Debug, Default)]

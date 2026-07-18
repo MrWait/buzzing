@@ -8,6 +8,7 @@ use axum::debug_handler;
 use axum::extract::Multipart;
 use axum::http::HeaderMap;
 use loco_rs::{Error, Result, app::AppContext, prelude::*};
+use prost::Message;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{debug, instrument};
@@ -132,8 +133,16 @@ pub(crate) async fn handle_gateway(
             .await
             .map_err(|_| Error::BadRequest("handle error".to_string()))?;
 
+        let res_packet = entity::Packet {
+            rid,
+            cmd,
+            code,
+            payload: data,
+            ..Default::default()
+        };
+        let encoded = res_packet.encode_to_vec();
         let headers = [("rid", rid.to_string()), ("code", code.to_string())];
-        let res = Body::from(data);
+        let res = Body::from(encoded);
 
         Ok((headers, res))
     } else {

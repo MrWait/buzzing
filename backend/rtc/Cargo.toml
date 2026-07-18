@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-axum = { workspace = true }
+axum = { workspace = true, features = ["ws"] }
 axum-server = { workspace = true }
 futures-util = { workspace = true }
 loco-rs = { workspace = true }
@@ -16,5 +16,8 @@ tracing = { workspace = true }
 tokio-stream= { workspace = true }
 uuid = { version = "1.6.0", features = ["v4"] }
 webrtc = "0.14.0"
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
 
 common = { workspace = true }
