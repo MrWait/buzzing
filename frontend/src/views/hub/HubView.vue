@@ -17,6 +17,11 @@
         <div class="card-name">任务</div>
         <div class="card-desc">任务管理</div>
       </div>
+      <div class="module-card" @click="goMeeting">
+        <div class="card-icon" style="background:#fce4ec; color:#c62828">📹</div>
+        <div class="card-name">视频会议</div>
+        <div class="card-desc">音视频通话</div>
+      </div>
     </div>
   </div>
 </template>
@@ -36,6 +41,10 @@ function goCalendar() {
 
 function goTodo() {
   // TODO: navigate to todo module when available
+}
+
+function goMeeting() {
+  router.push({ name: 'MeetingRoom', params: { roomId: 'default' } })
 }
 </script>
 

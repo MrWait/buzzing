@@ -1,29 +1,30 @@
-use axum::Router;
-use axum::extract::WebSocketUpgrade;
-use axum::extract::ws::{Message, WebSocket};
-use axum::response::IntoResponse;
-use axum::routing::any;
-use axum_server::tls_rustls::RustlsConfig;
-use futures_util::stream::StreamExt;
+use common::common_error;
 use loco_rs::prelude::*;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::net::{IpAddr, SocketAddr};
-use std::path::PathBuf;
+use std::net::IpAddr;
 use std::str::FromStr;
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::Arc;
+use std::sync::OnceLock;
 use std::time::Duration;
 use tokio::net::UdpSocket;
-use tokio::sync::mpsc;
-use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::debug;
 use webrtc::turn::relay::relay_static::RelayAddressGeneratorStatic;
-use webrtc::turn::{self, auth, server};
+use webrtc::turn::{auth, server};
 use webrtc::util::vnet;
 
-use common::{ExternApp, common_error};
+static TURN_SECRET: OnceLock<String> = OnceLock::new();
 
-pub async fn serve(ctx: &AppContext) -> Result<()> {
+pub fn init_secret(secret: String) {
+    let _ = TURN_SECRET.set(secret);
+}
+
+pub fn generate_credential() -> (String, String) {
+    let secret = TURN_SECRET.get().map(|s| s.as_str()).unwrap_or("");
+    auth::generate_long_term_credentials(secret, Duration::from_secs(86400)).unwrap_or_default()
+}
+
+pub async fn serve() -> Result<()> {
+    let secret = TURN_SECRET.get().map(|s| s.as_str()).unwrap_or("").to_string();
+
     let conn = Arc::new(UdpSocket::bind("0.0.0.0:19302").await?);
     debug!("create turn bind ok: {:?}", conn.local_addr());
 
@@ -38,7 +39,7 @@ pub async fn serve(ctx: &AppContext) -> Result<()> {
             }),
         }],
         realm: "flutter-webrtc".to_owned(),
-        auth_handler: Arc::new(RtcAuthHandler::new()),
+        auth_handler: Arc::new(auth::LongTermAuthHandler::new(secret)),
         channel_bind_timeout: Duration::from_secs(0),
         alloc_close_notify: None,
     };
@@ -50,31 +51,4 @@ pub async fn serve(ctx: &AppContext) -> Result<()> {
         .await
         .map_err(|e| common_error(&e.to_string()))?;
     Ok(())
-}
-
-struct RtcAuthHandler {
-    cred_map: HashMap<String, Vec<u8>>,
-}
-
-impl RtcAuthHandler {
-    fn new() -> Self {
-        Self {
-            cred_map: HashMap::new(),
-        }
-    }
-}
-
-impl auth::AuthHandler for RtcAuthHandler {
-    fn auth_handle(
-        &self,
-        username: &str,
-        realm: &str,
-        src_addr: SocketAddr,
-    ) -> std::result::Result<Vec<u8>, turn::Error> {
-        if let Some(pw) = self.cred_map.get(username) {
-            Ok(pw.to_vec())
-        } else {
-            Err(turn::Error::ErrFakeErr)
-        }
-    }
 }
