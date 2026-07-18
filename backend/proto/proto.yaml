@@ -8,6 +8,7 @@ files: [
 ../../proto/entity.proto,
 ../../proto/error.proto,
 ../../proto/feed.proto,
+../../proto/meeting.proto,
 ../../proto/message.proto,
 ../../proto/pipeline.proto,
 ../../proto/sdk.proto,
@@ -56,3 +57,8 @@ messages:
     attrs:
       - derive(serde::Serialize, serde::Deserialize)
       - serde(default)
+  - paths: [meeting.MeetingSettings]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+

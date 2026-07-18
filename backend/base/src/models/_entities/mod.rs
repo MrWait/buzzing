@@ -4,6 +4,8 @@ pub mod prelude;
 
 pub mod accounts;
 pub mod calendars;
+pub mod meeting_members;
+pub mod meetings;
 pub mod chats;
 pub mod cmvs;
 pub mod cycleds;

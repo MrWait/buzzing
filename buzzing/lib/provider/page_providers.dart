@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../page/login/login_logic.dart';
 import '../page/splash/splash_logic.dart';
 import '../page/calendar/calendar_logic.dart';
+import '../page/meeting/meeting_home_logic.dart';
 import '../page/meeting/meeting_logic.dart';
 import '../page/contact/contact_logic.dart';
 import '../page/chat/chat_logic.dart';
@@ -33,11 +34,20 @@ final calendarLogicProvider = Provider.autoDispose<CalendarLogic>((ref) {
   return logic;
 });
 
+final meetingHomeLogicProvider = Provider.autoDispose<MeetingHomeLogic>((ref) {
+  final sdk = ref.watch(sdkProvider);
+  final logic = MeetingHomeLogic(sdk: sdk);
+  logic.init();
+  return logic;
+});
+
 final meetingLogicProvider = Provider.autoDispose<MeetingLogic>((ref) {
   final app = ref.watch(appControllerProvider);
   final account = DataPersistence.getAccount();
-  final token = account?.loginUser?.token ?? '';
-  final logic = MeetingLogic(app: app, token: token);
+  var accountLoginUser = account?.loginUser;
+  final token = accountLoginUser?.token ?? '';
+  final userName = accountLoginUser?.user.name ?? '';
+  final logic = MeetingLogic(app: app, token: token, userName: userName);
   logic.init();
   return logic;
 });

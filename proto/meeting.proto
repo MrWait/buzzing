@@ -1,0 +1,143 @@
+syntax = "proto3";
+package meeting;
+option go_package = "./proto";
+import "entity.proto";
+
+enum MeetingStatus {
+    MEETING_UNKNOWN = 0;
+    MEETING_ACTIVE = 1;
+    MEETING_ENDED = 2;
+}
+
+message MeetingSettings {
+    bool mute_on_entry = 1;
+    bool allow_screen_share = 2;
+    bool record_enabled = 3;
+}
+
+message MeetingMember {
+    int64 user_id = 1;
+    int32 role = 2;
+    int32 status = 3;
+    int64 joined_at = 4;
+    int64 left_at = 5;
+}
+
+message MeetingInfo {
+    string room_id = 1;
+    int64 host_id = 2;
+    repeated int64 member_ids = 3;
+    string title = 4;
+    int64 created_at = 5;
+    string password = 6;
+    MeetingStatus status = 7;
+    // M3 additions
+    int64 id = 8;
+    int64 scheduled_at = 9;
+    int64 started_at = 10;
+    int64 ended_at = 11;
+    int64 tenant_id = 12;
+    repeated MeetingMember members = 13;
+    MeetingSettings settings = 14;
+    int32 max_participants = 15;
+}
+
+// --- M3 request/response additions ---
+
+message MeetingCreateRequest {
+    string title = 1;
+    string password = 2;
+    int64 scheduled_at = 3;
+    int32 max_participants = 4;
+    MeetingSettings settings = 5;
+}
+message MeetingCreateResponse {
+    MeetingInfo meeting = 1;
+}
+
+enum MeetingListFilter {
+    MEETING_LIST_UNSPECIFIED = 0;
+    MEETING_LIST_ACTIVE = 1;
+    MEETING_LIST_HISTORY = 2;
+    MEETING_LIST_SCHEDULED = 3;
+}
+
+message MeetingGetListRequest {
+    MeetingListFilter filter = 1;
+    int32 page = 2;
+    int32 page_size = 3;
+}
+message MeetingGetListResponse {
+    repeated MeetingInfo meetings = 1;
+    int32 total = 2;
+}
+
+enum MeetingPushAction {
+    MEETING_PUSH_UNSPECIFIED = 0;
+    MEETING_PUSH_JOINED = 1;
+    MEETING_PUSH_LEFT = 2;
+    MEETING_PUSH_ENDED = 3;
+    MEETING_PUSH_KICKED = 4;
+    MEETING_PUSH_ROLE_CHANGED = 5;
+    MEETING_PUSH_INVITED = 6;
+    MEETING_PUSH_REMINDER = 7;
+}
+
+message MeetingPushUpdate {
+    MeetingInfo meeting = 1;
+    MeetingPushAction action = 2;
+}
+
+message MeetingInvite {
+    string room_id = 1;
+    int64 meeting_id = 2;
+    string title = 3;
+    int64 host_id = 4;
+    string host_name = 5;
+}
+
+// --- Existing messages (unchanged) ---
+
+message JoinMeetingRequest {
+    string room_id = 1;
+    string password = 2;
+}
+message JoinMeetingResponse {
+    MeetingInfo meeting = 1;
+}
+
+message LeaveMeetingRequest {
+    string room_id = 1;
+}
+message LeaveMeetingResponse {}
+
+message EndMeetingRequest {
+    string room_id = 1;
+}
+message EndMeetingResponse {}
+
+message GetMeetingInfoRequest {
+    string room_id = 1;
+}
+message GetMeetingInfoResponse {
+    MeetingInfo meeting = 1;
+}
+
+message KickMeetingRequest {
+    string room_id = 1;
+    int64 target_id = 2;
+}
+message KickMeetingResponse {}
+
+message SetRoleRequest {
+    string room_id = 1;
+    int64 target_id = 2;
+    int32 role = 3;
+}
+message SetRoleResponse {}
+
+message InviteMeetingRequest {
+    string room_id = 1;
+    repeated int64 target_ids = 2;
+}
+message InviteMeetingResponse {}

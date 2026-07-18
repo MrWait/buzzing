@@ -4,6 +4,7 @@ files = [
       "entity.proto",
       "error.proto",
       "gateway.proto",
+      "meeting.proto",
       "sdk.proto",
       "service.proto",
       "types.proto",

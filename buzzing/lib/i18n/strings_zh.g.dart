@@ -125,6 +125,11 @@ class TranslationsZh with BaseTranslations<AppLocale, Translations> implements T
 	@override String get hangup => '挂断';
 	@override String get muteMic => '麦克风静音';
 	@override String get shareScreen => '共享屏幕';
+	@override String get stopScreenShare => '停止共享';
+	@override String get shareEntireScreen => '整个桌面';
+	@override String get shareEntireScreenDesc => '共享整个桌面屏幕';
+	@override String get shareWindow => '应用窗口';
+	@override String get shareWindowDesc => '共享特定应用窗口';
 	@override String get self => '自己';
 	@override String get pickup => '接听';
 	@override String get refuse => '拒绝';
@@ -536,6 +541,9 @@ class TranslationsZh with BaseTranslations<AppLocale, Translations> implements T
 	@override String get groupCallForbidden => '当前群正在通话中，你确定加入当前通话吗？';
 	@override String get launchMeeting => '发起会议';
 	@override String get joinMeeting => '加入会议';
+	@override String get readyToJoin => '准备加入会议';
+	@override String get microphoneDevice => '麦克风';
+	@override String get cameraDevice => '摄像头';
 	@override String get plsInputMeetingSubject => '请输入会议主题';
 	@override String get meetingStartTime => '开始时间';
 	@override String get meetingDuration => '会议时长';
@@ -704,6 +712,13 @@ class TranslationsZh with BaseTranslations<AppLocale, Translations> implements T
 	@override String get emptyDocs => '暂无文档';
 	@override String get deleteDoc => '删除文档';
 	@override String get noSpaces => '暂无空间';
+	@override String get speakerView => '演讲者';
+	@override String get gridView => '网格';
+	@override String get meetingChat => '会议聊天';
+	@override String get noMessages => '暂无消息';
+	@override String get chatPlaceholder => '输入消息...';
+	@override String get joinedMeeting => '加入了会议';
+	@override String get leftMeeting => '离开了会议';
 }
 
 /// The flat map containing all translations for locale <zh>.
@@ -802,6 +817,11 @@ extension on TranslationsZh {
 			'hangup' => '挂断',
 			'muteMic' => '麦克风静音',
 			'shareScreen' => '共享屏幕',
+			'stopScreenShare' => '停止共享',
+			'shareEntireScreen' => '整个桌面',
+			'shareEntireScreenDesc' => '共享整个桌面屏幕',
+			'shareWindow' => '应用窗口',
+			'shareWindowDesc' => '共享特定应用窗口',
 			'self' => '自己',
 			'pickup' => '接听',
 			'refuse' => '拒绝',
@@ -1213,11 +1233,16 @@ extension on TranslationsZh {
 			'groupCallForbidden' => '当前群正在通话中，你确定加入当前通话吗？',
 			'launchMeeting' => '发起会议',
 			'joinMeeting' => '加入会议',
+			'readyToJoin' => '准备加入会议',
+			'microphoneDevice' => '麦克风',
+			'cameraDevice' => '摄像头',
 			'plsInputMeetingSubject' => '请输入会议主题',
 			'meetingStartTime' => '开始时间',
 			'meetingDuration' => '会议时长',
 			'enterMeeting' => '进入会议',
 			'meetingNo' => '会议号',
+			_ => null,
+		} ?? switch (path) {
 			'yourMeetingName' => '您的名称',
 			'plsInputMeetingNumber' => '请输入会议号',
 			'plsInputYouMeetingName' => '请输入您的名称',
@@ -1226,8 +1251,6 @@ extension on TranslationsZh {
 			'meetingDurationIs' => '会议时长：%s',
 			'meetingNumberIs' => '会议号：%s',
 			'meetingMessageClickHint' => '点击此消息可直接加入会议',
-			_ => null,
-		} ?? switch (path) {
 			'meetingMessage' => '会议消息',
 			'openMeeting' => '未结束会议',
 			'didNotStart' => '未开始',
@@ -1383,6 +1406,13 @@ extension on TranslationsZh {
 			'emptyDocs' => '暂无文档',
 			'deleteDoc' => '删除文档',
 			'noSpaces' => '暂无空间',
+			'speakerView' => '演讲者',
+			'gridView' => '网格',
+			'meetingChat' => '会议聊天',
+			'noMessages' => '暂无消息',
+			'chatPlaceholder' => '输入消息...',
+			'joinedMeeting' => '加入了会议',
+			'leftMeeting' => '离开了会议',
 			_ => null,
 		};
 	}

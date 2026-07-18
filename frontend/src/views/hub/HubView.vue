@@ -44,7 +44,7 @@ function goTodo() {
 }
 
 function goMeeting() {
-  router.push({ name: 'MeetingRoom', params: { roomId: 'default' } })
+  router.push({ name: 'MeetingHome' })
 }
 </script>
 

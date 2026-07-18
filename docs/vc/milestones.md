@@ -569,6 +569,8 @@ server: {
 |------|------|----------|
 | SFU 选型错误导致架构重做 | 高 | M5 前充分 PoC 评估 |
 | WebRTC 在 Flutter Desktop 兼容性 | 中 | 关注 flutter_webrtc 版本更新 |
+| **码率自适应迟迟无法落地** | 中 | Flutter 侧 `getStats()` 返回值平台相关（macOS vs Windows 格式不同），Web 侧 `RTCRtpSender.setParameters()` 浏览器兼容性差异大；降级/升级阈值需大量实测调参，无明确最优解。**当前 blocked**，建议 M5 SFU 架构升级后由 SFU 侧统一做带宽估计 |
+| **扬声器切换无法实现** | 低 | flutter_webrtc `RTCVideoRenderer` 未暴露 `setSinkId()`，桌面端（macOS/Windows）音频输出设备切换 API 支持有限。**当前 blocked**，需等待上游库支持或通过平台通道原生实现 |
 | 录制文件存储成本 | 中 | 限制录制时长 + 自动清理策略 |
 | ASR 服务成本 | 中 | 可配置第三方 API Key，按量计费 |
 | 浏览器 WebRTC API 差异（Safari vs Chrome） | 中 | 建立跨浏览器测试矩阵，使用 adapter.js |
