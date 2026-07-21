@@ -3,11 +3,13 @@ import 'package:buzzing/models/model.dart';
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/res/theme.dart';
+import 'package:buzzing/routes/app_routes.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/widget/message_input.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class ChatPage extends ConsumerWidget {
   @override
@@ -92,13 +94,17 @@ class _ChatHeader extends StatelessWidget {
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           ),
-          IconButton(
-            icon: Icon(Icons.more_horiz, size: 20, color: cs.onSurfaceVariant),
-            onPressed: () {},
-            visualDensity: VisualDensity.compact,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-          ),
+          if (chat != null && chat.chatType == 2) ...[
+            IconButton(
+              icon: Icon(Icons.more_horiz, size: 20, color: cs.onSurfaceVariant),
+              onPressed: () {
+                context.push('${AppRoute.GROUP_PROFILE}/$chatId');
+              },
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            ),
+          ],
         ],
       ),
     );

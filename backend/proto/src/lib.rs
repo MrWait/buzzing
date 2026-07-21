@@ -38,4 +38,13 @@ pub mod idl {
     pub mod meeting {
         include!(concat!("./idl/meeting.rs"));
     }
+    pub mod mute {
+        include!(concat!("./idl/mute.rs"));
+    }
+    pub mod invite {
+        include!(concat!("./idl/invite.rs"));
+    }
+    pub mod join_request {
+        include!(concat!("./idl/join_request.rs"));
+    }
 }

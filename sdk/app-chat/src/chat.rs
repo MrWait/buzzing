@@ -58,6 +58,18 @@ impl AppChat {
         Ok(())
     }
 
+    pub(crate) async fn chat_update(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
+        let req = chat::UpdateChatRequest::decode(params)?;
+        debug!("chat update, req: {req:?}");
+        let ack = common_request::<chat::UpdateChatResponse>(
+            Command::ChatUpdate as i32,
+            req.encode_to_vec(),
+            None,
+        )
+        .await?;
+        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+    }
+
     pub async fn chat_quit(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
         let req = chat::QuitChatRequest::decode(params)?;
         debug!("chat quit, req: {req:?}");
@@ -88,5 +100,45 @@ impl AppChat {
 
     pub fn chat_get_draft(&self, _params: &[u8]) -> Result<(i32, Vec<u8>)> {
         Ok((0, vec![]))
+    }
+
+    // ─── M2: Announcement ───────────────────────────────────────────────
+
+    pub(crate) async fn chat_set_announcement(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
+        let req = chat::SetAnnouncementRequest::decode(params)?;
+        debug!("chat set announcement, req: {req:?}");
+        let ack = common_request::<chat::SetAnnouncementResponse>(
+            Command::ChatSetAnnouncement as i32,
+            req.encode_to_vec(),
+            None,
+        )
+        .await?;
+        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+    }
+
+    pub(crate) async fn chat_delete_announcement(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
+        let req = chat::DeleteAnnouncementRequest::decode(params)?;
+        debug!("chat delete announcement, req: {req:?}");
+        let ack = common_request::<chat::DeleteAnnouncementResponse>(
+            Command::ChatDeleteAnnouncement as i32,
+            req.encode_to_vec(),
+            None,
+        )
+        .await?;
+        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+    }
+
+    // ─── M2: Members ────────────────────────────────────────────────────
+
+    pub(crate) async fn chat_get_members(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
+        let req = chat::GetMembersRequest::decode(params)?;
+        debug!("chat get members, req: {req:?}");
+        let ack = common_request::<chat::GetMembersResponse>(
+            Command::ChatGetMembers as i32,
+            req.encode_to_vec(),
+            None,
+        )
+        .await?;
+        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
     }
 }

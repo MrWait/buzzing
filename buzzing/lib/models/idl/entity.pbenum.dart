@@ -392,6 +392,8 @@ class MessageType extends $pb.ProtobufEnum {
       MessageType._(14, _omitEnumNames ? '' : 'FORWARD');
   static const MessageType SYSTEM =
       MessageType._(15, _omitEnumNames ? '' : 'SYSTEM');
+  static const MessageType ANNOUNCEMENT =
+      MessageType._(16, _omitEnumNames ? '' : 'ANNOUNCEMENT');
 
   static const $core.List<MessageType> values = <MessageType>[
     MESSAGE_TYPE_UNKNOWN,
@@ -410,10 +412,11 @@ class MessageType extends $pb.ProtobufEnum {
     MARKDOWN,
     FORWARD,
     SYSTEM,
+    ANNOUNCEMENT,
   ];
 
   static final $core.List<MessageType?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 15);
+      $pb.ProtobufEnum.$_initByValueList(values, 16);
   static MessageType? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

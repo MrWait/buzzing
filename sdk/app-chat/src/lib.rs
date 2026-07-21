@@ -4,8 +4,11 @@ pub(crate) mod content;
 mod database;
 mod favorite;
 mod feed;
+mod invite;
+mod join_request;
 mod message;
 mod message_database;
+mod mute;
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -125,6 +128,7 @@ impl AppTrait for AppChat {
             Command::FeedGetByIds as i32,
             // chat
             Command::ChatCreate as i32,
+            Command::ChatUpdate as i32,
             Command::ChatAddChatters as i32,
             Command::ChatDeleteChatters as i32,
             Command::ChatGetByIds as i32,
@@ -147,6 +151,23 @@ impl AppTrait for AppChat {
             Command::FavoriteAdd as i32,
             Command::FavoriteGetList as i32,
             Command::FavoriteRemove as i32,
+            // M2: announcement
+            Command::ChatSetAnnouncement as i32,
+            Command::ChatDeleteAnnouncement as i32,
+            // M2: mute
+            Command::ChatMuteMember as i32,
+            Command::ChatGlobalMute as i32,
+            // M2: invite
+            Command::ChatInviteLinkCreate as i32,
+            Command::ChatInviteLinkJoin as i32,
+            Command::ChatInviteLinkRevoke as i32,
+            // M2: join request
+            Command::ChatJoinRequestCreate as i32,
+            Command::ChatJoinRequestApprove as i32,
+            Command::ChatJoinRequestReject as i32,
+            Command::ChatJoinRequestList as i32,
+            // M2: members
+            Command::ChatGetMembers as i32,
         ]
     }
 
@@ -167,6 +188,7 @@ impl AppTrait for AppChat {
             Command::FeedGetByIds => self.feed_get_by_ids(params).await,
 
             Command::ChatCreate => self.chat_create(params).await,
+            Command::ChatUpdate => self.chat_update(params).await,
             Command::ChatAddChatters => self.chat_add_chatters(params).await,
             Command::ChatDeleteChatters => self.chat_delete_chatters(params).await,
             Command::ChatGetByIds => self.chat_get_by_ids(params).await,
@@ -188,6 +210,24 @@ impl AppTrait for AppChat {
             Command::FavoriteAdd => self.favorite_add(params).await,
             Command::FavoriteRemove => self.favorite_remove(params).await,
             Command::FavoriteGetList => self.favorite_get_list(params).await,
+
+            // M2: announcement
+            Command::ChatSetAnnouncement => self.chat_set_announcement(params).await,
+            Command::ChatDeleteAnnouncement => self.chat_delete_announcement(params).await,
+            // M2: mute
+            Command::ChatMuteMember => self.mute_member(params).await,
+            Command::ChatGlobalMute => self.global_mute(params).await,
+            // M2: invite
+            Command::ChatInviteLinkCreate => self.invite_link_create(params).await,
+            Command::ChatInviteLinkJoin => self.invite_link_join(params).await,
+            Command::ChatInviteLinkRevoke => self.invite_link_revoke(params).await,
+            // M2: join request
+            Command::ChatJoinRequestCreate => self.join_request_create(params).await,
+            Command::ChatJoinRequestApprove => self.join_request_approve(params).await,
+            Command::ChatJoinRequestReject => self.join_request_reject(params).await,
+            Command::ChatJoinRequestList => self.join_request_list(params).await,
+            // M2: members
+            Command::ChatGetMembers => self.chat_get_members(params).await,
 
             _ => return Err(anyhow::anyhow!("not handled")),
         };
