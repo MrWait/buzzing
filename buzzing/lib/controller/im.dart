@@ -63,6 +63,19 @@ class ImController extends ChangeNotifier {
 
   LoginUser loginUser = LoginUser.create();
 
+  // 引用回复目标消息
+  Message? replyTarget;
+
+  void setReplyTarget(Message? msg) {
+    replyTarget = msg;
+    notifyListeners();
+  }
+
+  void clearReply() {
+    replyTarget = null;
+    notifyListeners();
+  }
+
   void onClose() {
     L.w("im logic close");
   }
@@ -454,6 +467,24 @@ class ImController extends ChangeNotifier {
     }
   }
 
+  Future<void> forwardMessage(Int64 targetChatId, Int64 sourceChatId,
+      List<Int64> messageIds, {int forwardType = 0}) async {
+    var req = ForwardMessageRequest.create();
+    req.chatId = targetChatId;
+    req.forwardType = forwardType;
+    req.sourceChatId = sourceChatId;
+    req.messageIds.addAll(messageIds);
+    var result = await sdk.invokeAsync(
+      Command.MESSAGE_FORWARD,
+      req.writeToBuffer(),
+    );
+    if (result.data != null) {
+      var resp = ForwardMessageResponse.fromBuffer(result.data!);
+      L.d("forward message success: ${resp}");
+      mergeEntity(resp.entity);
+    }
+  }
+
   Future<Int64?> preSendMessage(Int64 chatId, Message message) async {
     var req = CreateMessageDraftRequest.create();
     req.chatId = chatId;
@@ -498,15 +529,44 @@ class ImController extends ChangeNotifier {
         message.summary = summary;
         message.chatId = chatId;
 
+        // 引用回复时填充 ref_* 字段
+        if (replyTarget != null) {
+          message.refMessageId = replyTarget!.id;
+          message.refData = MessageReference.create()
+            ..chatId = replyTarget!.chatId
+            ..content = replyTarget!.content
+            ..summary = replyTarget!.summary
+            ..tpy = replyTarget!.tpy
+            ..senderName = replyTarget!.tpy == MessageType.SYSTEM.value
+                ? '系统'
+                : (getUser(replyTarget!.fromId)?.name ?? '');
+        }
+
         var stashId = await preSendMessage(chatId, message);
         if (stashId != null) {
           await sendMessage(stashId, message);
         }
+        clearReply();
       });
       imInputCtrl.clear();
     } else {
       L.w("chat not exists");
     }
+  }
+
+  Future<void> recallMessage(Int64 messageId) async {
+    var req = RecallMessageRequest.create();
+    req.id = messageId;
+    await sdk.invokeAsync(Command.MESSAGE_RECALL, req.writeToBuffer());
+  }
+
+  Future<void> favoriteMessage(Message msg) async {
+    var fav = Favorite.create();
+    fav.tpy = msg.tpy;
+    fav.message = msg;
+    var req = FavoriteAddRequest.create();
+    req.favorite = fav;
+    await sdk.invokeAsync(Command.FAVORITE_ADD, req.writeToBuffer());
   }
 
   void preloadMessage(Int64 chatId, int pos, int count) {

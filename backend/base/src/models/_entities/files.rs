@@ -17,6 +17,9 @@ pub struct Model {
     pub storage_key: String,
     pub md5: Option<String>,
     pub category: String,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+    pub thumbnail_key: Option<String>,
     pub created_at: i64,
     pub deleted_at: Option<i64>,
 }

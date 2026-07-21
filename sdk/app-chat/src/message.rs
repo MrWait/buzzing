@@ -254,6 +254,13 @@ impl AppChat {
         Ok(())
     }
 
+    pub(crate) async fn message_forward(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
+        let req = message::ForwardMessageRequest::decode(params)?;
+        debug!("forward message: {:?}", req);
+        let ack = crate::api::forward_message(&req).await?;
+        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+    }
+
     pub(crate) fn handle_push_messages(&self, params: &[u8]) -> Result<()> {
         let mut push = message::PushMessages::decode(params)?;
         debug!("handle push messages, push: {:?}", push);

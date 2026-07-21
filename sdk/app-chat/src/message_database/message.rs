@@ -66,6 +66,8 @@ fn parse_message(row: &Row) -> Result<(entity::Message, bool)> {
             version: 0,
             reactions,
             read_state,
+            ref_message_id: 0,
+            ref_data: None,
         },
         dirty,
     ))

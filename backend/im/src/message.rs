@@ -315,6 +315,143 @@ pub(crate) async fn message_read(
     Ok((ErrorCode::Ok as i32, vec![]))
 }
 
+pub(crate) async fn message_forward(
+    ctx: &AppContext,
+    brief: &UserBrief,
+    packet: &entity::Packet,
+    _ws: bool,
+) -> Result<(i32, Vec<u8>)> {
+    let req = pb_decode::<message::ForwardMessageRequest>(&packet.payload)?;
+    debug!("message forward, req: {req:?}");
+
+    let source_msgs = MessageModel::find_by_ids(&ctx.db, req.message_ids.clone()).await?;
+    let mut source_map: HashMap<i64, messages::Model> = HashMap::new();
+    for msg in source_msgs {
+        source_map.insert(msg.id, msg);
+    }
+
+    // resolve sender names for ForwardItem
+    let sender_ids: Vec<i64> = source_map.values().map(|m| m.from_id).collect();
+    let sender_names: HashMap<i64, String> = if let Ok(hub) = BizHub::get() {
+        hub.user
+            .get_user_by_ids(ctx, sender_ids)
+            .await
+            .unwrap_or_default()
+            .into_iter()
+            .map(|u| (u.id, u.name))
+            .collect()
+    } else {
+        HashMap::new()
+    };
+
+    let now = current_ms() as i64;
+    let mut resp = message::ForwardMessageResponse::default();
+    let mut result_msgs = Vec::new();
+    let mut created_ids = Vec::new();
+
+    if req.forward_type == 0 {
+        // single forward: copy each source message
+        for src_id in &req.message_ids {
+            let Some(src) = source_map.get(src_id) else { continue };
+
+            let msg = entity::Message {
+                id: id_gen(None),
+                chat_id: req.chat_id,
+                from_id: brief.id,
+                tpy: src.r#type as i32,
+                content: src.content.clone(),
+                summary: src.summary.clone(),
+                create_time_ms: now,
+                update_time_ms: now,
+                ..Default::default()
+            };
+
+            let mut model = MessageModel::from(msg).0;
+            let member_ids =
+                super::chat::update_last_message(ctx, brief, &mut model).await?;
+            CACHE_MESSAGE
+                .insert(model.id, Arc::new(RwLock::new(model.clone().into())))
+                .await;
+            let created: entity::Message = MessageModel(model.clone()).into();
+            super::feed::update_last_message(ctx, &member_ids, &created).await?;
+
+            created_ids.push(created.id);
+            result_msgs.push(created);
+        }
+    } else {
+        // merged forward: create one FORWARD message
+        let mut items = Vec::new();
+        for src_id in &req.message_ids {
+            let Some(src) = source_map.get(src_id) else { continue };
+            let user_name = sender_names
+                .get(&src.from_id)
+                .cloned()
+                .unwrap_or_default();
+            items.push(entity::ForwardItem {
+                user_id: src.from_id,
+                user_name,
+                tpy: src.r#type as i32,
+                summary: src.summary.clone(),
+                message_id: src.id,
+            });
+        }
+
+        let chat_name = match super::chat::chat_cache_get(ctx, req.source_chat_id).await {
+            Ok(c) => c.read().await.chat.name.clone(),
+            Err(_) => String::new(),
+        };
+
+        let item_count = items.len();
+        let forward_content = entity::MessageForward {
+            r#type: 1, // merged
+            chat_id: req.source_chat_id,
+            chat_name,
+            message_count: item_count as i32,
+            items,
+            ..Default::default()
+        };
+
+        let summary = format!("转发了 {} 条消息", item_count);
+
+        let msg = entity::Message {
+            id: id_gen(None),
+            chat_id: req.chat_id,
+            from_id: brief.id,
+            tpy: entity::MessageType::Forward as i32,
+            content: forward_content.encode_to_vec(),
+            summary,
+            create_time_ms: now,
+            update_time_ms: now,
+            ..Default::default()
+        };
+
+        let mut model = MessageModel::from(msg).0;
+        let member_ids = super::chat::update_last_message(ctx, brief, &mut model).await?;
+        CACHE_MESSAGE
+            .insert(model.id, Arc::new(RwLock::new(model.clone().into())))
+            .await;
+        let created: entity::Message = MessageModel(model.clone()).into();
+        super::feed::update_last_message(ctx, &member_ids, &created).await?;
+
+        created_ids.push(created.id);
+        result_msgs.push(created);
+    }
+
+    // push new messages to chat members
+    if let Ok(member_ids) = super::chat::chat_get_all_user_ids(ctx, req.chat_id).await {
+        let _ = push_messages(ctx, brief, &member_ids, &created_ids).await;
+    }
+
+    resp.count = result_msgs.len() as i32;
+    resp.entity
+        .get_or_insert_default()
+        .messages
+        .extend(result_msgs.into_iter().map(|m| (m.id, m)));
+
+    debug!("message forward, resp count: {}", resp.count);
+    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+}
+
 pub(crate) async fn message_recall(
     ctx: &AppContext,
     brief: &UserBrief,

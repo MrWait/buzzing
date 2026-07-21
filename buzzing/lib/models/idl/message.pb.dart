@@ -1435,6 +1435,162 @@ class PushMessageReactionRequest extends $pb.GeneratedMessage {
   $0.Entity ensureEntity() => $_ensure(0);
 }
 
+class ForwardMessageRequest extends $pb.GeneratedMessage {
+  factory ForwardMessageRequest({
+    $fixnum.Int64? chatId,
+    $core.int? forwardType,
+    $fixnum.Int64? sourceChatId,
+    $core.Iterable<$fixnum.Int64>? messageIds,
+  }) {
+    final result = create();
+    if (chatId != null) result.chatId = chatId;
+    if (forwardType != null) result.forwardType = forwardType;
+    if (sourceChatId != null) result.sourceChatId = sourceChatId;
+    if (messageIds != null) result.messageIds.addAll(messageIds);
+    return result;
+  }
+
+  ForwardMessageRequest._();
+
+  factory ForwardMessageRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ForwardMessageRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ForwardMessageRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'message'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'chatId')
+    ..aI(2, _omitFieldNames ? '' : 'forwardType')
+    ..aInt64(3, _omitFieldNames ? '' : 'sourceChatId')
+    ..p<$fixnum.Int64>(
+        4, _omitFieldNames ? '' : 'messageIds', $pb.PbFieldType.K6)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ForwardMessageRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ForwardMessageRequest copyWith(
+          void Function(ForwardMessageRequest) updates) =>
+      super.copyWith((message) => updates(message as ForwardMessageRequest))
+          as ForwardMessageRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ForwardMessageRequest create() => ForwardMessageRequest._();
+  @$core.override
+  ForwardMessageRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ForwardMessageRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ForwardMessageRequest>(create);
+  static ForwardMessageRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get chatId => $_getI64(0);
+  @$pb.TagNumber(1)
+  set chatId($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasChatId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearChatId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get forwardType => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set forwardType($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasForwardType() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearForwardType() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get sourceChatId => $_getI64(2);
+  @$pb.TagNumber(3)
+  set sourceChatId($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSourceChatId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSourceChatId() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $pb.PbList<$fixnum.Int64> get messageIds => $_getList(3);
+}
+
+class ForwardMessageResponse extends $pb.GeneratedMessage {
+  factory ForwardMessageResponse({
+    $core.int? count,
+    $0.Entity? entity,
+  }) {
+    final result = create();
+    if (count != null) result.count = count;
+    if (entity != null) result.entity = entity;
+    return result;
+  }
+
+  ForwardMessageResponse._();
+
+  factory ForwardMessageResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ForwardMessageResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ForwardMessageResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'message'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'count')
+    ..aOM<$0.Entity>(2, _omitFieldNames ? '' : 'entity',
+        subBuilder: $0.Entity.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ForwardMessageResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ForwardMessageResponse copyWith(
+          void Function(ForwardMessageResponse) updates) =>
+      super.copyWith((message) => updates(message as ForwardMessageResponse))
+          as ForwardMessageResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ForwardMessageResponse create() => ForwardMessageResponse._();
+  @$core.override
+  ForwardMessageResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ForwardMessageResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ForwardMessageResponse>(create);
+  static ForwardMessageResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.int get count => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set count($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasCount() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearCount() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $0.Entity get entity => $_getN(1);
+  @$pb.TagNumber(2)
+  set entity($0.Entity value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasEntity() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearEntity() => $_clearField(2);
+  @$pb.TagNumber(2)
+  $0.Entity ensureEntity() => $_ensure(1);
+}
+
 class RecallMessageRequest extends $pb.GeneratedMessage {
   factory RecallMessageRequest({
     $fixnum.Int64? id,

@@ -25,6 +25,8 @@ mod m20250808_140001_schedule_reminders;
 mod m20250809_000001_meetings;
 mod m20260720_100001_office_m3;
 mod m20260720_100002_office_m4;
+mod m20260720_100003_files_thumbnail;
+mod m20260720_100004_messages_ref;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -55,6 +57,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20250715_000002_files::Migration),
             Box::new(m20260720_100001_office_m3::Migration),
             Box::new(m20260720_100002_office_m4::Migration),
+            Box::new(m20260720_100003_files_thumbnail::Migration),
+            Box::new(m20260720_100004_messages_ref::Migration),
         ]
     }
 }

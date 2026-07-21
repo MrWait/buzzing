@@ -53,7 +53,7 @@
 │  │                     │ RICH_TEXT_ │ MessageRichText    │  │
 │  │                     │ QUILL (11) │ (Quill Delta JSON) │  │
 │  │                     │ FORWARD    │ MessageForward     │  │
-│  │                     │ REPLY      │ MessageReply       │  │
+│  │                     │ — (reply)  │ Message.ref_*      │  │
 │  ├─────────────────────┼────────────┼────────────────────┤  │
 │  │ 自动化/机器人消息     │ MARKDOWN   │ MessageMarkdown    │  │
 │  │                     │            │ (受限 Markdown)    │  │
@@ -151,12 +151,14 @@
 ```
 Flutter                          Server
   │                                │
-  │── Dio POST /storage/im/upload ─▶│
-  │   [onSendProgress: ████░░░]   │── save file to disk
-  │   [CancelToken]                │── insert files 表（元数据）
-  │                                │── generate thumbnail（异步）
-  │◀── { url, thumbnail_url,      │
-  │       width, height, ... }    │
+  │── Dio POST /api/files/upload ──▶│
+  │   [onSendProgress: ████░░░]   │── save to object_store
+  │   [CancelToken]                │── insert files 表
+  │◀── { id, url, file_name, ... }│
+  │                                │
+  │── SDK FFI: send_message(      │
+  │    tpy=IMAGE,                 │
+  │    content={ url, ... })      │
   │                                │
   │── SDK FFI: send_message(      │
   │    tpy=IMAGE,                 │
@@ -166,16 +168,16 @@ Flutter                          Server
 文件上传流程:
 
 1. Flutter 用户选择文件（image_picker / file_picker）
-2. Flutter 用 **Dio** 发起 HTTP multipart POST 到 `/storage/im/upload`
+2. Flutter 用 **Dio** 发起 HTTP multipart POST 到 `/api/files/upload`
    - `onSendProgress` → 展示上传进度条
    - `CancelToken` → 支持用户取消
-   - 大文件支持断点续传
-3. 服务端保存文件到 `storage/f/im/{hash}/{id}.{ext}`
-4. 服务端在 `files` 表写入元数据（后台管理/审计用途）
-5. 若为图片，服务端异步生成缩略图
-6. 返回 JSON `{ url, thumbnail_url, width, height, name, size, mime_type }`
-7. Flutter 构造对应 proto（`MessageImage` / `MessageFile`），传给 SDK FFI 发送
-8. SDK 将 proto 序列化到 `content`，走标准 `MESSAGE_SEND` 流程
+   - 自动注入 Bearer token（JWT 鉴权）
+3. 服务端保存文件到 `object_store`（storage key: `{category}/{yyyy}/{mm}/{fid}.{ext}`）
+4. 服务端在 `files` 表写入元数据
+5. 返回 JSON `FileResponse { id, url, file_name, file_size, mime_type, ext, category }`
+   - `url` 为 `/api/files/{id}`，下载时自动处理 Content-Type（图片 inline，其余 attachment）
+6. Flutter 构造对应 proto（`MessageImage` / `MessageFile`），传给 SDK FFI 发送
+7. SDK 将 proto 序列化到 `content`，走标准 `MESSAGE_SEND` 流程
 
 **文件下载与缓存**:
 
@@ -329,14 +331,24 @@ Feed 列表: "张三 转发了聊天记录"
 
 ### 2.6 回复模型
 
-**引用回复 (Quote Reply)**:
-- `MessageReply.ref_message_id` — 被引用的消息 ID
-- `MessageReply.ref_chat_id` — 被引用的会话 ID
-- `MessageReply.ref_sender_name` — 发送者名称（缓存，防止用户改名后显示不一致）
-- `MessageReply.ref_content` — 被引用消息的 content bytes 缓存（保证离线可展示）
-- `MessageReply.ref_summary` — 被引用消息的摘要缓存
-- `MessageReply.ref_tpy` — 被引用消息的类型，决定如何反序列化 ref_content
-- 客户端展示时，先渲染引用条（解析 ref_content → 展示摘要），再渲染回复内容
+**引用回复 (Quote Reply)** 不是独立消息类型，引用参考数据作为 `Message` 自身的元字段存在：
+
+```
+mesasge Message {
+  // ... 原有字段
+  int64  ref_message_id   = 31;  // 被引用消息 ID
+  int64  ref_chat_id      = 32;  // 被引用会话 ID
+  bytes  ref_content      = 33;  // 被引用消息的 content bytes 缓存
+  string ref_summary      = 34;  // 被引用消息的摘要缓存
+  int32  ref_tpy          = 35;  // 被引用消息的类型，决定如何反序列化 ref_content
+  string ref_sender_name  = 36;  // 发送者名称缓存
+}
+```
+
+- 任何消息类型（TEXT / IMAGE / FILE / RICH_TEXT_QUILL / FORWARD）均可携带 `ref_*` 字段成为回复
+- `ref_content` 保证离线可展示（直接缓存原始 bytes，无需额外序列化）
+- 客户端展示时，先渲染引用条（解析 `ref_content` → 展示摘要），再渲染回复内容
+- 不存在 `MessageReply` proto，也不存在 `REPLY` tpy 枚举值
 
 ---
 
@@ -406,15 +418,8 @@ message ForwardItem {
   int64  message_id = 5;  // 原始消息 ID（展开时拉取完整内容用）
 }
 
-// --- 新增：引用回复 ---
-message MessageReply {
-  int64 ref_message_id   = 1;  // 被引用消息 ID
-  int64 ref_chat_id      = 2;  // 被引用会话 ID
-  string ref_sender_name = 3;  // 被引用消息发送者名称（缓存）
-  bytes ref_content      = 4;  // 被引用消息的 content bytes（缓存，保证离线展示）
-  string ref_summary     = 5;  // 被引用消息的摘要文本（缓存）
-  int32 ref_tpy          = 6;  // 被引用消息的类型（决定如何解析 ref_content）
-}
+// 回复参考数据内嵌在 Message 消息体上，不是独立消息类型
+// 见 2.6 节
 
 // --- 新增：系统消息（群变更通知等）---
 message MessageSystem {
@@ -443,9 +448,9 @@ message FileInfo {
 // map<string, FileInfo> files = 6;
 ```
 
-#### MessageForward / MessageReply 的新命令枚举
+#### MessageForward 的新命令枚举
 
-由于 Forward 和 Reply 复用 `MESSAGE_SEND` 命令（通过 `content` 中不同的 proto 区分），不需要新增命令枚举。客户端/SDK 构造好对应类型的 `content` 后，走标准的 `MESSAGE_SEND` 流程。
+Forward 复用 `MESSAGE_SEND` 命令（通过 `content` 中不同的 proto 区分），不需要新增命令枚举。客户端/SDK 构造好对应类型的 `content` 后，走标准的 `MESSAGE_SEND` 流程。
 
 ### 3.2 消息体序列化规则
 
@@ -458,9 +463,9 @@ message FileInfo {
 | 3 (FILE) | `MessageFile` proto | 文件元数据 | 新增 |
 | 11 (RICH_TEXT_QUILL) | `MessageRichText` proto | Quill Delta JSON | 当前存为 MessageText，改为独立的 MessageRichText |
 | 13 (MARKDOWN) | `MessageMarkdown` proto | 受限 Markdown 子集 | 新增，自动化/机器人消息 |
-| 待定 (FORWARD) | `MessageForward` proto | items 摘要列表 + chat_id（展开时拉取） | 新增，暂不分配 tpy |
-| 待定 (REPLY) | `MessageReply` proto | 引用消息 + 回复内容 | 新增，暂不分配 tpy |
-| 待定 (SYSTEM) | `MessageSystem` proto | 系统消息 | 新增，暂不分配 tpy |
+| 14 (FORWARD) | `MessageForward` proto | items 摘要列表 + chat_id（展开时拉取） | 新增 |
+| 15 (SYSTEM) | `MessageSystem` proto | 系统消息 | 新增 |
+| — (reply) | Message.ref_* 字段 | 引用参考数据直接挂 Message 上，不占 tpy | 新增，非独立消息类型 |
 
 ### 3.3 新增文件上传 Proto
 
@@ -495,16 +500,7 @@ message GetFileInfoResponse {
 
 ### 3.4 命令枚举新增
 
-```protobuf
-// command.proto 追加
-FILE_UPLOAD   = 130;  // HTTP 上传，不需要包命令
-FILE_GET_INFO = 131;
-
-FORWARD_MESSAGE = 1216;  // 转发消息
-REPLY_MESSAGE   = 1217;  // 回复消息（也可用普通 MESSAGE_SEND + reply body）
-```
-
-（Forward 和 Reply 消息可以复用 `MESSAGE_SEND` + 对应 `MessageBody` 类型，不需要独立命令）
+Forward 复用 `MESSAGE_SEND` 命令（通过 `content` 中 `MessageForward` proto 区分），不需要新增命令枚举。
 
 ---
 
@@ -537,7 +533,6 @@ REPLY_MESSAGE   = 1217;  // 回复消息（也可用普通 MESSAGE_SEND + reply 
 | 功能 | 文件 | 说明 |
 |------|------|------|
 | `FORWARD_MESSAGE` handler | `message.rs` | 解析 ForwardRequest，创建被转发消息的副本或引用 |
-| `REPLY_MESSAGE` handler | `message.rs` | 校验被引用消息存在，创建回复消息 |
 
 **转发消息策略**: 
 - 逐条转发：为每条被转发消息创建新的 Message，type = TEXT，content 包含原始消息的摘要 + 来源说明。`summary` 设为 "[转发] 发送者: 内容摘要"。
@@ -632,14 +627,14 @@ Flutter 上传获得 URL 后，构造对应 proto 传给 SDK FFI。SDK 仅需标
 ```dart
 // Flutter 端
 final response = await dio.post(
-  '/storage/im/upload',
+  '/api/files/upload',
   data: FormData.fromMap({ 'file': MultipartFile.fromBytes(bytes, filename: name) }),
   onSendProgress: (sent, total) => updateProgress(sent / total),
 );
-final data = response.data; // { url, thumbnail_url, width, height, name, size, mime_type }
+final data = response.data; // FileResponse { id, url, file_name, file_size, mime_type, ext, category }
 
-// 构造 MessageImage proto 传给 SDK
-final imageMsg = MessageImage(url: data['url'], thumbnailUrl: data['thumbnail_url'], ...);
+// url 即为 /api/files/{id}，直接用于消息 content
+final imageMsg = MessageImage(url: data['url'], thumbnailUrl: ...);
 sdk.sendMessage(chatId: chatId, tpy: MessageType.IMAGE, content: imageMsg.writeToBuffer());
 ```
 
@@ -658,17 +653,18 @@ fn build_forward_content(ids: Vec<i64>, chat_id: i64, merge: bool) -> Vec<u8> {
     }.encode_to_vec()
 }
 
-// 回复：构造 MessageReply → 序列化到 content → 调 message_send
-fn build_reply_content(ref_msg: &entity::Message, reply_content: Vec<u8>) -> Vec<u8> {
-    entity::MessageReply {
+// 回复：引用参考数据直接填充到 Message 的 ref_* 字段，回复内容沿用自身 tpy
+fn build_reply_message(ref_msg: &entity::Message, content: Vec<u8>) -> entity::Message {
+    entity::Message {
         ref_message_id: ref_msg.id,
         ref_chat_id: ref_msg.chat_id,
         ref_sender_name: /* 从缓存取 sender name */,
         ref_content: ref_msg.content.clone(),
         ref_summary: ref_msg.summary.clone(),
         ref_tpy: ref_msg.tpy,
+        content,
         ..Default::default()
-    }.encode_to_vec()
+    }
 }
 ```
 
@@ -688,7 +684,7 @@ Flutter 客户端当前 `widget/message.dart` 按 `tpy` 分发渲染，需补充
 | RICH_TEXT_QUILL | RichTextMessage | Quill Delta 渲染 |
 | CARD | CardMessage | 卡片容器（供转发等使用） |
 | - | ForwardMessage | 逐条/合并转发卡片 |
-| - | ReplyMessage | 引用回复展示 |
+| — (any with ref_*) | ReplyDecorator | 在消息上方渲染引用条 |
 
 ### 6.2 消息输入
 
@@ -728,18 +724,18 @@ Flutter                          SDK                          Server
 
 ### 7.2 引用回复发送
 
+引用参考数据不占独立 tpy，直接作为 Message 元字段，回复内容走自身消息类型。
+
 ```
 Client                          SDK
   │                              │
   │── long press → Reply ──────▶│
-  │                              │── 记录 ref_message_id, ref_chat_id
-  │                              │── 从本地 DB 获取被引用消息的 content/summary/tpy
+  │                              │── 从本地 DB 获取被引用消息的 content/summary/tpy/sender
   │── show reply preview ──────▶│
   │                              │
-  │── type text → send ────────▶│── build MessageReply proto
-  │                              │   { ref_message_id, ref_content, ref_summary, ref_tpy, ... }
-  │                              │── serialize → content bytes
-  │                              │── tpy = REPLY (待定)
+  │── type text → send ────────▶│── 构建 Message，填充 ref_* 字段
+  │                              │   { tpy=TEXT, content={text:"回复内容"},
+  │                              │     ref_message_id, ref_content, ref_summary, ref_tpy, ... }
   │                              │── MESSAGE_SEND
 ```
 
@@ -790,7 +786,7 @@ LIMIT 20;
 | FILE (3) | `summary` 固定为 `"[文件] {name}"` | 文件名由发送端 SDK 填充 summary |
 | RICH_TEXT_QUILL (11) | `summary`（发送端提取的纯文本） | 可在 SDK 中扩展为索引 Delta JSON 中的文本 |
 | MARKDOWN (13) | `summary`（提取纯文本）或 `fallback` | 同 |
-| FORWARD | `summary` 固定为 `"转发了聊天记录"` | 按发送者/时间筛选 |
+| FORWARD (14) | `summary` 固定为 `"转发了聊天记录"` | 按发送者/时间筛选 |
 
 **限制**：L1 搜索只覆盖 `summary`，不搜索 `content`。这意味着：
 - 文件名（file message）只有前 100 字被索引 → 长文件名截断
