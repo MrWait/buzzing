@@ -5,8 +5,8 @@ use base_db::prelude::{params, params_from_iter, Connection, Result, Row};
 use base_db::{cost, placeholder, Pagerize};
 use proto::idl::entity;
 
-const FIELD_CHAT: &str = "id, dirty, tpy, status, name, peer_a_id, peer_b_id, owner, member_ids, create_at_ms, update_at_ms, last_message_id, last_message_badge, last_message_pos, admin_ids, avatar, color";
-const FIELD_COUNT: usize = 17;
+const FIELD_CHAT: &str = "id, dirty, tpy, status, name, peer_a_id, peer_b_id, owner, member_ids, create_at_ms, update_at_ms, last_message_id, last_message_badge, last_message_pos, admin_ids, avatar, color, description, join_mode, global_mute_until";
+const FIELD_COUNT: usize = 20;
 
 pub(crate) fn init_tables(conn: &Connection) -> Result<()> {
     conn.execute(
@@ -27,7 +27,10 @@ last_message_badge INTEGER,
 last_message_pos INTEGER,
 admin_ids TEXT,
 avatar TEXT,
-color INTEGER
+color INTEGER,
+description TEXT DEFAULT '',
+join_mode INTEGER DEFAULT 0,
+global_mute_until BIGINT DEFAULT 0
 )",
         (),
     )?;
@@ -60,6 +63,9 @@ fn parse_chat(row: &Row) -> Result<(entity::Chat, bool)> {
             version: 0,
             avatar: row.get(15)?,
             color: row.get(16)?,
+            description: row.get(17)?,
+            join_mode: row.get(18)?,
+            global_mute_until: row.get(19)?,
         },
         dirty != 0,
     ))
@@ -99,6 +105,9 @@ pub(crate) fn chat_batch_save(conn: &mut Connection, entity: &entity::Entity) ->
                 &admin_ids,
                 &chat.avatar,
                 chat.color,
+                &chat.description,
+                chat.join_mode,
+                chat.global_mute_until,
             ])?;
         }
     }
@@ -136,6 +145,9 @@ pub(crate) fn chat_save(conn: &Connection, chat: &entity::Chat) -> Result<()> {
         &admin_ids,
         &chat.avatar,
         chat.color,
+        &chat.description,
+        chat.join_mode,
+        chat.global_mute_until,
     ])?;
 
     Ok(())

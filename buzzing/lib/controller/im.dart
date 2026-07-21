@@ -4,6 +4,9 @@ import 'dart:typed_data';
 import 'package:buzzing/models/const.dart';
 import 'package:buzzing/models/idl/chat.pb.dart';
 import 'package:buzzing/models/idl/dept.pb.dart';
+import 'package:buzzing/models/idl/mute.pb.dart';
+import 'package:buzzing/models/idl/invite.pb.dart';
+import 'package:buzzing/models/idl/join_request.pb.dart';
 import 'package:buzzing/routes/app_navigator.dart';
 import 'package:buzzing/utils/data_persistence.dart';
 import 'package:go_router/go_router.dart';
@@ -631,6 +634,170 @@ class ImController extends ChangeNotifier {
       L.e("create chat error");
       return null;
     }
+  }
+
+  // ─── M2: 群公告 ─────────────────────────────────────────────────
+
+  Future<void> setAnnouncement(Int64 chatId, String title, int tpy, List<int> body, String summary) async {
+    var req = SetAnnouncementRequest.create();
+    req.chatId = chatId;
+    req.title = title;
+    req.tpy = tpy;
+    req.body = body;
+    req.summary = summary;
+    var result = await sdk.invokeAsync(
+      Command.CHAT_SET_ANNOUNCEMENT,
+      req.writeToBuffer(),
+    );
+    if (result.data != null) {
+      var resp = SetAnnouncementResponse.fromBuffer(result.data!);
+      mergeEntity(resp.entities);
+    }
+  }
+
+  Future<void> deleteAnnouncement(Int64 chatId) async {
+    var req = DeleteAnnouncementRequest.create();
+    req.chatId = chatId;
+    var result = await sdk.invokeAsync(
+      Command.CHAT_DELETE_ANNOUNCEMENT,
+      req.writeToBuffer(),
+    );
+    if (result.data != null) {
+      var resp = DeleteAnnouncementResponse.fromBuffer(result.data!);
+      mergeEntity(resp.entities);
+    }
+  }
+
+  // ─── M2: 群资料更新 ─────────────────────────────────────────────
+
+  Future<void> updateChat(Int64 chatId, {String? name, String? avatar, String? description, Int64? ownerId, List<Int64>? adminIdsAdd, List<Int64>? adminIdsRemove, int? joinMode}) async {
+    var req = UpdateChatRequest.create();
+    req.chatId = chatId;
+    if (name != null) req.name = name;
+    if (avatar != null) req.avatar = avatar;
+    if (description != null) req.description = description;
+    if (ownerId != null) req.ownerId = ownerId;
+    if (adminIdsAdd != null) req.adminIdsAdd.addAll(adminIdsAdd);
+    if (adminIdsRemove != null) req.adminIdsRemove.addAll(adminIdsRemove);
+    if (joinMode != null) req.joinMode = joinMode;
+    var result = await sdk.invokeAsync(
+      Command.CHAT_UPDATE,
+      req.writeToBuffer(),
+    );
+    if (result.data != null) {
+      var resp = UpdateChatResponse.fromBuffer(result.data!);
+      mergeEntity(resp.entities);
+    }
+  }
+
+  // ─── M2: 禁言 ───────────────────────────────────────────────────
+
+  Future<void> muteMember(Int64 chatId, Int64 memberId, Int64 untilMs) async {
+    var req = MuteMemberRequest.create();
+    req.chatId = chatId;
+    req.memberId = memberId;
+    req.untilMs = untilMs;
+    await sdk.invokeAsync(Command.CHAT_MUTE_MEMBER, req.writeToBuffer());
+  }
+
+  Future<void> globalMute(Int64 chatId, Int64 untilMs) async {
+    var req = GlobalMuteRequest.create();
+    req.chatId = chatId;
+    req.untilMs = untilMs;
+    await sdk.invokeAsync(Command.CHAT_GLOBAL_MUTE, req.writeToBuffer());
+  }
+
+  // ─── M2: 邀请链接 ───────────────────────────────────────────────
+
+  Future<String?> createInviteLink(Int64 chatId, {Int64 expiresAt = Int64.ZERO, int maxUses = 0}) async {
+    var req = InviteLinkCreateRequest.create();
+    req.chatId = chatId;
+    req.expiresAt = expiresAt;
+    req.maxUses = maxUses;
+    var result = await sdk.invokeAsync(
+      Command.CHAT_INVITE_LINK_CREATE,
+      req.writeToBuffer(),
+    );
+    if (result.data != null) {
+      var resp = InviteLinkCreateResponse.fromBuffer(result.data!);
+      return resp.code;
+    }
+    return null;
+  }
+
+  Future<InviteLinkJoinResponse?> joinByInviteLink(String code) async {
+    var req = InviteLinkJoinRequest.create();
+    req.code = code;
+    var result = await sdk.invokeAsync(
+      Command.CHAT_INVITE_LINK_JOIN,
+      req.writeToBuffer(),
+    );
+    if (result.data != null) {
+      var resp = InviteLinkJoinResponse.fromBuffer(result.data!);
+      mergeEntity(Entity()..chats[resp.chatId] = resp.chat);
+      return resp;
+    }
+    return null;
+  }
+
+  Future<void> revokeInviteLink(String code) async {
+    var req = InviteLinkRevokeRequest.create();
+    req.code = code;
+    await sdk.invokeAsync(Command.CHAT_INVITE_LINK_REVOKE, req.writeToBuffer());
+  }
+
+  // ─── M2: 加群申请 ───────────────────────────────────────────────
+
+  Future<void> createJoinRequest(Int64 chatId) async {
+    var req = JoinRequestCreateRequest.create();
+    req.chatId = chatId;
+    await sdk.invokeAsync(Command.CHAT_JOIN_REQUEST_CREATE, req.writeToBuffer());
+  }
+
+  Future<void> approveJoinRequest(Int64 requestId) async {
+    var req = JoinRequestApproveRequest.create();
+    req.requestId = requestId;
+    await sdk.invokeAsync(Command.CHAT_JOIN_REQUEST_APPROVE, req.writeToBuffer());
+  }
+
+  Future<void> rejectJoinRequest(Int64 requestId) async {
+    var req = JoinRequestRejectRequest.create();
+    req.requestId = requestId;
+    await sdk.invokeAsync(Command.CHAT_JOIN_REQUEST_REJECT, req.writeToBuffer());
+  }
+
+  Future<JoinRequestListResponse?> listJoinRequests(Int64 chatId, {int status = 0, int page = 1, int pageSize = 20}) async {
+    var req = JoinRequestListRequest.create();
+    req.chatId = chatId;
+    req.status = status;
+    req.page = page;
+    req.pageSize = pageSize;
+    var result = await sdk.invokeAsync(
+      Command.CHAT_JOIN_REQUEST_LIST,
+      req.writeToBuffer(),
+    );
+    if (result.data != null) {
+      return JoinRequestListResponse.fromBuffer(result.data!);
+    }
+    return null;
+  }
+
+  // ─── M2: 成员列表 ───────────────────────────────────────────────
+
+  Future<GetMembersResponse?> getMembers(Int64 chatId, {int page = 1, int pageSize = 50, String keyword = ''}) async {
+    var req = GetMembersRequest.create();
+    req.chatId = chatId;
+    req.page = page;
+    req.pageSize = pageSize;
+    req.keyword = keyword;
+    var result = await sdk.invokeAsync(
+      Command.CHAT_GET_MEMBERS,
+      req.writeToBuffer(),
+    );
+    if (result.data != null) {
+      return GetMembersResponse.fromBuffer(result.data!);
+    }
+    return null;
   }
 
   void logout(GoRouter router) {

@@ -15,6 +15,10 @@ abstract class AppRoute {
   static const MEETING = "/meeting";
   static const SETTINGS = "/settings";
   static const OFFICE = "/office";
+  static const GROUP_PROFILE = "/group_profile";
+  static const MEMBER_LIST = "/member_list";
+  static const JOIN_REQUESTS = "/join_requests";
+  static const INVITE_LINKS = "/invite_links";
 }
 
 extension RoutesExtention on String {

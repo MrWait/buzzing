@@ -123,6 +123,7 @@ enum MessageType {
     MARKDOWN = 13;
     FORWARD = 14;
     SYSTEM = 15;
+    ANNOUNCEMENT = 16;
 }
 
 enum Direct {
@@ -214,6 +215,9 @@ message Chat {
     int64 version = 15;
     string avatar = 16;
     int32 color = 17;
+    string description = 18;
+    int32 join_mode = 19;
+    int64 global_mute_until = 20;
 }
 
 message Feed {
@@ -290,6 +294,12 @@ message MessageReference {
     string summary      = 3;
     int32 tpy           = 4;
     string sender_name  = 5;
+}
+
+message AnnouncementContent {
+    string title = 1;
+    int32 tpy = 2;
+    bytes body = 3;
 }
 
 message Mention {

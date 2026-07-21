@@ -1,4 +1,4 @@
-use loco_rs::{Error, Result, app::AppContext};
+use loco_rs::{Result, app::AppContext};
 use prost::Message;
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock};
@@ -6,9 +6,10 @@ use tokio::sync::RwLock;
 use tracing::debug;
 
 use super::{ChatContext, VecBool};
-use crate::models::{Cmv, chats::ChatModel, cmvs, feeds::FeedModel, messages};
-use common::{BizHub, CacheLoader, CommonCache, EntityIds, EntityStatus, UserBrief, UserEntity};
-use common::{BizUser, EntityType, common_error, pb_decode};
+use sea_orm::{ConnectionTrait, EntityTrait, DbBackend, Statement};
+use crate::models::{Cmv, chats::{ChatModel, ActiveModel, Entity as ChatEntity}, cmvs, feeds::FeedModel, messages};
+use common::{BizHub, CacheLoader, CommonCache, EntityIds, EntityStatus, UserBrief};
+use common::{common_error, pb_decode, time::current_ms};
 use proto::idl::{chat, entity, error::ErrorCode};
 
 type CacheChat = Arc<RwLock<ChatContext>>;
@@ -244,7 +245,7 @@ pub(crate) async fn chat_create(
 
 pub(crate) async fn chat_add_chatters(
     ctx: &AppContext,
-    _brief: &UserBrief,
+    brief: &UserBrief,
     packet: &entity::Packet,
     _ws: bool,
 ) -> Result<(i32, Vec<u8>)> {
@@ -257,6 +258,15 @@ pub(crate) async fn chat_add_chatters(
 
         if c.chat.r#type == entity::ChatType::ChatP2p as i16 {
             return Ok((ErrorCode::ErrorNoPermision as i32, vec![]));
+        }
+
+        // M2 Step 6.3: join_mode 权限检查
+        if c.chat.join_mode == 2 {
+            let is_owner = c.chat.owner_id == brief.id;
+            let is_admin = c.chat.admin_ids.contains(&brief.id);
+            if !is_owner && !is_admin {
+                return Ok((ErrorCode::ErrorNoPermision as i32, vec![]));
+            }
         }
 
         if c.cmv.add(&req.ids)? {
@@ -317,6 +327,115 @@ pub(crate) async fn chat_delete_chatters(
     }
     debug!("chat delete chatters done");
     Ok((0, vec![]))
+}
+
+pub(crate) async fn chat_update(
+    ctx: &AppContext,
+    brief: &UserBrief,
+    packet: &entity::Packet,
+    _ws: bool,
+) -> Result<(i32, Vec<u8>)> {
+    let req = pb_decode::<chat::UpdateChatRequest>(&packet.payload)?;
+    debug!("chat update, req: {req:?}");
+    let context = chat_cache_get(ctx, req.chat_id).await?;
+    let mut resp = chat::UpdateChatResponse::default();
+    {
+        let mut c = context.write().await;
+
+        if c.chat.r#type == entity::ChatType::ChatP2p as i16 {
+            return Ok((ErrorCode::ErrorNoPermision as i32, resp.encode_to_vec()));
+        }
+
+        let is_owner = c.chat.owner_id == brief.id;
+        let is_admin = c.chat.admin_ids.contains(&brief.id);
+        if !is_owner && !is_admin {
+            return Ok((ErrorCode::ErrorNoPermision as i32, resp.encode_to_vec()));
+        }
+
+        let mut changed = false;
+
+        if !req.name.is_empty() && req.name != c.chat.name {
+            c.chat.name = req.name.clone();
+            changed = true;
+        }
+        if !req.description.is_empty() && req.description != c.chat.description {
+            c.chat.description = req.description.clone();
+            changed = true;
+        }
+        if req.join_mode > 0 && req.join_mode != c.chat.join_mode as i32 {
+            c.chat.join_mode = req.join_mode as i16;
+            changed = true;
+        }
+
+        let current_extra = crate::models::chats::ChatExtra::decode(
+            c.chat.extra.as_slice(),
+        )
+        .unwrap_or_default();
+        if !req.avatar.is_empty() && req.avatar != current_extra.avatar {
+            let new_extra = crate::models::chats::ChatExtra {
+                color: current_extra.color,
+                avatar: req.avatar.clone(),
+            };
+            c.chat.extra = new_extra.encode_to_vec();
+            changed = true;
+        }
+
+        if is_owner {
+            if req.owner_id > 0 && req.owner_id != c.chat.owner_id {
+                c.chat.owner_id = req.owner_id;
+                changed = true;
+            }
+            if !req.admin_ids_add.is_empty() {
+                for id in req.admin_ids_add.iter() {
+                    if !c.chat.admin_ids.contains(id) {
+                        c.chat.admin_ids.push(*id);
+                    }
+                }
+                changed = true;
+            }
+            if !req.admin_ids_remove.is_empty() {
+                let old_len = c.chat.admin_ids.len();
+                c.chat.admin_ids.retain(|id| !req.admin_ids_remove.contains(id));
+                if c.chat.admin_ids.len() != old_len {
+                    changed = true;
+                }
+            }
+        }
+
+        if changed {
+            use sea_orm::ActiveValue;
+            let active = ActiveModel {
+                id: ActiveValue::set(c.chat.id),
+                name: ActiveValue::set(c.chat.name.clone()),
+                description: ActiveValue::set(c.chat.description.clone()),
+                extra: ActiveValue::set(c.chat.extra.clone()),
+                owner_id: ActiveValue::set(c.chat.owner_id),
+                admin_ids: ActiveValue::set(c.chat.admin_ids.clone()),
+                cmv: ActiveValue::set(c.chat.cmv.clone()),
+                version: ActiveValue::set(c.chat.version),
+                join_mode: ActiveValue::set(c.chat.join_mode),
+                ..Default::default()
+            };
+            ChatEntity::update(active)
+                .exec(&ctx.db)
+                .await
+                .map_err(|e| common_error(&format!("update chat error: {e}")))?;
+        }
+    }
+
+    {
+        let c = context.read().await;
+        let member_ids = c.cmv.ids();
+        let mut entity = entity::Entity::default();
+        entity.chats.insert(req.chat_id, c.get_entity());
+        let _ = crate::feed::push_entity(ctx, &member_ids, entity).await;
+
+        let e = resp.entities.get_or_insert_default();
+        e.chats.insert(req.chat_id, c.get_entity());
+    }
+
+    debug!("chat update done");
+    Ok((0, resp.encode_to_vec()))
 }
 
 pub(crate) async fn chat_get_by_ids(
@@ -424,4 +543,191 @@ pub(crate) async fn chat_dismiss(
     }
     debug!("chat dismiss");
     Ok((0, vec![]))
+}
+
+// ─── Step 3: Announcement ───────────────────────────────────────────
+
+pub(crate) async fn chat_set_announcement(
+    ctx: &AppContext,
+    brief: &UserBrief,
+    packet: &entity::Packet,
+    _ws: bool,
+) -> Result<(i32, Vec<u8>)> {
+    let req = pb_decode::<chat::SetAnnouncementRequest>(&packet.payload)?;
+    debug!("set announcement, req: {req:?}");
+    let context = chat_cache_get(ctx, req.chat_id).await?;
+    let mut resp = chat::SetAnnouncementResponse::default();
+
+    let member_ids;
+    {
+        let c = context.read().await;
+        if c.chat.r#type == entity::ChatType::ChatP2p as i16 {
+            return Ok((ErrorCode::ErrorNoPermision as i32, resp.encode_to_vec()));
+        }
+        let is_owner = c.chat.owner_id == brief.id;
+        let is_admin = c.chat.admin_ids.contains(&brief.id);
+        if !is_owner && !is_admin {
+            return Ok((ErrorCode::ErrorNoPermision as i32, resp.encode_to_vec()));
+        }
+        member_ids = c.cmv.ids();
+    }
+
+    let content = entity::AnnouncementContent {
+        title: req.title.clone(),
+        tpy: req.tpy,
+        body: req.body.clone(),
+    };
+    let content_bytes = content.encode_to_vec();
+    let now = current_ms() as i64;
+
+    let stmt = Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        r#"
+        INSERT INTO messages (id, chat_id, r#type, from_id, content, summary, version, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, 0, NOW(), NOW())
+        ON CONFLICT (id) DO UPDATE SET
+            r#type = EXCLUDED.r#type,
+            content = EXCLUDED.content,
+            summary = EXCLUDED.summary,
+            updated_at = NOW()
+        "#,
+        vec![
+            req.chat_id.into(),
+            req.chat_id.into(),
+            (entity::MessageType::Announcement as i32).into(),
+            brief.id.into(),
+            content_bytes.clone().into(),
+            req.summary.clone().into(),
+        ],
+    );
+    ctx.db.execute(stmt).await.map_err(|e| common_error(&format!("upsert announcement error: {e}")))?;
+
+    let announcement_entity = entity::Message {
+        tpy: entity::MessageType::Announcement as i32,
+        id: req.chat_id,
+        chat_id: req.chat_id,
+        from_id: brief.id,
+        create_time_ms: now,
+        update_time_ms: now,
+        content: content_bytes,
+        summary: req.summary,
+        ..Default::default()
+    };
+
+    {
+        let e = resp.entities.get_or_insert_default();
+        e.messages.insert(req.chat_id, announcement_entity.clone());
+        let c = context.read().await;
+        e.chats.insert(req.chat_id, c.get_entity());
+    }
+
+    let mut push_entity = entity::Entity::default();
+    push_entity.messages.insert(req.chat_id, announcement_entity);
+    let _ = crate::feed::push_entity(ctx, &member_ids, push_entity).await;
+
+    debug!("set announcement done");
+    Ok((0, resp.encode_to_vec()))
+}
+
+pub(crate) async fn chat_delete_announcement(
+    ctx: &AppContext,
+    brief: &UserBrief,
+    packet: &entity::Packet,
+    _ws: bool,
+) -> Result<(i32, Vec<u8>)> {
+    let req = pb_decode::<chat::DeleteAnnouncementRequest>(&packet.payload)?;
+    debug!("delete announcement, req: {req:?}");
+    let context = chat_cache_get(ctx, req.chat_id).await?;
+    let resp = chat::DeleteAnnouncementResponse::default();
+
+    let member_ids;
+    {
+        let c = context.read().await;
+        if c.chat.r#type == entity::ChatType::ChatP2p as i16 {
+            return Ok((ErrorCode::ErrorNoPermision as i32, resp.encode_to_vec()));
+        }
+        let is_owner = c.chat.owner_id == brief.id;
+        let is_admin = c.chat.admin_ids.contains(&brief.id);
+        if !is_owner && !is_admin {
+            return Ok((ErrorCode::ErrorNoPermision as i32, resp.encode_to_vec()));
+        }
+        member_ids = c.cmv.ids();
+    }
+
+    let stmt = Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        "DELETE FROM messages WHERE id = $1",
+        vec![req.chat_id.into()],
+    );
+    ctx.db.execute(stmt).await.map_err(|e| common_error(&format!("delete announcement error: {e}")))?;
+
+    let _ = crate::feed::push_entity(ctx, &member_ids, entity::Entity::default()).await;
+
+    debug!("delete announcement done");
+    Ok((0, resp.encode_to_vec()))
+}
+
+// ─── Step 7: Member list pagination ─────────────────────────────────
+
+pub(crate) async fn get_members(
+    ctx: &AppContext,
+    _brief: &UserBrief,
+    packet: &entity::Packet,
+    _ws: bool,
+) -> Result<(i32, Vec<u8>)> {
+    let req = pb_decode::<chat::GetMembersRequest>(&packet.payload)?;
+    debug!("get members, req: {req:?}");
+    let context = chat_cache_get(ctx, req.chat_id).await?;
+    let mut resp = chat::GetMembersResponse::default();
+
+    let member_ids;
+    {
+        let c = context.read().await;
+        member_ids = c.cmv.ids();
+    }
+
+    let page = if req.page <= 0 { 1 } else { req.page };
+    let page_size = if req.page_size <= 0 { 50 } else { req.page_size.min(200) };
+    let offset = ((page - 1) * page_size) as usize;
+
+    let mut filtered: Vec<i64> = if req.keyword.is_empty() {
+        member_ids
+    } else {
+        let biz = BizHub::get()?;
+        let users = biz.user.get_user_by_ids(ctx, member_ids.clone()).await?;
+        let kw = req.keyword.to_lowercase();
+        member_ids.into_iter().filter(|id| {
+            users.iter().any(|u| u.id == *id && u.name.to_lowercase().contains(&kw))
+        }).collect()
+    };
+
+    let total = filtered.len() as i32;
+    resp.total = total;
+    let paged: Vec<i64> = filtered.drain(offset..).take(page_size as usize).collect();
+    if paged.is_empty() {
+        return Ok((0, resp.encode_to_vec()));
+    }
+
+    let biz = BizHub::get()?;
+    let users = biz.user.get_user_by_ids(ctx, paged.clone()).await?;
+    let c = context.read().await;
+    for uid in paged {
+        let role = if uid == c.chat.owner_id {
+            2
+        } else if c.chat.admin_ids.contains(&uid) {
+            1
+        } else {
+            0
+        };
+        let user = users.iter().find(|u| u.id == uid);
+        resp.members.push(chat::MemberItem {
+            user_id: uid,
+            name: user.map(|u| u.name.clone()).unwrap_or_default(),
+            avatar: user.map(|u| u.avatar.clone()).unwrap_or_default(),
+            role,
+        });
+    }
+
+    debug!("get members done, total: {}", total);
+    Ok((0, resp.encode_to_vec()))
 }

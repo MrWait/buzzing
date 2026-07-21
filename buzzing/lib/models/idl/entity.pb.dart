@@ -753,6 +753,9 @@ class Chat extends $pb.GeneratedMessage {
     $fixnum.Int64? version,
     $core.String? avatar,
     $core.int? color,
+    $core.String? description,
+    $core.int? joinMode,
+    $fixnum.Int64? globalMuteUntil,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -773,6 +776,9 @@ class Chat extends $pb.GeneratedMessage {
     if (version != null) result.version = version;
     if (avatar != null) result.avatar = avatar;
     if (color != null) result.color = color;
+    if (description != null) result.description = description;
+    if (joinMode != null) result.joinMode = joinMode;
+    if (globalMuteUntil != null) result.globalMuteUntil = globalMuteUntil;
     return result;
   }
 
@@ -808,6 +814,9 @@ class Chat extends $pb.GeneratedMessage {
     ..aInt64(15, _omitFieldNames ? '' : 'version')
     ..aOS(16, _omitFieldNames ? '' : 'avatar')
     ..aI(17, _omitFieldNames ? '' : 'color')
+    ..aOS(18, _omitFieldNames ? '' : 'description')
+    ..aI(19, _omitFieldNames ? '' : 'joinMode')
+    ..aInt64(20, _omitFieldNames ? '' : 'globalMuteUntil')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -968,6 +977,33 @@ class Chat extends $pb.GeneratedMessage {
   $core.bool hasColor() => $_has(16);
   @$pb.TagNumber(17)
   void clearColor() => $_clearField(17);
+
+  @$pb.TagNumber(18)
+  $core.String get description => $_getSZ(17);
+  @$pb.TagNumber(18)
+  set description($core.String value) => $_setString(17, value);
+  @$pb.TagNumber(18)
+  $core.bool hasDescription() => $_has(17);
+  @$pb.TagNumber(18)
+  void clearDescription() => $_clearField(18);
+
+  @$pb.TagNumber(19)
+  $core.int get joinMode => $_getIZ(18);
+  @$pb.TagNumber(19)
+  set joinMode($core.int value) => $_setSignedInt32(18, value);
+  @$pb.TagNumber(19)
+  $core.bool hasJoinMode() => $_has(18);
+  @$pb.TagNumber(19)
+  void clearJoinMode() => $_clearField(19);
+
+  @$pb.TagNumber(20)
+  $fixnum.Int64 get globalMuteUntil => $_getI64(19);
+  @$pb.TagNumber(20)
+  set globalMuteUntil($fixnum.Int64 value) => $_setInt64(19, value);
+  @$pb.TagNumber(20)
+  $core.bool hasGlobalMuteUntil() => $_has(19);
+  @$pb.TagNumber(20)
+  void clearGlobalMuteUntil() => $_clearField(20);
 }
 
 class Feed extends $pb.GeneratedMessage {
@@ -1889,6 +1925,85 @@ class MessageReference extends $pb.GeneratedMessage {
   $core.bool hasSenderName() => $_has(4);
   @$pb.TagNumber(5)
   void clearSenderName() => $_clearField(5);
+}
+
+class AnnouncementContent extends $pb.GeneratedMessage {
+  factory AnnouncementContent({
+    $core.String? title,
+    $core.int? tpy,
+    $core.List<$core.int>? body,
+  }) {
+    final result = create();
+    if (title != null) result.title = title;
+    if (tpy != null) result.tpy = tpy;
+    if (body != null) result.body = body;
+    return result;
+  }
+
+  AnnouncementContent._();
+
+  factory AnnouncementContent.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AnnouncementContent.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AnnouncementContent',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'entity'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'title')
+    ..aI(2, _omitFieldNames ? '' : 'tpy')
+    ..a<$core.List<$core.int>>(
+        3, _omitFieldNames ? '' : 'body', $pb.PbFieldType.OY)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AnnouncementContent clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AnnouncementContent copyWith(void Function(AnnouncementContent) updates) =>
+      super.copyWith((message) => updates(message as AnnouncementContent))
+          as AnnouncementContent;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AnnouncementContent create() => AnnouncementContent._();
+  @$core.override
+  AnnouncementContent createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AnnouncementContent getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AnnouncementContent>(create);
+  static AnnouncementContent? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get title => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set title($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasTitle() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTitle() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get tpy => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set tpy($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasTpy() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTpy() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.List<$core.int> get body => $_getN(2);
+  @$pb.TagNumber(3)
+  set body($core.List<$core.int> value) => $_setBytes(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasBody() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearBody() => $_clearField(3);
 }
 
 class Mention extends $pb.GeneratedMessage {

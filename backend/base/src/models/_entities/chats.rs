@@ -25,6 +25,9 @@ pub struct Model {
     pub version: i64,
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
     pub extra: Vec<u8>,
+    pub description: String,
+    pub join_mode: i16,
+    pub global_mute_until: Option<DateTimeWithTimeZone>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

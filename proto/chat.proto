@@ -42,9 +42,53 @@ message DismissChatRequest {
 message DismissChatResponse {}
 
 message UpdateChatRequest {
-    entity.Chat chat = 1;
+    int64 chat_id = 1;
+    string name = 2;
+    string avatar = 3;
+    string description = 4;
+    int64 owner_id = 5;
+    repeated int64 admin_ids_add = 6;
+    repeated int64 admin_ids_remove = 7;
+    int32 join_mode = 8;
 }
-message UpdateChatResponse {}
+message UpdateChatResponse {
+    entity.Entity entities = 1;
+}
+
+message SetAnnouncementRequest {
+    int64 chat_id = 1;
+    string title = 2;
+    int32 tpy = 3;
+    bytes body = 4;
+    string summary = 5;
+}
+message SetAnnouncementResponse {
+    entity.Entity entities = 1;
+}
+
+message DeleteAnnouncementRequest {
+    int64 chat_id = 1;
+}
+message DeleteAnnouncementResponse {
+    entity.Entity entities = 1;
+}
+
+message GetMembersRequest {
+    int64 chat_id = 1;
+    int32 page = 2;
+    int32 page_size = 3;
+    string keyword = 4;
+}
+message GetMembersResponse {
+    repeated MemberItem members = 1;
+    int32 total = 2;
+}
+message MemberItem {
+    int64 user_id = 1;
+    string name = 2;
+    string avatar = 3;
+    int32 role = 4;
+}
 
 message AddChatChatterRequest {
     int64 chat_id = 1;
