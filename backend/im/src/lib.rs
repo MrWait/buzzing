@@ -60,6 +60,7 @@ impl ExternApp for AppIm {
             Command::MessageGetByPos as i32,
             Command::MessageGetByRange as i32,
             Command::ReactionSet as i32,
+            Command::MessageForward as i32,
             // favorite
             Command::FavoriteAdd as i32,
             Command::FavoriteGetList as i32,
@@ -95,6 +96,8 @@ impl ExternApp for AppIm {
             Command::ChatDeleteChatters => {
                 chat::chat_delete_chatters(ctx, brief, packet, ws).await?
             }
+            Command::ChatQuit => chat::chat_quit(ctx, brief, packet, ws).await?,
+            Command::ChatDismiss => chat::chat_dismiss(ctx, brief, packet, ws).await?,
 
             // messages
             Command::MessageSend => message::message_send(ctx, brief, packet, ws).await?,
@@ -106,6 +109,7 @@ impl ExternApp for AppIm {
                 message::message_get_by_range(ctx, brief, packet, ws).await?
             }
             Command::ReactionSet => message::reaction_set(ctx, brief, packet, ws).await?,
+            Command::MessageForward => message::message_forward(ctx, brief, packet, ws).await?,
 
             Command::FavoriteAdd => setting::favorite_add(ctx, brief, packet, ws).await?,
             Command::FavoriteRemove => setting::favorite_remove(ctx, brief, packet, ws).await?,

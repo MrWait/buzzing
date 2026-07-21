@@ -1,17 +1,32 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:buzzing/controller/im.dart';
+import 'package:buzzing/models/idl/command.pb.dart';
+import 'package:buzzing/models/idl/entity.pb.dart';
+import 'package:buzzing/models/idl/setting.pb.dart';
+import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/provider/page_providers.dart';
+import 'package:buzzing/utils/config/config.dart';
 import 'package:buzzing/utils/data_persistence.dart';
+import 'package:buzzing/utils/logger_util.dart';
+import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
-import 'package:buzzing/provider/im_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mime_type/mime_type.dart';
+import 'package:path/path.dart' as p;
 
 class MessageInput extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     final im = ref.watch(imProvider);
     return Container(
       margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
@@ -24,6 +39,9 @@ class MessageInput extends ConsumerWidget {
         builder: (ctx, _) => Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // 引用回复预览条
+            if (im.replyTarget != null)
+              _ReplyPreviewBar(im: im, cs: cs, tt: tt),
             if (im.showMentionPopup)
               MentionPopup(
                 candidates: im.candidates,
@@ -54,7 +72,8 @@ class MessageInput extends ConsumerWidget {
               ),
               child: Row(
                 children: [
-                  _ToolbarBtn(icon: Icons.attach_file, onTap: () async {}),
+                  _ToolbarBtn(icon: Icons.image_outlined, onTap: () => _pickImage(context, ref, im)),
+                  _ToolbarBtn(icon: Icons.attach_file, onTap: () => _pickFile(context, ref, im)),
                   _ToolbarBtn(icon: Icons.emoji_emotions_outlined, onTap: () async {}),
                   _ToolbarBtn(icon: Icons.alternate_email, onTap: () async {}),
                   _ToolbarBtn(
@@ -74,6 +93,135 @@ class MessageInput extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _pickImage(BuildContext context, WidgetRef ref, ImController im) async {
+    final picker = ImagePicker();
+    final xFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (xFile == null || im.chatId == Int64(0)) return;
+
+    final file = File(xFile.path);
+    final bytes = await file.readAsBytes();
+    final fileName = p.basename(xFile.path);
+    final fileSize = await file.length();
+
+    await _uploadAndSend(context, im, bytes, fileName, fileSize, MessageType.IMAGE.value);
+  }
+
+  Future<void> _pickFile(BuildContext context, WidgetRef ref, ImController im) async {
+    final result = await FilePicker.pickFiles(withData: true);
+    if (result == null || result.files.isEmpty || im.chatId == Int64(0)) return;
+
+    final pf = result.files.first;
+    final bytes = pf.bytes ?? await File(pf.path!).readAsBytes();
+    final fileName = pf.name;
+    final fileSize = pf.size;
+
+    await _uploadAndSend(context, im, bytes, fileName, fileSize, MessageType.FILE.value);
+  }
+
+  Future<void> _uploadAndSend(
+    BuildContext context,
+    ImController im,
+    Uint8List bytes,
+    String fileName,
+    int fileSize,
+    int msgType,
+  ) async {
+    final baseUrl = Config.apiUrl();
+    if (baseUrl.isEmpty) {
+      L.e("upload error: base url not configured");
+      return;
+    }
+
+    // 1. Create draft message
+    final draftContent = msgType == MessageType.IMAGE.value
+        ? MessageImage(altText: fileName).writeToBuffer()
+        : MessageFile(name: fileName, size: Int64(fileSize)).writeToBuffer();
+
+    final draftMsg = Message.create()
+      ..tpy = msgType
+      ..fromId = im.userId
+      ..content = draftContent
+      ..summary = fileName
+      ..chatId = im.chatId;
+    final stashId = await im.preSendMessage(im.chatId, draftMsg);
+    if (stashId == null) return;
+
+    final taskKey = 'upload_task_${stashId}';
+
+    // 2. Persist upload task via SDK setting store
+    try {
+      final taskReq = LocalSettingSetRequest.create()
+        ..key = taskKey
+        ..value = jsonEncode({
+          'client_id': stashId.toInt(),
+          'chat_id': im.chatId.toInt(),
+          'tpy': msgType,
+          'file_name': fileName,
+          'file_size': fileSize,
+        });
+      await im.sdk.invokeAsync(Command.SETTING_SET, taskReq.writeToBuffer());
+    } catch (e) {
+      L.w("save upload task failed: $e");
+    }
+
+    // 3. Upload file via Dio
+    try {
+      final mimeType = mime(fileName) ?? 'application/octet-stream';
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: fileName, contentType: DioMediaType.parse(mimeType)),
+      });
+      final resp = await Dio(BaseOptions(baseUrl: baseUrl))
+          .post('/api/files/upload', data: formData);
+
+      if (resp.statusCode != 200) {
+        L.e("upload failed: ${resp.statusCode}");
+        return;
+      }
+
+      final fileId = resp.data['id'] as int;
+      final downloadUrl = '$baseUrl/api/files/$fileId';
+      final thumbnailUrl = resp.data['thumbnail_url'] as String?;
+      final width = resp.data['width'] as int? ?? 0;
+      final height = resp.data['height'] as int? ?? 0;
+
+      // 4. Update message with real URLs and send
+      final content = msgType == MessageType.IMAGE.value
+          ? MessageImage(
+              url: downloadUrl,
+              thumbnailUrl: thumbnailUrl ?? '',
+              width: width,
+              height: height,
+              altText: fileName,
+            ).writeToBuffer()
+          : MessageFile(url: downloadUrl, name: fileName, size: Int64(fileSize)).writeToBuffer();
+
+      final sendMsg = Message.create()
+        ..tpy = msgType
+        ..fromId = im.userId
+        ..content = content
+        ..summary = fileName
+        ..chatId = im.chatId;
+      await im.sendMessage(stashId, sendMsg);
+
+      // 5. Clean up upload task
+      try {
+        final cleanReq = LocalSettingSetRequest.create()
+          ..key = taskKey
+          ..value = '';
+        await im.sdk.invokeAsync(Command.SETTING_SET, cleanReq.writeToBuffer());
+      } catch (e) {
+        L.w("clean upload task failed: $e");
+      }
+    } catch (e) {
+      L.e("upload and send error: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('文件发送失败: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _createMeetingAndShare(
@@ -150,6 +298,59 @@ class MentionEmbedBuilder extends EmbedBuilder {
         color: cs.primary,
         fontWeight: FontWeight.normal,
         backgroundColor: cs.primary.withValues(alpha: 0.1),
+      ),
+    );
+  }
+}
+
+class _ReplyPreviewBar extends StatelessWidget {
+  final ImController im;
+  final ColorScheme cs;
+  final TextTheme tt;
+
+  const _ReplyPreviewBar({required this.im, required this.cs, required this.tt});
+
+  @override
+  Widget build(BuildContext context) {
+    final target = im.replyTarget!;
+    final senderName = im.getUser(target.fromId)?.name ?? '';
+    final preview = target.summary.isNotEmpty ? target.summary : '(消息已撤回)';
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        border: Border(top: BorderSide(color: cs.outlineVariant)),
+      ),
+      child: Row(
+        children: [
+          Container(width: 3, height: 32, color: cs.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '回复 ${senderName.isNotEmpty ? senderName : "消息"}',
+                  style: tt.bodySmall?.copyWith(color: cs.primary, fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  preview,
+                  style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: im.clearReply,
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(Icons.close, size: 16, color: cs.onSurfaceVariant),
+            ),
+          ),
+        ],
       ),
     );
   }

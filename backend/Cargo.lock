@@ -6144,6 +6144,7 @@ dependencies = [
  "chrono",
  "common",
  "futures",
+ "image",
  "loco-rs",
  "object_store",
  "proto",

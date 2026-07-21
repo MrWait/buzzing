@@ -1,8 +1,8 @@
 use axum::debug_handler;
-use axum::extract::multipart::Multipart;
+use axum::extract::{multipart::Multipart, Query};
 use axum::http::header;
 use loco_rs::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use base::models::_entities::files::ActiveModel;
 use common::{id_gen, model::UserBrief, time::current_ms};
@@ -19,6 +19,9 @@ pub struct FileResponse {
     pub ext: String,
     pub category: String,
     pub url: String,
+    pub thumbnail_url: Option<String>,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
     pub created_at: i64,
 }
 
@@ -56,6 +59,20 @@ pub async fn upload(
         .await
         .map_err(|_| Error::InternalServerError)?;
 
+    let is_image = mime_type.starts_with("image/");
+    let (thumbnail_key, width, height) = if is_image {
+        match services::generate_thumbnail(&data, 256) {
+            Ok((thumb_data, w, h)) => {
+                let thumb_key = services::generate_thumbnail_key(&storage_key);
+                let _ = services::put(&thumb_key, thumb_data).await;
+                (Some(thumb_key), Some(w as i32), Some(h as i32))
+            }
+            Err(_) => (None, None, None),
+        }
+    } else {
+        (None, None, None)
+    };
+
     let host = ctx.config.server.host.clone();
     let port = ctx.config.server.port;
     let fid = id_gen(None);
@@ -74,6 +91,9 @@ pub async fn upload(
             category: ActiveValue::set("file".to_string()),
             created_at: ActiveValue::set(now),
             deleted_at: ActiveValue::set(None),
+            width: ActiveValue::set(width),
+            height: ActiveValue::set(height),
+            thumbnail_key: ActiveValue::set(thumbnail_key),
         },
     )
     .await?;
@@ -86,24 +106,46 @@ pub async fn upload(
         ext: file.ext,
         category: file.category,
         url: services::build_file_url(&host, port, file.id),
+        thumbnail_url: if file.thumbnail_key.is_some() {
+            Some(format!("{}?size=thumb", services::build_file_url(&host, port, file.id)))
+        } else {
+            None
+        },
+        width: file.width,
+        height: file.height,
         created_at: file.created_at,
     })
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DownloadParams {
+    size: Option<String>,
 }
 
 #[debug_handler]
 pub async fn download(
     Path(id): Path<i64>,
+    Query(params): Query<DownloadParams>,
     State(ctx): State<AppContext>,
 ) -> Result<impl IntoResponse> {
     let file = FileModel::get_by_id(&ctx.db, id)
         .await?
         .ok_or(Error::NotFound)?;
 
-    let data = services::get(&file.storage_key)
+    let is_thumb = params.size.as_deref() == Some("thumb");
+    let storage_key = if is_thumb {
+        file.thumbnail_key.as_deref().unwrap_or(&file.storage_key)
+    } else {
+        &file.storage_key
+    };
+
+    let data = services::get(storage_key)
         .await
         .map_err(|_| Error::NotFound)?;
 
-    let content_type = if file.mime_type.is_empty() {
+    let content_type = if is_thumb {
+        "image/jpeg".to_string()
+    } else if file.mime_type.is_empty() {
         "application/octet-stream".to_string()
     } else {
         file.mime_type.clone()
@@ -149,6 +191,13 @@ pub async fn info(
         ext: file.ext,
         category: file.category,
         url: services::build_file_url(&host, port, file.id),
+        thumbnail_url: if file.thumbnail_key.is_some() {
+            Some(services::build_file_url(&host, port, file.id))
+        } else {
+            None
+        },
+        width: file.width,
+        height: file.height,
         created_at: file.created_at,
     })
 }

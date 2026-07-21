@@ -59,6 +59,14 @@ pub(crate) async fn message_send(
         .map_err(|_| anyhow!("message send error"))
 }
 
+pub(crate) async fn forward_message(
+    req: &idl::message::ForwardMessageRequest,
+) -> Result<idl::message::ForwardMessageResponse> {
+    common_request(command::Command::MessageForward as i32, req.encode_to_vec())
+        .await
+        .map_err(|_| anyhow!("forward message error"))
+}
+
 pub(crate) async fn message_get_by_pos(
     req: &idl::message::GetMessageByPosRequest,
 ) -> Result<idl::message::GetMessageByPosResponse> {

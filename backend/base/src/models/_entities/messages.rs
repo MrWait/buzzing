@@ -31,6 +31,9 @@ pub struct Model {
     pub reactions: Vec<u8>,
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
     pub extra: Vec<u8>,
+    pub ref_message_id: i64,
+    #[sea_orm(column_type = "VarBinary(StringLen::None)")]
+    pub ref_data: Vec<u8>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

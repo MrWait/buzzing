@@ -59,6 +59,8 @@ impl MessageModel {
             content: ActiveValue::set(msg.content.clone()),
             summary: ActiveValue::set(msg.summary.clone()),
             version: ActiveValue::set(0),
+            ref_message_id: ActiveValue::set(msg.ref_message_id),
+            ref_data: ActiveValue::set(msg.ref_data.clone()),
             cmv_id: ActiveValue::set(msg.cmv_id),
             cmv_count: ActiveValue::set(msg.cmv_count),
             read_count: ActiveValue::set(msg.read_count),
@@ -202,12 +204,18 @@ impl Into<entity::Message> for MessageModel {
             version: self.0.version,
             reactions: std::collections::HashMap::new(),
             read_state: None,
+            ref_message_id: self.0.ref_message_id,
+            ref_data: if self.0.ref_data.is_empty() {
+                None
+            } else {
+                entity::MessageReference::decode(self.0.ref_data.as_slice()).ok()
+            },
         }
     }
 }
 
 impl From<entity::Message> for MessageModel {
-    fn from(message: entity::Message) -> Self {
+    fn from(mut message: entity::Message) -> Self {
         Self(Model {
             created_at: date_time(message.create_time_ms),
             updated_at: date_time(message.update_time_ms),
@@ -219,10 +227,16 @@ impl From<entity::Message> for MessageModel {
             badge: message.badge_count,
             status: message.status as i16,
             client_id: message.client_id,
-            at_user_ids: message.at_user_ids,
-            content: message.content,
-            summary: message.summary,
+            at_user_ids: std::mem::take(&mut message.at_user_ids),
+            content: std::mem::take(&mut message.content),
+            summary: std::mem::take(&mut message.summary),
             version: message.version,
+            ref_message_id: message.ref_message_id,
+            ref_data: message
+                .ref_data
+                .take()
+                .map(|r| r.encode_to_vec())
+                .unwrap_or_default(),
             cmv_id: 0,
             cmv_count: 0,
             read_count: 0,

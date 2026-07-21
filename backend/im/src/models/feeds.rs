@@ -341,6 +341,64 @@ impl FeedModel {
         Ok(feeds)
     }
 
+    pub async fn update_read_pos(
+        db: &DatabaseConnection,
+        chat_id: i64,
+        user_id: i64,
+        pos: i32,
+    ) -> ModelResult<Vec<Model>> {
+        let now = current_ms() as i64;
+
+        let feed = Feeds::find()
+            .filter(
+                model::query::condition()
+                    .eq(Column::EntityId, chat_id)
+                    .eq(Column::UserId, user_id)
+                    .build(),
+            )
+            .one(db)
+            .await?;
+
+        let Some(db_feed) = feed else {
+            return Ok(vec![]);
+        };
+
+        let read_badge = if pos >= db_feed.refer_pos {
+            db_feed.refer_badge
+        } else {
+            db_feed.read_badge
+        };
+
+        let model = ActiveModel {
+            read_pos: ActiveValue::set(pos),
+            read_badge: ActiveValue::set(read_badge),
+            update_ms: ActiveValue::set(now),
+            ..Default::default()
+        };
+
+        Feeds::update_many()
+            .set(model)
+            .filter(
+                model::query::condition()
+                    .eq(Column::EntityId, chat_id)
+                    .eq(Column::UserId, user_id)
+                    .build(),
+            )
+            .exec(db)
+            .await?;
+
+        let feeds = Feeds::find()
+            .filter(
+                model::query::condition()
+                    .eq(Column::EntityId, chat_id)
+                    .eq(Column::UserId, user_id)
+                    .build(),
+            )
+            .all(db)
+            .await?;
+        Ok(feeds)
+    }
+
     pub async fn update_by_new_message(
         db: &DatabaseConnection,
         member_ids: &[i64],

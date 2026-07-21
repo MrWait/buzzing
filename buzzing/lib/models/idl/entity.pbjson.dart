@@ -242,6 +242,9 @@ const MessageType$json = {
     {'1': 'REDPACKET', '2': 10},
     {'1': 'RICH_TEXT_QUILL', '2': 11},
     {'1': 'MEETING_INVITE', '2': 12},
+    {'1': 'MARKDOWN', '2': 13},
+    {'1': 'FORWARD', '2': 14},
+    {'1': 'SYSTEM', '2': 15},
   ],
 };
 
@@ -250,7 +253,8 @@ final $typed_data.Uint8List messageTypeDescriptor = $convert.base64Decode(
     'CgtNZXNzYWdlVHlwZRIYChRNRVNTQUdFX1RZUEVfVU5LTk9XThAAEggKBFRFWFQQARIJCgVJTU'
     'FHRRACEggKBEZJTEUQAxIJCgVWT0lDRRAEEgkKBU1FRElBEAUSDQoJUklDSF9URVhUEAYSDAoI'
     'TE9DQVRJT04QBxIICgRDQVJEEAgSCAoEVk9URRAJEg0KCVJFRFBBQ0tFVBAKEhMKD1JJQ0hfVE'
-    'VYVF9RVUlMTBALEhIKDk1FRVRJTkdfSU5WSVRFEAw=');
+    'VYVF9RVUlMTBALEhIKDk1FRVRJTkdfSU5WSVRFEAwSDAoITUFSS0RPV04QDRILCgdGT1JXQVJE'
+    'EA4SCgoGU1lTVEVNEA8=');
 
 @$core.Deprecated('Use directDescriptor instead')
 const Direct$json = {
@@ -736,6 +740,15 @@ const Message$json = {
       '6': '.entity.Message.ReactionsEntry',
       '10': 'reactions'
     },
+    {'1': 'ref_message_id', '3': 31, '4': 1, '5': 3, '10': 'refMessageId'},
+    {
+      '1': 'ref_data',
+      '3': 32,
+      '4': 1,
+      '5': 11,
+      '6': '.entity.MessageReference',
+      '10': 'refData'
+    },
   ],
   '3': [Message_ReactionsEntry$json],
 };
@@ -767,39 +780,214 @@ final $typed_data.Uint8List messageDescriptor = $convert.base64Decode(
     'F0X3VzZXJfaWRzGAsgAygDUglhdFVzZXJJZHMSGAoHY29udGVudBgUIAEoDFIHY29udGVudBIY'
     'CgdzdW1tYXJ5GBUgASgJUgdzdW1tYXJ5EhgKB3ZlcnNpb24YFiABKANSB3ZlcnNpb24SMAoKcm'
     'VhZF9zdGF0ZRgXIAEoCzIRLmVudGl0eS5SZWFkU3RhdGVSCXJlYWRTdGF0ZRI8CglyZWFjdGlv'
-    'bnMYGCADKAsyHi5lbnRpdHkuTWVzc2FnZS5SZWFjdGlvbnNFbnRyeVIJcmVhY3Rpb25zGk4KDl'
-    'JlYWN0aW9uc0VudHJ5EhAKA2tleRgBIAEoBVIDa2V5EiYKBXZhbHVlGAIgASgLMhAuZW50aXR5'
-    'LlJlYWN0aW9uUgV2YWx1ZToCOAE=');
+    'bnMYGCADKAsyHi5lbnRpdHkuTWVzc2FnZS5SZWFjdGlvbnNFbnRyeVIJcmVhY3Rpb25zEiQKDn'
+    'JlZl9tZXNzYWdlX2lkGB8gASgDUgxyZWZNZXNzYWdlSWQSMwoIcmVmX2RhdGEYICABKAsyGC5l'
+    'bnRpdHkuTWVzc2FnZVJlZmVyZW5jZVIHcmVmRGF0YRpOCg5SZWFjdGlvbnNFbnRyeRIQCgNrZX'
+    'kYASABKAVSA2tleRImCgV2YWx1ZRgCIAEoCzIQLmVudGl0eS5SZWFjdGlvblIFdmFsdWU6AjgB');
+
+@$core.Deprecated('Use messageReferenceDescriptor instead')
+const MessageReference$json = {
+  '1': 'MessageReference',
+  '2': [
+    {'1': 'chat_id', '3': 1, '4': 1, '5': 3, '10': 'chatId'},
+    {'1': 'content', '3': 2, '4': 1, '5': 12, '10': 'content'},
+    {'1': 'summary', '3': 3, '4': 1, '5': 9, '10': 'summary'},
+    {'1': 'tpy', '3': 4, '4': 1, '5': 5, '10': 'tpy'},
+    {'1': 'sender_name', '3': 5, '4': 1, '5': 9, '10': 'senderName'},
+  ],
+};
+
+/// Descriptor for `MessageReference`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List messageReferenceDescriptor = $convert.base64Decode(
+    'ChBNZXNzYWdlUmVmZXJlbmNlEhcKB2NoYXRfaWQYASABKANSBmNoYXRJZBIYCgdjb250ZW50GA'
+    'IgASgMUgdjb250ZW50EhgKB3N1bW1hcnkYAyABKAlSB3N1bW1hcnkSEAoDdHB5GAQgASgFUgN0'
+    'cHkSHwoLc2VuZGVyX25hbWUYBSABKAlSCnNlbmRlck5hbWU=');
+
+@$core.Deprecated('Use mentionDescriptor instead')
+const Mention$json = {
+  '1': 'Mention',
+  '2': [
+    {'1': 'user_id', '3': 1, '4': 1, '5': 3, '10': 'userId'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'offset', '3': 3, '4': 1, '5': 5, '10': 'offset'},
+    {'1': 'length', '3': 4, '4': 1, '5': 5, '10': 'length'},
+  ],
+};
+
+/// Descriptor for `Mention`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List mentionDescriptor = $convert.base64Decode(
+    'CgdNZW50aW9uEhcKB3VzZXJfaWQYASABKANSBnVzZXJJZBISCgRuYW1lGAIgASgJUgRuYW1lEh'
+    'YKBm9mZnNldBgDIAEoBVIGb2Zmc2V0EhYKBmxlbmd0aBgEIAEoBVIGbGVuZ3Ro');
 
 @$core.Deprecated('Use messageTextDescriptor instead')
 const MessageText$json = {
   '1': 'MessageText',
   '2': [
     {'1': 'text', '3': 1, '4': 1, '5': 9, '10': 'text'},
+    {
+      '1': 'mentions',
+      '3': 2,
+      '4': 3,
+      '5': 11,
+      '6': '.entity.Mention',
+      '10': 'mentions'
+    },
   ],
 };
 
 /// Descriptor for `MessageText`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List messageTextDescriptor =
-    $convert.base64Decode('CgtNZXNzYWdlVGV4dBISCgR0ZXh0GAEgASgJUgR0ZXh0');
+final $typed_data.Uint8List messageTextDescriptor = $convert.base64Decode(
+    'CgtNZXNzYWdlVGV4dBISCgR0ZXh0GAEgASgJUgR0ZXh0EisKCG1lbnRpb25zGAIgAygLMg8uZW'
+    '50aXR5Lk1lbnRpb25SCG1lbnRpb25z');
 
 @$core.Deprecated('Use messageImageDescriptor instead')
 const MessageImage$json = {
   '1': 'MessageImage',
+  '2': [
+    {'1': 'url', '3': 1, '4': 1, '5': 9, '10': 'url'},
+    {'1': 'thumbnail_url', '3': 2, '4': 1, '5': 9, '10': 'thumbnailUrl'},
+    {'1': 'width', '3': 3, '4': 1, '5': 5, '10': 'width'},
+    {'1': 'height', '3': 4, '4': 1, '5': 5, '10': 'height'},
+    {'1': 'alt_text', '3': 5, '4': 1, '5': 9, '10': 'altText'},
+  ],
 };
 
 /// Descriptor for `MessageImage`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List messageImageDescriptor =
-    $convert.base64Decode('CgxNZXNzYWdlSW1hZ2U=');
+final $typed_data.Uint8List messageImageDescriptor = $convert.base64Decode(
+    'CgxNZXNzYWdlSW1hZ2USEAoDdXJsGAEgASgJUgN1cmwSIwoNdGh1bWJuYWlsX3VybBgCIAEoCV'
+    'IMdGh1bWJuYWlsVXJsEhQKBXdpZHRoGAMgASgFUgV3aWR0aBIWCgZoZWlnaHQYBCABKAVSBmhl'
+    'aWdodBIZCghhbHRfdGV4dBgFIAEoCVIHYWx0VGV4dA==');
 
 @$core.Deprecated('Use messageFileDescriptor instead')
 const MessageFile$json = {
   '1': 'MessageFile',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'size', '3': 2, '4': 1, '5': 3, '10': 'size'},
+    {'1': 'mime_type', '3': 3, '4': 1, '5': 9, '10': 'mimeType'},
+    {'1': 'url', '3': 4, '4': 1, '5': 9, '10': 'url'},
+  ],
 };
 
 /// Descriptor for `MessageFile`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List messageFileDescriptor =
-    $convert.base64Decode('CgtNZXNzYWdlRmlsZQ==');
+final $typed_data.Uint8List messageFileDescriptor = $convert.base64Decode(
+    'CgtNZXNzYWdlRmlsZRISCgRuYW1lGAEgASgJUgRuYW1lEhIKBHNpemUYAiABKANSBHNpemUSGw'
+    'oJbWltZV90eXBlGAMgASgJUghtaW1lVHlwZRIQCgN1cmwYBCABKAlSA3VybA==');
+
+@$core.Deprecated('Use messageRichTextDescriptor instead')
+const MessageRichText$json = {
+  '1': 'MessageRichText',
+  '2': [
+    {'1': 'delta', '3': 1, '4': 1, '5': 9, '10': 'delta'},
+  ],
+};
+
+/// Descriptor for `MessageRichText`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List messageRichTextDescriptor = $convert
+    .base64Decode('Cg9NZXNzYWdlUmljaFRleHQSFAoFZGVsdGEYASABKAlSBWRlbHRh');
+
+@$core.Deprecated('Use messageMarkdownDescriptor instead')
+const MessageMarkdown$json = {
+  '1': 'MessageMarkdown',
+  '2': [
+    {'1': 'text', '3': 1, '4': 1, '5': 9, '10': 'text'},
+    {'1': 'fallback', '3': 2, '4': 1, '5': 9, '10': 'fallback'},
+  ],
+};
+
+/// Descriptor for `MessageMarkdown`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List messageMarkdownDescriptor = $convert.base64Decode(
+    'Cg9NZXNzYWdlTWFya2Rvd24SEgoEdGV4dBgBIAEoCVIEdGV4dBIaCghmYWxsYmFjaxgCIAEoCV'
+    'IIZmFsbGJhY2s=');
+
+@$core.Deprecated('Use messageForwardDescriptor instead')
+const MessageForward$json = {
+  '1': 'MessageForward',
+  '2': [
+    {'1': 'type', '3': 1, '4': 1, '5': 5, '10': 'type'},
+    {'1': 'chat_id', '3': 2, '4': 1, '5': 3, '10': 'chatId'},
+    {'1': 'chat_name', '3': 3, '4': 1, '5': 9, '10': 'chatName'},
+    {'1': 'message_count', '3': 4, '4': 1, '5': 5, '10': 'messageCount'},
+    {'1': 'title', '3': 5, '4': 1, '5': 9, '10': 'title'},
+    {
+      '1': 'items',
+      '3': 6,
+      '4': 3,
+      '5': 11,
+      '6': '.entity.ForwardItem',
+      '10': 'items'
+    },
+  ],
+};
+
+/// Descriptor for `MessageForward`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List messageForwardDescriptor = $convert.base64Decode(
+    'Cg5NZXNzYWdlRm9yd2FyZBISCgR0eXBlGAEgASgFUgR0eXBlEhcKB2NoYXRfaWQYAiABKANSBm'
+    'NoYXRJZBIbCgljaGF0X25hbWUYAyABKAlSCGNoYXROYW1lEiMKDW1lc3NhZ2VfY291bnQYBCAB'
+    'KAVSDG1lc3NhZ2VDb3VudBIUCgV0aXRsZRgFIAEoCVIFdGl0bGUSKQoFaXRlbXMYBiADKAsyEy'
+    '5lbnRpdHkuRm9yd2FyZEl0ZW1SBWl0ZW1z');
+
+@$core.Deprecated('Use forwardItemDescriptor instead')
+const ForwardItem$json = {
+  '1': 'ForwardItem',
+  '2': [
+    {'1': 'user_id', '3': 1, '4': 1, '5': 3, '10': 'userId'},
+    {'1': 'user_name', '3': 2, '4': 1, '5': 9, '10': 'userName'},
+    {'1': 'tpy', '3': 3, '4': 1, '5': 5, '10': 'tpy'},
+    {'1': 'summary', '3': 4, '4': 1, '5': 9, '10': 'summary'},
+    {'1': 'message_id', '3': 5, '4': 1, '5': 3, '10': 'messageId'},
+  ],
+};
+
+/// Descriptor for `ForwardItem`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List forwardItemDescriptor = $convert.base64Decode(
+    'CgtGb3J3YXJkSXRlbRIXCgd1c2VyX2lkGAEgASgDUgZ1c2VySWQSGwoJdXNlcl9uYW1lGAIgAS'
+    'gJUgh1c2VyTmFtZRIQCgN0cHkYAyABKAVSA3RweRIYCgdzdW1tYXJ5GAQgASgJUgdzdW1tYXJ5'
+    'Eh0KCm1lc3NhZ2VfaWQYBSABKANSCW1lc3NhZ2VJZA==');
+
+@$core.Deprecated('Use messageSystemDescriptor instead')
+const MessageSystem$json = {
+  '1': 'MessageSystem',
+  '2': [
+    {'1': 'action', '3': 1, '4': 1, '5': 5, '10': 'action'},
+    {'1': 'text', '3': 2, '4': 1, '5': 9, '10': 'text'},
+    {'1': 'operator_id', '3': 3, '4': 1, '5': 3, '10': 'operatorId'},
+    {'1': 'target_ids', '3': 4, '4': 3, '5': 3, '10': 'targetIds'},
+  ],
+};
+
+/// Descriptor for `MessageSystem`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List messageSystemDescriptor = $convert.base64Decode(
+    'Cg1NZXNzYWdlU3lzdGVtEhYKBmFjdGlvbhgBIAEoBVIGYWN0aW9uEhIKBHRleHQYAiABKAlSBH'
+    'RleHQSHwoLb3BlcmF0b3JfaWQYAyABKANSCm9wZXJhdG9ySWQSHQoKdGFyZ2V0X2lkcxgEIAMo'
+    'A1IJdGFyZ2V0SWRz');
+
+@$core.Deprecated('Use fileInfoDescriptor instead')
+const FileInfo$json = {
+  '1': 'FileInfo',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'size', '3': 3, '4': 1, '5': 3, '10': 'size'},
+    {'1': 'mime_type', '3': 4, '4': 1, '5': 9, '10': 'mimeType'},
+    {'1': 'url', '3': 5, '4': 1, '5': 9, '10': 'url'},
+    {'1': 'uploader_id', '3': 6, '4': 1, '5': 3, '10': 'uploaderId'},
+    {'1': 'created_at_ms', '3': 7, '4': 1, '5': 3, '10': 'createdAtMs'},
+    {'1': 'thumbnail_url', '3': 8, '4': 1, '5': 9, '10': 'thumbnailUrl'},
+    {'1': 'width', '3': 9, '4': 1, '5': 5, '10': 'width'},
+    {'1': 'height', '3': 10, '4': 1, '5': 5, '10': 'height'},
+    {'1': 'md5', '3': 11, '4': 1, '5': 9, '10': 'md5'},
+  ],
+};
+
+/// Descriptor for `FileInfo`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List fileInfoDescriptor = $convert.base64Decode(
+    'CghGaWxlSW5mbxIOCgJpZBgBIAEoCVICaWQSEgoEbmFtZRgCIAEoCVIEbmFtZRISCgRzaXplGA'
+    'MgASgDUgRzaXplEhsKCW1pbWVfdHlwZRgEIAEoCVIIbWltZVR5cGUSEAoDdXJsGAUgASgJUgN1'
+    'cmwSHwoLdXBsb2FkZXJfaWQYBiABKANSCnVwbG9hZGVySWQSIgoNY3JlYXRlZF9hdF9tcxgHIA'
+    'EoA1ILY3JlYXRlZEF0TXMSIwoNdGh1bWJuYWlsX3VybBgIIAEoCVIMdGh1bWJuYWlsVXJsEhQK'
+    'BXdpZHRoGAkgASgFUgV3aWR0aBIWCgZoZWlnaHQYCiABKAVSBmhlaWdodBIQCgNtZDUYCyABKA'
+    'lSA21kNQ==');
 
 @$core.Deprecated('Use userConfigDescriptor instead')
 const UserConfig$json = {
@@ -972,13 +1160,22 @@ const Entity$json = {
       '6': '.entity.Entity.FeedsEntry',
       '10': 'feeds'
     },
+    {
+      '1': 'files',
+      '3': 6,
+      '4': 3,
+      '5': 11,
+      '6': '.entity.Entity.FilesEntry',
+      '10': 'files'
+    },
   ],
   '3': [
     Entity_EntityIdsEntry$json,
     Entity_UsersEntry$json,
     Entity_ChatsEntry$json,
     Entity_MessagesEntry$json,
-    Entity_FeedsEntry$json
+    Entity_FeedsEntry$json,
+    Entity_FilesEntry$json
   ],
 };
 
@@ -1039,20 +1236,39 @@ const Entity_FeedsEntry$json = {
   '7': {'7': true},
 };
 
+@$core.Deprecated('Use entityDescriptor instead')
+const Entity_FilesEntry$json = {
+  '1': 'FilesEntry',
+  '2': [
+    {'1': 'key', '3': 1, '4': 1, '5': 9, '10': 'key'},
+    {
+      '1': 'value',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.entity.FileInfo',
+      '10': 'value'
+    },
+  ],
+  '7': {'7': true},
+};
+
 /// Descriptor for `Entity`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List entityDescriptor = $convert.base64Decode(
     'CgZFbnRpdHkSPAoKZW50aXR5X2lkcxgBIAMoCzIdLmVudGl0eS5FbnRpdHkuRW50aXR5SWRzRW'
     '50cnlSCWVudGl0eUlkcxIvCgV1c2VycxgCIAMoCzIZLmVudGl0eS5FbnRpdHkuVXNlcnNFbnRy'
     'eVIFdXNlcnMSLwoFY2hhdHMYAyADKAsyGS5lbnRpdHkuRW50aXR5LkNoYXRzRW50cnlSBWNoYX'
     'RzEjgKCG1lc3NhZ2VzGAQgAygLMhwuZW50aXR5LkVudGl0eS5NZXNzYWdlc0VudHJ5UghtZXNz'
-    'YWdlcxIvCgVmZWVkcxgFIAMoCzIZLmVudGl0eS5FbnRpdHkuRmVlZHNFbnRyeVIFZmVlZHMaPA'
-    'oORW50aXR5SWRzRW50cnkSEAoDa2V5GAEgASgDUgNrZXkSFAoFdmFsdWUYAiABKANSBXZhbHVl'
-    'OgI4ARpGCgpVc2Vyc0VudHJ5EhAKA2tleRgBIAEoA1IDa2V5EiIKBXZhbHVlGAIgASgLMgwuZW'
-    '50aXR5LlVzZXJSBXZhbHVlOgI4ARpGCgpDaGF0c0VudHJ5EhAKA2tleRgBIAEoA1IDa2V5EiIK'
-    'BXZhbHVlGAIgASgLMgwuZW50aXR5LkNoYXRSBXZhbHVlOgI4ARpMCg1NZXNzYWdlc0VudHJ5Eh'
-    'AKA2tleRgBIAEoA1IDa2V5EiUKBXZhbHVlGAIgASgLMg8uZW50aXR5Lk1lc3NhZ2VSBXZhbHVl'
-    'OgI4ARpGCgpGZWVkc0VudHJ5EhAKA2tleRgBIAEoA1IDa2V5EiIKBXZhbHVlGAIgASgLMgwuZW'
-    '50aXR5LkZlZWRSBXZhbHVlOgI4AQ==');
+    'YWdlcxIvCgVmZWVkcxgFIAMoCzIZLmVudGl0eS5FbnRpdHkuRmVlZHNFbnRyeVIFZmVlZHMSLw'
+    'oFZmlsZXMYBiADKAsyGS5lbnRpdHkuRW50aXR5LkZpbGVzRW50cnlSBWZpbGVzGjwKDkVudGl0'
+    'eUlkc0VudHJ5EhAKA2tleRgBIAEoA1IDa2V5EhQKBXZhbHVlGAIgASgDUgV2YWx1ZToCOAEaRg'
+    'oKVXNlcnNFbnRyeRIQCgNrZXkYASABKANSA2tleRIiCgV2YWx1ZRgCIAEoCzIMLmVudGl0eS5V'
+    'c2VyUgV2YWx1ZToCOAEaRgoKQ2hhdHNFbnRyeRIQCgNrZXkYASABKANSA2tleRIiCgV2YWx1ZR'
+    'gCIAEoCzIMLmVudGl0eS5DaGF0UgV2YWx1ZToCOAEaTAoNTWVzc2FnZXNFbnRyeRIQCgNrZXkY'
+    'ASABKANSA2tleRIlCgV2YWx1ZRgCIAEoCzIPLmVudGl0eS5NZXNzYWdlUgV2YWx1ZToCOAEaRg'
+    'oKRmVlZHNFbnRyeRIQCgNrZXkYASABKANSA2tleRIiCgV2YWx1ZRgCIAEoCzIMLmVudGl0eS5G'
+    'ZWVkUgV2YWx1ZToCOAEaSgoKRmlsZXNFbnRyeRIQCgNrZXkYASABKAlSA2tleRImCgV2YWx1ZR'
+    'gCIAEoCzIQLmVudGl0eS5GaWxlSW5mb1IFdmFsdWU6AjgB');
 
 @$core.Deprecated('Use entityImageDescriptor instead')
 const EntityImage$json = {

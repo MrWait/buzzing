@@ -87,11 +87,13 @@ pub(crate) async fn push_feed_to_user(
 }
 
 pub(crate) async fn feed_update_read_pos(
-    _ctx: &AppContext,
-    _chat_id: i64,
-    _user_id: i64,
-    _pos: i32,
+    ctx: &AppContext,
+    chat_id: i64,
+    user_id: i64,
+    pos: i32,
 ) -> Result<()> {
+    let feeds = feeds::FeedModel::update_read_pos(&ctx.db, chat_id, user_id, pos).await?;
+    let _ = push_feed_to_user(ctx, feeds).await;
     Ok(())
 }
 
