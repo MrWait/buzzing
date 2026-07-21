@@ -1,5 +1,6 @@
 use loco_rs::{Error, Result, app::AppContext};
 use prost::Message;
+use sea_orm::{ConnectionTrait, DbBackend, Statement};
 use std::sync::{Arc, LazyLock};
 use std::{collections::HashMap, collections::HashSet};
 use tokio::sync::RwLock;
@@ -213,6 +214,33 @@ pub(crate) async fn message_send(
     let id = id_gen(None);
 
     debug!("user send message, req: {:?}", req);
+
+    // M2 Step 4.3: 禁言检查 (Owner/Admin 豁免)
+    let _chat_context = super::chat::chat_cache_get(ctx, req.message.as_ref().map(|m| m.chat_id).unwrap_or(0)).await?;
+    {
+        let c = _chat_context.read().await;
+        if c.chat.r#type == entity::ChatType::ChatGroup as i16 {
+            let is_owner = c.chat.owner_id == brief.id;
+            let is_admin = c.chat.admin_ids.contains(&brief.id);
+            if !is_owner && !is_admin {
+                // 检查全局禁言
+                if let Some(mute_until) = c.chat.global_mute_until {
+                    if mute_until.timestamp_millis() > current_ms() as i64 {
+                        return Ok((ErrorCode::ErrorNoPermision as i32, resp.encode_to_vec()));
+                    }
+                }
+                // 检查个体禁言
+                let mute_rows = ctx.db.query_all(Statement::from_sql_and_values(
+                    DbBackend::Postgres,
+                    "SELECT 1 FROM group_mutes WHERE chat_id = $1 AND member_id = $2 AND muted_until > NOW() LIMIT 1",
+                    vec![c.chat.id.into(), brief.id.into()],
+                )).await.map_err(|e| common_error(&format!("mute check error: {e}")))?;
+                if !mute_rows.is_empty() {
+                    return Ok((ErrorCode::ErrorNoPermision as i32, resp.encode_to_vec()));
+                }
+            }
+        }
+    }
 
     let mut message = req.message.take().ok_or(Error::string("bad request"))?;
     message.id = id;

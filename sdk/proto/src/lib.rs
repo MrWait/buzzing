@@ -42,6 +42,15 @@ pub mod idl {
     pub mod meeting {
         include!("idl/meeting.rs");
     }
+    pub mod mute {
+        include!("idl/mute.rs");
+    }
+    pub mod invite {
+        include!("idl/invite.rs");
+    }
+    pub mod join_request {
+        include!("idl/join_request.rs");
+    }
 }
 
 pub fn get_build_info() -> HashMap<&'static str, &'static str> {

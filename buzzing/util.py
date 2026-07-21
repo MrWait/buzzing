@@ -29,6 +29,9 @@ files = [
     "pipeline.proto",
     "calendar.proto",
     "meeting.proto",
+    "mute.proto",
+    "invite.proto",
+    "join_request.proto",
 ]
 
 class bcolors:

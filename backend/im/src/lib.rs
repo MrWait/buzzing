@@ -1,8 +1,11 @@
 #![allow(dead_code)]
 mod chat;
 mod feed;
+mod invite;
+mod join_request;
 mod message;
 mod models;
+mod mute;
 mod setting;
 
 use loco_rs::{Error, Result, app::AppContext};
@@ -47,6 +50,7 @@ impl ExternApp for AppIm {
             Command::FeedSetMute as i32,
             // chat
             Command::ChatCreate as i32,
+            Command::ChatUpdate as i32,
             Command::ChatAddChatters as i32,
             Command::ChatDeleteChatters as i32,
             Command::ChatGetByIds as i32,
@@ -65,6 +69,23 @@ impl ExternApp for AppIm {
             Command::FavoriteAdd as i32,
             Command::FavoriteGetList as i32,
             Command::FavoriteRemove as i32,
+            // M2: announcement
+            Command::ChatSetAnnouncement as i32,
+            Command::ChatDeleteAnnouncement as i32,
+            // M2: mute
+            Command::ChatMuteMember as i32,
+            Command::ChatGlobalMute as i32,
+            // M2: invite
+            Command::ChatInviteLinkCreate as i32,
+            Command::ChatInviteLinkJoin as i32,
+            Command::ChatInviteLinkRevoke as i32,
+            // M2: join request
+            Command::ChatJoinRequestCreate as i32,
+            Command::ChatJoinRequestApprove as i32,
+            Command::ChatJoinRequestReject as i32,
+            Command::ChatJoinRequestList as i32,
+            // M2: members
+            Command::ChatGetMembers as i32,
         ]
     }
 
@@ -91,6 +112,7 @@ impl ExternApp for AppIm {
 
             // chat
             Command::ChatCreate => chat::chat_create(ctx, brief, packet, ws).await?,
+            Command::ChatUpdate => chat::chat_update(ctx, brief, packet, ws).await?,
             Command::ChatGetByIds => chat::chat_get_by_ids(ctx, brief, packet, ws).await?,
             Command::ChatAddChatters => chat::chat_add_chatters(ctx, brief, packet, ws).await?,
             Command::ChatDeleteChatters => {
@@ -114,6 +136,24 @@ impl ExternApp for AppIm {
             Command::FavoriteAdd => setting::favorite_add(ctx, brief, packet, ws).await?,
             Command::FavoriteRemove => setting::favorite_remove(ctx, brief, packet, ws).await?,
             Command::FavoriteGetList => setting::favorite_get(ctx, brief, packet, ws).await?,
+
+            // M2: announcement
+            Command::ChatSetAnnouncement => chat::chat_set_announcement(ctx, brief, packet, ws).await?,
+            Command::ChatDeleteAnnouncement => chat::chat_delete_announcement(ctx, brief, packet, ws).await?,
+            // M2: mute
+            Command::ChatMuteMember => mute::mute_member(ctx, brief, packet, ws).await?,
+            Command::ChatGlobalMute => mute::global_mute(ctx, brief, packet, ws).await?,
+            // M2: invite
+            Command::ChatInviteLinkCreate => invite::invite_link_create(ctx, brief, packet, ws).await?,
+            Command::ChatInviteLinkJoin => invite::invite_link_join(ctx, brief, packet, ws).await?,
+            Command::ChatInviteLinkRevoke => invite::invite_link_revoke(ctx, brief, packet, ws).await?,
+            // M2: join request
+            Command::ChatJoinRequestCreate => join_request::join_request_create(ctx, brief, packet, ws).await?,
+            Command::ChatJoinRequestApprove => join_request::join_request_approve(ctx, brief, packet, ws).await?,
+            Command::ChatJoinRequestReject => join_request::join_request_reject(ctx, brief, packet, ws).await?,
+            Command::ChatJoinRequestList => join_request::join_request_list(ctx, brief, packet, ws).await?,
+            // M2: members
+            Command::ChatGetMembers => chat::get_members(ctx, brief, packet, ws).await?,
 
             _ => return Err(Error::NotFound),
         };

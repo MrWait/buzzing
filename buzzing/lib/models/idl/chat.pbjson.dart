@@ -158,22 +158,171 @@ final $typed_data.Uint8List dismissChatResponseDescriptor =
 const UpdateChatRequest$json = {
   '1': 'UpdateChatRequest',
   '2': [
-    {'1': 'chat', '3': 1, '4': 1, '5': 11, '6': '.entity.Chat', '10': 'chat'},
+    {'1': 'chat_id', '3': 1, '4': 1, '5': 3, '10': 'chatId'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'avatar', '3': 3, '4': 1, '5': 9, '10': 'avatar'},
+    {'1': 'description', '3': 4, '4': 1, '5': 9, '10': 'description'},
+    {'1': 'owner_id', '3': 5, '4': 1, '5': 3, '10': 'ownerId'},
+    {'1': 'admin_ids_add', '3': 6, '4': 3, '5': 3, '10': 'adminIdsAdd'},
+    {'1': 'admin_ids_remove', '3': 7, '4': 3, '5': 3, '10': 'adminIdsRemove'},
+    {'1': 'join_mode', '3': 8, '4': 1, '5': 5, '10': 'joinMode'},
   ],
 };
 
 /// Descriptor for `UpdateChatRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List updateChatRequestDescriptor = $convert.base64Decode(
-    'ChFVcGRhdGVDaGF0UmVxdWVzdBIgCgRjaGF0GAEgASgLMgwuZW50aXR5LkNoYXRSBGNoYXQ=');
+    'ChFVcGRhdGVDaGF0UmVxdWVzdBIXCgdjaGF0X2lkGAEgASgDUgZjaGF0SWQSEgoEbmFtZRgCIA'
+    'EoCVIEbmFtZRIWCgZhdmF0YXIYAyABKAlSBmF2YXRhchIgCgtkZXNjcmlwdGlvbhgEIAEoCVIL'
+    'ZGVzY3JpcHRpb24SGQoIb3duZXJfaWQYBSABKANSB293bmVySWQSIgoNYWRtaW5faWRzX2FkZB'
+    'gGIAMoA1ILYWRtaW5JZHNBZGQSKAoQYWRtaW5faWRzX3JlbW92ZRgHIAMoA1IOYWRtaW5JZHNS'
+    'ZW1vdmUSGwoJam9pbl9tb2RlGAggASgFUghqb2luTW9kZQ==');
 
 @$core.Deprecated('Use updateChatResponseDescriptor instead')
 const UpdateChatResponse$json = {
   '1': 'UpdateChatResponse',
+  '2': [
+    {
+      '1': 'entities',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.entity.Entity',
+      '10': 'entities'
+    },
+  ],
 };
 
 /// Descriptor for `UpdateChatResponse`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List updateChatResponseDescriptor =
-    $convert.base64Decode('ChJVcGRhdGVDaGF0UmVzcG9uc2U=');
+final $typed_data.Uint8List updateChatResponseDescriptor = $convert.base64Decode(
+    'ChJVcGRhdGVDaGF0UmVzcG9uc2USKgoIZW50aXRpZXMYASABKAsyDi5lbnRpdHkuRW50aXR5Ug'
+    'hlbnRpdGllcw==');
+
+@$core.Deprecated('Use setAnnouncementRequestDescriptor instead')
+const SetAnnouncementRequest$json = {
+  '1': 'SetAnnouncementRequest',
+  '2': [
+    {'1': 'chat_id', '3': 1, '4': 1, '5': 3, '10': 'chatId'},
+    {'1': 'title', '3': 2, '4': 1, '5': 9, '10': 'title'},
+    {'1': 'tpy', '3': 3, '4': 1, '5': 5, '10': 'tpy'},
+    {'1': 'body', '3': 4, '4': 1, '5': 12, '10': 'body'},
+    {'1': 'summary', '3': 5, '4': 1, '5': 9, '10': 'summary'},
+  ],
+};
+
+/// Descriptor for `SetAnnouncementRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setAnnouncementRequestDescriptor = $convert.base64Decode(
+    'ChZTZXRBbm5vdW5jZW1lbnRSZXF1ZXN0EhcKB2NoYXRfaWQYASABKANSBmNoYXRJZBIUCgV0aX'
+    'RsZRgCIAEoCVIFdGl0bGUSEAoDdHB5GAMgASgFUgN0cHkSEgoEYm9keRgEIAEoDFIEYm9keRIY'
+    'CgdzdW1tYXJ5GAUgASgJUgdzdW1tYXJ5');
+
+@$core.Deprecated('Use setAnnouncementResponseDescriptor instead')
+const SetAnnouncementResponse$json = {
+  '1': 'SetAnnouncementResponse',
+  '2': [
+    {
+      '1': 'entities',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.entity.Entity',
+      '10': 'entities'
+    },
+  ],
+};
+
+/// Descriptor for `SetAnnouncementResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setAnnouncementResponseDescriptor =
+    $convert.base64Decode(
+        'ChdTZXRBbm5vdW5jZW1lbnRSZXNwb25zZRIqCghlbnRpdGllcxgBIAEoCzIOLmVudGl0eS5Fbn'
+        'RpdHlSCGVudGl0aWVz');
+
+@$core.Deprecated('Use deleteAnnouncementRequestDescriptor instead')
+const DeleteAnnouncementRequest$json = {
+  '1': 'DeleteAnnouncementRequest',
+  '2': [
+    {'1': 'chat_id', '3': 1, '4': 1, '5': 3, '10': 'chatId'},
+  ],
+};
+
+/// Descriptor for `DeleteAnnouncementRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteAnnouncementRequestDescriptor =
+    $convert.base64Decode(
+        'ChlEZWxldGVBbm5vdW5jZW1lbnRSZXF1ZXN0EhcKB2NoYXRfaWQYASABKANSBmNoYXRJZA==');
+
+@$core.Deprecated('Use deleteAnnouncementResponseDescriptor instead')
+const DeleteAnnouncementResponse$json = {
+  '1': 'DeleteAnnouncementResponse',
+  '2': [
+    {
+      '1': 'entities',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.entity.Entity',
+      '10': 'entities'
+    },
+  ],
+};
+
+/// Descriptor for `DeleteAnnouncementResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteAnnouncementResponseDescriptor =
+    $convert.base64Decode(
+        'ChpEZWxldGVBbm5vdW5jZW1lbnRSZXNwb25zZRIqCghlbnRpdGllcxgBIAEoCzIOLmVudGl0eS'
+        '5FbnRpdHlSCGVudGl0aWVz');
+
+@$core.Deprecated('Use getMembersRequestDescriptor instead')
+const GetMembersRequest$json = {
+  '1': 'GetMembersRequest',
+  '2': [
+    {'1': 'chat_id', '3': 1, '4': 1, '5': 3, '10': 'chatId'},
+    {'1': 'page', '3': 2, '4': 1, '5': 5, '10': 'page'},
+    {'1': 'page_size', '3': 3, '4': 1, '5': 5, '10': 'pageSize'},
+    {'1': 'keyword', '3': 4, '4': 1, '5': 9, '10': 'keyword'},
+  ],
+};
+
+/// Descriptor for `GetMembersRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getMembersRequestDescriptor = $convert.base64Decode(
+    'ChFHZXRNZW1iZXJzUmVxdWVzdBIXCgdjaGF0X2lkGAEgASgDUgZjaGF0SWQSEgoEcGFnZRgCIA'
+    'EoBVIEcGFnZRIbCglwYWdlX3NpemUYAyABKAVSCHBhZ2VTaXplEhgKB2tleXdvcmQYBCABKAlS'
+    'B2tleXdvcmQ=');
+
+@$core.Deprecated('Use getMembersResponseDescriptor instead')
+const GetMembersResponse$json = {
+  '1': 'GetMembersResponse',
+  '2': [
+    {
+      '1': 'members',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.chat.MemberItem',
+      '10': 'members'
+    },
+    {'1': 'total', '3': 2, '4': 1, '5': 5, '10': 'total'},
+  ],
+};
+
+/// Descriptor for `GetMembersResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getMembersResponseDescriptor = $convert.base64Decode(
+    'ChJHZXRNZW1iZXJzUmVzcG9uc2USKgoHbWVtYmVycxgBIAMoCzIQLmNoYXQuTWVtYmVySXRlbV'
+    'IHbWVtYmVycxIUCgV0b3RhbBgCIAEoBVIFdG90YWw=');
+
+@$core.Deprecated('Use memberItemDescriptor instead')
+const MemberItem$json = {
+  '1': 'MemberItem',
+  '2': [
+    {'1': 'user_id', '3': 1, '4': 1, '5': 3, '10': 'userId'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'avatar', '3': 3, '4': 1, '5': 9, '10': 'avatar'},
+    {'1': 'role', '3': 4, '4': 1, '5': 5, '10': 'role'},
+  ],
+};
+
+/// Descriptor for `MemberItem`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List memberItemDescriptor = $convert.base64Decode(
+    'CgpNZW1iZXJJdGVtEhcKB3VzZXJfaWQYASABKANSBnVzZXJJZBISCgRuYW1lGAIgASgJUgRuYW'
+    '1lEhYKBmF2YXRhchgDIAEoCVIGYXZhdGFyEhIKBHJvbGUYBCABKAVSBHJvbGU=');
 
 @$core.Deprecated('Use addChatChatterRequestDescriptor instead')
 const AddChatChatterRequest$json = {

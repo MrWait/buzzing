@@ -245,6 +245,7 @@ const MessageType$json = {
     {'1': 'MARKDOWN', '2': 13},
     {'1': 'FORWARD', '2': 14},
     {'1': 'SYSTEM', '2': 15},
+    {'1': 'ANNOUNCEMENT', '2': 16},
   ],
 };
 
@@ -254,7 +255,7 @@ final $typed_data.Uint8List messageTypeDescriptor = $convert.base64Decode(
     'FHRRACEggKBEZJTEUQAxIJCgVWT0lDRRAEEgkKBU1FRElBEAUSDQoJUklDSF9URVhUEAYSDAoI'
     'TE9DQVRJT04QBxIICgRDQVJEEAgSCAoEVk9URRAJEg0KCVJFRFBBQ0tFVBAKEhMKD1JJQ0hfVE'
     'VYVF9RVUlMTBALEhIKDk1FRVRJTkdfSU5WSVRFEAwSDAoITUFSS0RPV04QDRILCgdGT1JXQVJE'
-    'EA4SCgoGU1lTVEVNEA8=');
+    'EA4SCgoGU1lTVEVNEA8SEAoMQU5OT1VOQ0VNRU5UEBA=');
 
 @$core.Deprecated('Use directDescriptor instead')
 const Direct$json = {
@@ -545,6 +546,15 @@ const Chat$json = {
     {'1': 'version', '3': 15, '4': 1, '5': 3, '10': 'version'},
     {'1': 'avatar', '3': 16, '4': 1, '5': 9, '10': 'avatar'},
     {'1': 'color', '3': 17, '4': 1, '5': 5, '10': 'color'},
+    {'1': 'description', '3': 18, '4': 1, '5': 9, '10': 'description'},
+    {'1': 'join_mode', '3': 19, '4': 1, '5': 5, '10': 'joinMode'},
+    {
+      '1': 'global_mute_until',
+      '3': 20,
+      '4': 1,
+      '5': 3,
+      '10': 'globalMuteUntil'
+    },
   ],
 };
 
@@ -559,7 +569,9 @@ final $typed_data.Uint8List chatDescriptor = $convert.base64Decode(
     'X2JhZGdlX2NvdW50GAwgASgFUhVsYXN0TWVzc2FnZUJhZGdlQ291bnQSKAoQbGFzdF9tZXNzYW'
     'dlX3BvcxgNIAEoBVIObGFzdE1lc3NhZ2VQb3MSGwoJYWRtaW5faWRzGA4gAygDUghhZG1pbklk'
     'cxIYCgd2ZXJzaW9uGA8gASgDUgd2ZXJzaW9uEhYKBmF2YXRhchgQIAEoCVIGYXZhdGFyEhQKBW'
-    'NvbG9yGBEgASgFUgVjb2xvcg==');
+    'NvbG9yGBEgASgFUgVjb2xvchIgCgtkZXNjcmlwdGlvbhgSIAEoCVILZGVzY3JpcHRpb24SGwoJ'
+    'am9pbl9tb2RlGBMgASgFUghqb2luTW9kZRIqChFnbG9iYWxfbXV0ZV91bnRpbBgUIAEoA1IPZ2'
+    'xvYmFsTXV0ZVVudGls');
 
 @$core.Deprecated('Use feedDescriptor instead')
 const Feed$json = {
@@ -802,6 +814,21 @@ final $typed_data.Uint8List messageReferenceDescriptor = $convert.base64Decode(
     'ChBNZXNzYWdlUmVmZXJlbmNlEhcKB2NoYXRfaWQYASABKANSBmNoYXRJZBIYCgdjb250ZW50GA'
     'IgASgMUgdjb250ZW50EhgKB3N1bW1hcnkYAyABKAlSB3N1bW1hcnkSEAoDdHB5GAQgASgFUgN0'
     'cHkSHwoLc2VuZGVyX25hbWUYBSABKAlSCnNlbmRlck5hbWU=');
+
+@$core.Deprecated('Use announcementContentDescriptor instead')
+const AnnouncementContent$json = {
+  '1': 'AnnouncementContent',
+  '2': [
+    {'1': 'title', '3': 1, '4': 1, '5': 9, '10': 'title'},
+    {'1': 'tpy', '3': 2, '4': 1, '5': 5, '10': 'tpy'},
+    {'1': 'body', '3': 3, '4': 1, '5': 12, '10': 'body'},
+  ],
+};
+
+/// Descriptor for `AnnouncementContent`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List announcementContentDescriptor = $convert.base64Decode(
+    'ChNBbm5vdW5jZW1lbnRDb250ZW50EhQKBXRpdGxlGAEgASgJUgV0aXRsZRIQCgN0cHkYAiABKA'
+    'VSA3RweRISCgRib2R5GAMgASgMUgRib2R5');
 
 @$core.Deprecated('Use mentionDescriptor instead')
 const Mention$json = {

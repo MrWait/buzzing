@@ -27,6 +27,10 @@ mod m20260720_100001_office_m3;
 mod m20260720_100002_office_m4;
 mod m20260720_100003_files_thumbnail;
 mod m20260720_100004_messages_ref;
+mod m20260720_100005_chats_m2;
+mod m20260720_100006_group_mutes;
+mod m20260720_100007_join_requests;
+mod m20260720_100008_invite_links;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -59,6 +63,10 @@ impl MigratorTrait for Migrator {
             Box::new(m20260720_100002_office_m4::Migration),
             Box::new(m20260720_100003_files_thumbnail::Migration),
             Box::new(m20260720_100004_messages_ref::Migration),
+            Box::new(m20260720_100005_chats_m2::Migration),
+            Box::new(m20260720_100006_group_mutes::Migration),
+            Box::new(m20260720_100007_join_requests::Migration),
+            Box::new(m20260720_100008_invite_links::Migration),
         ]
     }
 }

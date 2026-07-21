@@ -12,7 +12,7 @@ use proto::idl::entity;
 pub struct ChatModel(pub Model);
 
 #[derive(prost::Message)]
-struct ChatExtra {
+pub struct ChatExtra {
     #[prost(int32, tag = "1")]
     pub color: i32,
     #[prost(string, tag = "2")]
@@ -227,20 +227,24 @@ impl ChatModel {
     pub async fn update_cmv(
         db: &DatabaseConnection,
         chat_id: i64,
-        _owner_id: Option<i64>,
-        _admin_ids: Option<Vec<i64>>,
+        owner_id: Option<i64>,
+        admin_ids: Option<Vec<i64>>,
         cmv: &mut Cmv,
     ) -> ModelResult<()> {
         cmv.id = id_gen(None);
         let txn = db.begin().await?;
-        // TODO
-        let _chat = ActiveModel {
+        let mut active = ActiveModel {
             id: ActiveValue::set(chat_id),
             cmv: ActiveValue::set(cmv.to()),
             ..Default::default()
+        };
+        if let Some(oid) = owner_id {
+            active.owner_id = ActiveValue::set(oid);
         }
-        .update(&txn)
-        .await?;
+        if let Some(aids) = admin_ids {
+            active.admin_ids = ActiveValue::set(aids);
+        }
+        let _chat = active.update(&txn).await?;
 
         let _cmv = cmvs::ActiveModel {
             id: ActiveValue::set(cmv.id),
@@ -276,6 +280,9 @@ impl ChatModel {
             version: self.0.version,
             color: extra.color,
             avatar: extra.avatar,
+            description: self.0.description.clone(),
+            join_mode: self.0.join_mode as i32,
+            global_mute_until: self.0.global_mute_until.map(|t| t.timestamp_millis()).unwrap_or(0),
         }
     }
 }
@@ -308,6 +315,15 @@ impl From<entity::Chat> for ChatModel {
             admin_ids: value.admin_ids,
             version: value.version,
             extra,
+            description: value.description,
+            join_mode: value.join_mode as i16,
+            global_mute_until: if value.global_mute_until > 0 {
+                Some(DateTimeWithTimeZone::from(
+                    chrono::DateTime::<chrono::Utc>::from_timestamp_millis(value.global_mute_until).unwrap()
+                ))
+            } else {
+                None
+            },
         })
     }
 }

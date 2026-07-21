@@ -74,6 +74,29 @@ pub(crate) async fn push_feed_by_ids(ctx: &AppContext, mut chat_ids: Vec<i64>) -
     Ok(())
 }
 
+pub(crate) async fn push_entity(
+    ctx: &AppContext,
+    user_ids: &[i64],
+    entity: entity::Entity,
+) -> Result<()> {
+    let gateway = BizHub::get()?.gateway.clone();
+    for chunk in user_ids.chunks(100) {
+        let mut push = feed::PushFeedList::default();
+        push.entity = Some(entity.clone());
+        let _ = gateway
+            .send_packet_to_user(
+                ctx,
+                chunk,
+                rid(),
+                Command::PushFeedList,
+                push.encode_to_vec(),
+                false,
+            )
+            .await;
+    }
+    Ok(())
+}
+
 pub(crate) async fn push_feed_to_user(
     ctx: &AppContext,
     mut feeds: Vec<feeds::Model>,

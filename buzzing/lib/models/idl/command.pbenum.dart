@@ -103,6 +103,32 @@ class Command extends $pb.ProtobufEnum {
       Command._(1120, _omitEnumNames ? '' : 'FEED_GET_BY_IDS');
   static const Command FEED_SET_MUTE =
       Command._(1121, _omitEnumNames ? '' : 'FEED_SET_MUTE');
+
+  /// M2: 群管理 (1122-1133)
+  static const Command CHAT_SET_ANNOUNCEMENT =
+      Command._(1122, _omitEnumNames ? '' : 'CHAT_SET_ANNOUNCEMENT');
+  static const Command CHAT_DELETE_ANNOUNCEMENT =
+      Command._(1123, _omitEnumNames ? '' : 'CHAT_DELETE_ANNOUNCEMENT');
+  static const Command CHAT_MUTE_MEMBER =
+      Command._(1124, _omitEnumNames ? '' : 'CHAT_MUTE_MEMBER');
+  static const Command CHAT_GLOBAL_MUTE =
+      Command._(1125, _omitEnumNames ? '' : 'CHAT_GLOBAL_MUTE');
+  static const Command CHAT_INVITE_LINK_CREATE =
+      Command._(1126, _omitEnumNames ? '' : 'CHAT_INVITE_LINK_CREATE');
+  static const Command CHAT_INVITE_LINK_JOIN =
+      Command._(1127, _omitEnumNames ? '' : 'CHAT_INVITE_LINK_JOIN');
+  static const Command CHAT_INVITE_LINK_REVOKE =
+      Command._(1128, _omitEnumNames ? '' : 'CHAT_INVITE_LINK_REVOKE');
+  static const Command CHAT_JOIN_REQUEST_CREATE =
+      Command._(1129, _omitEnumNames ? '' : 'CHAT_JOIN_REQUEST_CREATE');
+  static const Command CHAT_JOIN_REQUEST_APPROVE =
+      Command._(1130, _omitEnumNames ? '' : 'CHAT_JOIN_REQUEST_APPROVE');
+  static const Command CHAT_JOIN_REQUEST_REJECT =
+      Command._(1131, _omitEnumNames ? '' : 'CHAT_JOIN_REQUEST_REJECT');
+  static const Command CHAT_JOIN_REQUEST_LIST =
+      Command._(1132, _omitEnumNames ? '' : 'CHAT_JOIN_REQUEST_LIST');
+  static const Command CHAT_GET_MEMBERS =
+      Command._(1133, _omitEnumNames ? '' : 'CHAT_GET_MEMBERS');
   static const Command MESSAGE_CREATE_DRAFT =
       Command._(1200, _omitEnumNames ? '' : 'MESSAGE_CREATE_DRAFT');
   static const Command MESSAGE_DELETE_DRAFT =
@@ -262,6 +288,18 @@ class Command extends $pb.ProtobufEnum {
     CHAT_QUIT,
     FEED_GET_BY_IDS,
     FEED_SET_MUTE,
+    CHAT_SET_ANNOUNCEMENT,
+    CHAT_DELETE_ANNOUNCEMENT,
+    CHAT_MUTE_MEMBER,
+    CHAT_GLOBAL_MUTE,
+    CHAT_INVITE_LINK_CREATE,
+    CHAT_INVITE_LINK_JOIN,
+    CHAT_INVITE_LINK_REVOKE,
+    CHAT_JOIN_REQUEST_CREATE,
+    CHAT_JOIN_REQUEST_APPROVE,
+    CHAT_JOIN_REQUEST_REJECT,
+    CHAT_JOIN_REQUEST_LIST,
+    CHAT_GET_MEMBERS,
     MESSAGE_CREATE_DRAFT,
     MESSAGE_DELETE_DRAFT,
     MESSAGE_GET_ALL_DRAFTS,
