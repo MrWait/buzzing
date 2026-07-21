@@ -1,5 +1,6 @@
 mod api;
 mod chat;
+pub(crate) mod content;
 mod database;
 mod favorite;
 mod feed;
@@ -141,6 +142,7 @@ impl AppTrait for AppChat {
             Command::MessageGetByRange as i32,
             Command::MessageCreateDraft as i32,
             Command::MessageGetAllDrafts as i32,
+            Command::MessageForward as i32,
             // favorite
             Command::FavoriteAdd as i32,
             Command::FavoriteGetList as i32,
@@ -180,6 +182,7 @@ impl AppTrait for AppChat {
             Command::MessageGetByIds => self.message_get_by_ids(params).await,
             Command::MessageGetByRange => self.message_get_by_chat(params).await,
             Command::MessageSend => self.message_send(params).await,
+            Command::MessageForward => self.message_forward(params).await,
 
             // favorite
             Command::FavoriteAdd => self.favorite_add(params).await,

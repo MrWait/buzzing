@@ -92,6 +92,17 @@ message PushMessageReactionRequest {
     entity.Entity entity = 1;
 }
 
+message ForwardMessageRequest {
+    int64 chat_id = 1;          // 目标会话 ID
+    int32 forward_type = 2;     // 0=single, 1=merged
+    int64 source_chat_id = 3;   // 来源会话 ID
+    repeated int64 message_ids = 4;  // 转发的消息 ID 列表
+}
+message ForwardMessageResponse {
+    int32 count = 1;
+    entity.Entity entity = 2;
+}
+
 message RecallMessageRequest {
     int64 id = 1;
 }

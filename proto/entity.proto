@@ -120,6 +120,9 @@ enum MessageType {
     REDPACKET = 10;
     RICH_TEXT_QUILL = 11;
     MEETING_INVITE = 12;
+    MARKDOWN = 13;
+    FORWARD = 14;
+    SYSTEM = 15;
 }
 
 enum Direct {
@@ -275,18 +278,92 @@ message Message {
     int64 version = 22;
     ReadState read_state = 23;
     map<int32, Reaction> reactions = 24;
+
+    // 引用回复：ref_message_id ≠ 0 时表示引用其他消息
+    int64 ref_message_id         = 31;  // 0 = 无引用
+    MessageReference ref_data = 32;
+}
+
+message MessageReference {
+    int64 chat_id       = 1;
+    bytes content       = 2;
+    string summary      = 3;
+    int32 tpy           = 4;
+    string sender_name  = 5;
+}
+
+message Mention {
+    int64 user_id = 1;
+    string name   = 2;
+    int32 offset  = 3;
+    int32 length  = 4;
 }
 
 message MessageText {
-    string text = 1;
+    string text             = 1;
+    repeated Mention mentions = 2;
 }
 
 message MessageImage {
-
+    string url           = 1;
+    string thumbnail_url = 2;
+    int32 width          = 3;
+    int32 height         = 4;
+    string alt_text      = 5;
 }
 
 message MessageFile {
+    string name      = 1;
+    int64 size       = 2;
+    string mime_type = 3;
+    string url       = 4;
+}
 
+message MessageRichText {
+    string delta = 1;
+}
+
+message MessageMarkdown {
+    string text     = 1;
+    string fallback = 2;
+}
+
+message MessageForward {
+    int32 type             = 1;
+    int64 chat_id          = 2;
+    string chat_name       = 3;
+    int32 message_count    = 4;
+    string title           = 5;
+    repeated ForwardItem items = 6;
+}
+
+message ForwardItem {
+    int64  user_id    = 1;
+    string user_name  = 2;
+    int32  tpy        = 3;
+    string summary    = 4;
+    int64  message_id = 5;
+}
+
+message MessageSystem {
+    int32 action        = 1;
+    string text         = 2;
+    int64 operator_id   = 3;
+    repeated int64 target_ids = 4;
+}
+
+message FileInfo {
+    string id            = 1;
+    string name          = 2;
+    int64 size           = 3;
+    string mime_type     = 4;
+    string url           = 5;
+    int64 uploader_id    = 6;
+    int64 created_at_ms  = 7;
+    string thumbnail_url = 8;
+    int32 width          = 9;
+    int32 height         = 10;
+    string md5           = 11;
 }
 
 message UserConfig {
@@ -340,6 +417,7 @@ message Entity {
     map<int64, Chat> chats = 3;
     map<int64, Message> messages = 4;
     map<int64, Feed> feeds = 5;
+    map<string, FileInfo> files = 6;
 }
 
 enum ClientPlatform {

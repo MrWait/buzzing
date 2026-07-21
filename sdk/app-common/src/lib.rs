@@ -4,13 +4,16 @@ mod global_database;
 use anyhow::Result;
 use async_trait::async_trait;
 use base_db::meta::MetaTable;
+use prost::Message as _;
 use std::sync::Arc;
 
 use base_db::prelude::DbConn;
 use proto::idl::command::Command;
+use proto::idl::setting;
 use service::common::{Task, TaskHandler};
 use service::{AppTrait, BizCommon, Event, InitRequest, LoginRequest};
 use service::{BizHub, Setting};
+use tracing::debug;
 
 #[derive(Clone)]
 pub struct AppCommon {
@@ -53,8 +56,24 @@ impl AppTrait for AppCommon {
         self.db.reset();
         Ok(())
     }
-    async fn on_ffi_command(&self, _command: i32, _params: &[u8]) -> Result<(i32, Vec<u8>)> {
-        Err(anyhow::anyhow!("not handled"))
+    fn ffi_commands(&self) -> Vec<i32> {
+        vec![
+            Command::SettingSet as i32,
+            Command::SettingGet as i32,
+        ]
+    }
+
+    async fn on_ffi_command(&self, command: i32, params: &[u8]) -> Result<(i32, Vec<u8>)> {
+        let cmd = Command::try_from(command)?;
+        let ret = match cmd {
+            Command::SettingSet => self.setting_set(params),
+            Command::SettingGet => self.setting_get(params),
+            _ => return Err(anyhow::anyhow!("not handled")),
+        };
+        if let Err(ref err) = ret {
+            debug!("handle setting command error: {:?}", err);
+        }
+        ret
     }
     async fn on_net_command(&self, _source: i32, command: i32, _params: &[u8]) -> Result<()> {
         let cmd = command.try_into()?;
@@ -65,6 +84,38 @@ impl AppTrait for AppCommon {
         Err(anyhow::anyhow!("not handled"))
     }
     fn on_event(&self, _event: Event, _params: &[u8]) {}
+}
+
+impl AppCommon {
+    fn setting_set(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
+        let req = setting::LocalSettingSetRequest::decode(params)?;
+        let db = self.db.inner()?;
+        database::setting::setting_add(
+            &db,
+            &Setting {
+                key: req.key.clone(),
+                value: req.value.clone(),
+                version: 0,
+                dirty: false,
+            },
+        )?;
+        Ok((0, setting::LocalSettingSetResponse {}.encode_to_vec()))
+    }
+
+    fn setting_get(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
+        let req = setting::LocalSettingGetRequest::decode(params)?;
+        let db = self.db.inner()?;
+        match database::setting::setting_get_by_key(&db, &req.key) {
+            Ok(setting) => {
+                let resp = setting::LocalSettingGetResponse {
+                    key: setting.key,
+                    value: setting.value,
+                };
+                Ok((0, resp.encode_to_vec()))
+            }
+            Err(_) => Ok((0, setting::LocalSettingGetResponse::default().encode_to_vec())),
+        }
+    }
 }
 
 #[async_trait]

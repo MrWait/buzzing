@@ -57,6 +57,10 @@ class Command extends $pb.ProtobufEnum {
       Command._(1056, _omitEnumNames ? '' : 'SETTING_UPDATE');
   static const Command PUSH_ENTITY_CHANGE =
       Command._(1057, _omitEnumNames ? '' : 'PUSH_ENTITY_CHANGE');
+  static const Command SETTING_SET =
+      Command._(1058, _omitEnumNames ? '' : 'SETTING_SET');
+  static const Command SETTING_GET =
+      Command._(1059, _omitEnumNames ? '' : 'SETTING_GET');
   static const Command FEED_GET_LIST =
       Command._(1100, _omitEnumNames ? '' : 'FEED_GET_LIST');
   static const Command CHAT_CREATE =
@@ -131,6 +135,8 @@ class Command extends $pb.ProtobufEnum {
       Command._(1214, _omitEnumNames ? '' : 'REACTION_SET');
   static const Command PUSH_REACTIONS =
       Command._(1215, _omitEnumNames ? '' : 'PUSH_REACTIONS');
+  static const Command MESSAGE_FORWARD =
+      Command._(1216, _omitEnumNames ? '' : 'MESSAGE_FORWARD');
   static const Command USER_GET_BY_IDS =
       Command._(1300, _omitEnumNames ? '' : 'USER_GET_BY_IDS');
   static const Command USER_UPDATE =
@@ -234,6 +240,8 @@ class Command extends $pb.ProtobufEnum {
     SETTING_GET_ALL,
     SETTING_UPDATE,
     PUSH_ENTITY_CHANGE,
+    SETTING_SET,
+    SETTING_GET,
     FEED_GET_LIST,
     CHAT_CREATE,
     CHAT_ENTER,
@@ -269,6 +277,7 @@ class Command extends $pb.ProtobufEnum {
     MESSAGE_GET_BY_RANGE,
     REACTION_SET,
     PUSH_REACTIONS,
+    MESSAGE_FORWARD,
     USER_GET_BY_IDS,
     USER_UPDATE,
     PUSH_USER_INFO,

@@ -1,8 +1,11 @@
 use std::sync::LazyLock;
 
+use std::io::Cursor;
+
 use bytes::Bytes;
 use chrono::Datelike;
 use futures::{StreamExt, stream};
+use image::GenericImageView;
 use object_store::{GetOptions, ObjectStore, PutOptions, PutPayload, path::Path};
 use tracing::debug;
 
@@ -79,6 +82,46 @@ pub async fn delete(key: &str) -> Result<(), object_store::Error> {
         result?;
     }
     Ok(())
+}
+
+pub fn generate_thumbnail_key(storage_key: &str) -> String {
+    // e.g. "file/2024/07/12345.jpg" → "file/2024/07/12345_thumb.jpg"
+    let dot = storage_key.rfind('.');
+    if let Some(pos) = dot {
+        let (base, _) = storage_key.split_at(pos);
+        format!("{base}_thumb.jpg")
+    } else {
+        format!("{storage_key}_thumb.jpg")
+    }
+}
+
+pub fn generate_thumbnail(data: &[u8], max_dim: u32) -> Result<(Vec<u8>, u32, u32), String> {
+    let img = image::load_from_memory(data).map_err(|e| format!("image decode error: {e}"))?;
+    let (w, h) = img.dimensions();
+
+    // 原始图已小于 max_dim 则直接返回缩略图为原图
+    if w <= max_dim && h <= max_dim {
+        let mut buf = Cursor::new(Vec::new());
+        img.write_to(&mut buf, image::ImageFormat::Jpeg)
+            .map_err(|e| format!("image encode error: {e}"))?;
+        return Ok((buf.into_inner(), w, h));
+    }
+
+    let ratio = (w as f64 / h as f64).min(h as f64 / w as f64);
+    let (thumb_w, thumb_h) = if w > h {
+        (max_dim, (max_dim as f64 / ratio).round() as u32)
+    } else {
+        ((max_dim as f64 / ratio).round() as u32, max_dim)
+    };
+    let thumb_w = thumb_w.max(1);
+    let thumb_h = thumb_h.max(1);
+
+    let thumb = img.resize(thumb_w, thumb_h, image::imageops::FilterType::Lanczos3);
+    let mut buf = Cursor::new(Vec::new());
+    thumb
+        .write_to(&mut buf, image::ImageFormat::Jpeg)
+        .map_err(|e| format!("image encode error: {e}"))?;
+    Ok((buf.into_inner(), w, h))
 }
 
 pub async fn text_image_to_store(

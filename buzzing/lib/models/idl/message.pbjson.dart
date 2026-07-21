@@ -415,6 +415,45 @@ final $typed_data.Uint8List pushMessageReactionRequestDescriptor =
         'ChpQdXNoTWVzc2FnZVJlYWN0aW9uUmVxdWVzdBImCgZlbnRpdHkYASABKAsyDi5lbnRpdHkuRW'
         '50aXR5UgZlbnRpdHk=');
 
+@$core.Deprecated('Use forwardMessageRequestDescriptor instead')
+const ForwardMessageRequest$json = {
+  '1': 'ForwardMessageRequest',
+  '2': [
+    {'1': 'chat_id', '3': 1, '4': 1, '5': 3, '10': 'chatId'},
+    {'1': 'forward_type', '3': 2, '4': 1, '5': 5, '10': 'forwardType'},
+    {'1': 'source_chat_id', '3': 3, '4': 1, '5': 3, '10': 'sourceChatId'},
+    {'1': 'message_ids', '3': 4, '4': 3, '5': 3, '10': 'messageIds'},
+  ],
+};
+
+/// Descriptor for `ForwardMessageRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List forwardMessageRequestDescriptor = $convert.base64Decode(
+    'ChVGb3J3YXJkTWVzc2FnZVJlcXVlc3QSFwoHY2hhdF9pZBgBIAEoA1IGY2hhdElkEiEKDGZvcn'
+    'dhcmRfdHlwZRgCIAEoBVILZm9yd2FyZFR5cGUSJAoOc291cmNlX2NoYXRfaWQYAyABKANSDHNv'
+    'dXJjZUNoYXRJZBIfCgttZXNzYWdlX2lkcxgEIAMoA1IKbWVzc2FnZUlkcw==');
+
+@$core.Deprecated('Use forwardMessageResponseDescriptor instead')
+const ForwardMessageResponse$json = {
+  '1': 'ForwardMessageResponse',
+  '2': [
+    {'1': 'count', '3': 1, '4': 1, '5': 5, '10': 'count'},
+    {
+      '1': 'entity',
+      '3': 2,
+      '4': 1,
+      '5': 11,
+      '6': '.entity.Entity',
+      '10': 'entity'
+    },
+  ],
+};
+
+/// Descriptor for `ForwardMessageResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List forwardMessageResponseDescriptor =
+    $convert.base64Decode(
+        'ChZGb3J3YXJkTWVzc2FnZVJlc3BvbnNlEhQKBWNvdW50GAEgASgFUgVjb3VudBImCgZlbnRpdH'
+        'kYAiABKAsyDi5lbnRpdHkuRW50aXR5UgZlbnRpdHk=');
+
 @$core.Deprecated('Use recallMessageRequestDescriptor instead')
 const RecallMessageRequest$json = {
   '1': 'RecallMessageRequest',

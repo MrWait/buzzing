@@ -31,3 +31,17 @@ message UpdateSettingRequest {
     bytes value = 2;
 }
 message UpdateSettingResponse {}
+
+message LocalSettingGetRequest {
+    string key = 1;
+}
+message LocalSettingGetResponse {
+    string key = 1;
+    string value = 2;
+}
+
+message LocalSettingSetRequest {
+    string key = 1;
+    string value = 2;
+}
+message LocalSettingSetResponse {}
