@@ -6,12 +6,21 @@ mod join_request;
 mod message;
 mod models;
 mod mute;
+mod pin;
+mod presence;
+mod scheduler;
+mod search;
 mod setting;
+mod thread;
+mod translate;
+mod typing;
+mod voice;
 
 use loco_rs::{Error, Result, app::AppContext};
 use models::{chats::ChatModel, feeds::FeedModel};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tokio::runtime::Handle;
 use tracing::debug;
 
 use crate::models::{Cmv, chats, feeds};
@@ -39,6 +48,12 @@ impl ChatContext {
 pub struct AppIm;
 #[async_trait::async_trait]
 impl ExternApp for AppIm {
+    fn serve(&self, ctx: &AppContext) {
+        let svc = scheduler::SchedulerService::new();
+        svc.set_ctx(ctx.clone());
+        tokio::spawn(svc.run());
+    }
+
     fn handled_command(&self) -> Vec<i32> {
         vec![
             // feed
@@ -86,6 +101,36 @@ impl ExternApp for AppIm {
             Command::ChatJoinRequestList as i32,
             // M2: members
             Command::ChatGetMembers as i32,
+            // M3: pin
+            Command::ChatPinMessage as i32,
+            Command::ChatUnpinMessage as i32,
+            Command::ChatGetPinnedMessages as i32,
+            // M3: thread
+            Command::MessageGetThread as i32,
+            // M3: read members
+            Command::MessageGetReadMembers as i32,
+            // M3: typing
+            Command::Typing as i32,
+            // M3: presence
+            Command::UserPresenceUpdate as i32,
+            Command::UserPresenceSubscribe as i32,
+            // M3: delete
+            Command::MessageDelete as i32,
+            // M4: search
+            Command::SearchUser as i32,
+            Command::SearchMessage as i32,
+            Command::SearchChat as i32,
+            Command::SearchFiles as i32,
+            Command::GlobalSearch as i32,
+            // M5: voice
+            Command::VoiceTranscribe as i32,
+            // M5: schedule
+            Command::ScheduleMessage as i32,
+            Command::CancelSchedule as i32,
+            Command::GetScheduledMessages as i32,
+            // M5: translate
+            Command::TranslateMessage as i32,
+            Command::GetTranslationLanguages as i32,
         ]
     }
 
@@ -154,6 +199,36 @@ impl ExternApp for AppIm {
             Command::ChatJoinRequestList => join_request::join_request_list(ctx, brief, packet, ws).await?,
             // M2: members
             Command::ChatGetMembers => chat::get_members(ctx, brief, packet, ws).await?,
+            // M3: pin
+            Command::ChatPinMessage => pin::pin_message(ctx, brief, packet, ws).await?,
+            Command::ChatUnpinMessage => pin::unpin_message(ctx, brief, packet, ws).await?,
+            Command::ChatGetPinnedMessages => pin::get_pinned_messages(ctx, brief, packet, ws).await?,
+            // M3: thread
+            Command::MessageGetThread => thread::get_thread(ctx, brief, packet, ws).await?,
+            // M3: read members
+            Command::MessageGetReadMembers => message::message_get_read_members(ctx, brief, packet, ws).await?,
+            // M3: typing
+            Command::Typing => typing::handle_typing(ctx, brief, packet, ws).await?,
+            // M3: presence
+            Command::UserPresenceUpdate => presence::handle_presence_update(ctx, brief, packet, ws).await?,
+            Command::UserPresenceSubscribe => presence::handle_presence_subscribe(ctx, brief, packet, ws).await?,
+            // M3: delete
+            Command::MessageDelete => message::message_delete(ctx, brief, packet, ws).await?,
+            // M4: search
+            Command::SearchMessage => search::search_messages(ctx, brief, packet, ws).await?,
+            Command::SearchChat => search::search_chats(ctx, brief, packet, ws).await?,
+            Command::SearchUser => search::search_users(ctx, brief, packet, ws).await?,
+            Command::SearchFiles => search::search_files(ctx, brief, packet, ws).await?,
+            Command::GlobalSearch => search::global_search(ctx, brief, packet, ws).await?,
+            // M5: voice
+            Command::VoiceTranscribe => voice::transcribe_voice(ctx, brief, packet, ws).await?,
+            // M5: schedule
+            Command::ScheduleMessage => scheduler::schedule_message(ctx, brief, packet, ws).await?,
+            Command::CancelSchedule => scheduler::cancel_schedule(ctx, brief, packet, ws).await?,
+            Command::GetScheduledMessages => scheduler::get_scheduled_messages(ctx, brief, packet, ws).await?,
+            // M5: translate
+            Command::TranslateMessage => translate::translate_message(ctx, brief, packet, ws).await?,
+            Command::GetTranslationLanguages => translate::get_translation_languages(ctx, brief, packet, ws).await?,
 
             _ => return Err(Error::NotFound),
         };

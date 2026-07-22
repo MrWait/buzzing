@@ -41,12 +41,10 @@ class NaviBar extends ConsumerWidget {
                     url: im.avatar,
                     ver: im.getUserVer(im.userId),
                   )),
-              Container(
-                  height: 40,
-                  child: Icon(
-                    Icons.search_rounded,
-                    color: cs.primary,
-                  )),
+              NaviButton(context, () {
+                final router = GoRouter.of(context);
+                router.go(AppRoute.SEARCH);
+              }, Icons.search_rounded),
               Container(height: 40, child: MainPopup(context)),
               NaviButton(context, () {
                 final router = GoRouter.of(context);

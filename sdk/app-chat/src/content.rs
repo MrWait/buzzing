@@ -11,6 +11,10 @@ pub enum ContentBody {
     Markdown(entity::MessageMarkdown),
     Forward(entity::MessageForward),
     System(entity::MessageSystem),
+    Voice(entity::VoiceContent),
+    Media(entity::MediaContent),
+    Location(entity::LocationContent),
+    Card(entity::CardContent),
 }
 
 pub fn build_content(tpy: i32, msg: &impl Message) -> Vec<u8> {
@@ -31,6 +35,18 @@ pub fn parse_content(msg: &entity::Message) -> Option<ContentBody> {
         3 => entity::MessageFile::decode(msg.content.as_slice())
             .ok()
             .map(ContentBody::File),
+        4 => entity::VoiceContent::decode(msg.content.as_slice())
+            .ok()
+            .map(ContentBody::Voice),
+        5 => entity::MediaContent::decode(msg.content.as_slice())
+            .ok()
+            .map(ContentBody::Media),
+        7 => entity::LocationContent::decode(msg.content.as_slice())
+            .ok()
+            .map(ContentBody::Location),
+        8 => entity::CardContent::decode(msg.content.as_slice())
+            .ok()
+            .map(ContentBody::Card),
         11 => entity::MessageRichText::decode(msg.content.as_slice())
             .ok()
             .map(ContentBody::RichText),
@@ -61,6 +77,25 @@ pub fn generate_summary(tpy: i32, content: &[u8], sender_name: &str) -> String {
             .ok()
             .map(|f| format!("[文件] {}", f.name))
             .unwrap_or_default(),
+        4 => entity::VoiceContent::decode(content)
+            .ok()
+            .map(|v| {
+                if v.transcription_status == 2 && !v.transcription.is_empty() {
+                    format!("[语音] {}", v.transcription.chars().take(80).collect::<String>())
+                } else {
+                    "[语音]".to_string()
+                }
+            })
+            .unwrap_or_else(|| "[语音]".to_string()),
+        5 => "[视频]".to_string(),
+        7 => entity::LocationContent::decode(content)
+            .ok()
+            .map(|l| l.name)
+            .unwrap_or_else(|| "[位置]".to_string()),
+        8 => entity::CardContent::decode(content)
+            .ok()
+            .map(|c| c.title)
+            .unwrap_or_else(|| "[卡片]".to_string()),
         11 => entity::MessageRichText::decode(content)
             .ok()
             .map(|_| "[富文本]".to_string())

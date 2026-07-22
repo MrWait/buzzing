@@ -286,6 +286,9 @@ message Message {
     // 引用回复：ref_message_id ≠ 0 时表示引用其他消息
     int64 ref_message_id         = 31;  // 0 = 无引用
     MessageReference ref_data = 32;
+
+    // M3: Thread 根消息 ID，thread_root_id ≠ 0 表示本条是 Thread 回复
+    int64 thread_root_id = 33;         // 0 = 普通消息或根消息
 }
 
 message MessageReference {
@@ -331,6 +334,64 @@ message MessageFile {
 
 message MessageRichText {
     string delta = 1;
+}
+
+// ── M5: 语音消息 ─────────────────────────────────────────────────
+message VoiceContent {
+    string file_id = 1;
+    string url = 2;
+    int32 duration_sec = 3;
+    string transcription = 4;
+    int32 transcription_status = 5; // 0=未转写, 1=转写中, 2=已完成
+}
+
+message TranscribeVoiceRequest {
+    int64 message_id = 1;
+    int64 chat_id = 2;
+}
+
+message TranscribeVoiceResponse {
+    int64 message_id = 1;
+    string transcription = 2;
+}
+
+// ── M5: 视频消息 ─────────────────────────────────────────────────
+message MediaContent {
+    string file_id = 1;
+    string url = 2;
+    string thumbnail_url = 3;
+    int32 width = 4;
+    int32 height = 5;
+    int32 duration_sec = 6;
+    int64 file_size = 7;
+    string mime_type = 8;
+}
+
+// ── M5: 位置消息 ─────────────────────────────────────────────────
+message LocationContent {
+    string name = 1;
+    string address = 2;
+    double latitude = 3;
+    double longitude = 4;
+    int32 zoom = 5;
+    string map_url = 6;
+}
+
+// ── M5: 卡片消息 ─────────────────────────────────────────────────
+message CardContent {
+    string title = 1;
+    string description = 2;
+    string icon_url = 3;
+    string image_url = 4;
+    string url = 5;
+    repeated CardAction actions = 6;
+}
+
+message CardAction {
+    string label = 1;
+    string url = 2;
+    int32 action_type = 3;  // 0=URL, 1=复制文本, 2=回调
+    string value = 4;
 }
 
 message MessageMarkdown {

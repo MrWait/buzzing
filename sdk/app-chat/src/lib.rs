@@ -9,6 +9,14 @@ mod join_request;
 mod message;
 mod message_database;
 mod mute;
+mod pin;
+mod presence;
+mod scheduler;
+mod search;
+mod thread;
+mod translate;
+mod typing;
+mod voice;
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -168,6 +176,34 @@ impl AppTrait for AppChat {
             Command::ChatJoinRequestList as i32,
             // M2: members
             Command::ChatGetMembers as i32,
+            // M3: pin
+            Command::ChatPinMessage as i32,
+            Command::ChatUnpinMessage as i32,
+            Command::ChatGetPinnedMessages as i32,
+            // M3: thread
+            Command::MessageGetThread as i32,
+            // M3: presence
+            Command::UserPresenceUpdate as i32,
+            Command::UserPresenceSubscribe as i32,
+            // M3: typing
+            Command::Typing as i32,
+            // M3: delete
+            Command::MessageDelete as i32,
+            // M4: search
+            Command::SearchMessage as i32,
+            Command::SearchChat as i32,
+            Command::SearchUser as i32,
+            Command::SearchFiles as i32,
+            Command::GlobalSearch as i32,
+            // M5: voice
+            Command::VoiceTranscribe as i32,
+            // M5: schedule
+            Command::ScheduleMessage as i32,
+            Command::CancelSchedule as i32,
+            Command::GetScheduledMessages as i32,
+            // M5: translate
+            Command::TranslateMessage as i32,
+            Command::GetTranslationLanguages as i32,
         ]
     }
 
@@ -228,6 +264,34 @@ impl AppTrait for AppChat {
             Command::ChatJoinRequestList => self.join_request_list(params).await,
             // M2: members
             Command::ChatGetMembers => self.chat_get_members(params).await,
+            // M3: pin
+            Command::ChatPinMessage => self.pin_message(params).await,
+            Command::ChatUnpinMessage => self.unpin_message(params).await,
+            Command::ChatGetPinnedMessages => self.get_pinned_messages(params).await,
+            // M3: thread
+            Command::MessageGetThread => self.get_thread(params).await,
+            // M3: presence
+            Command::UserPresenceUpdate => self.presence_update(params).await,
+            Command::UserPresenceSubscribe => self.presence_subscribe(params).await,
+            // M3: typing
+            Command::Typing => self.send_typing(params).await,
+            // M3: delete
+            Command::MessageDelete => self.delete_message(params).await,
+            // M4: search
+            Command::SearchMessage => self.search_messages(params).await,
+            Command::SearchChat => self.search_chats(params).await,
+            Command::SearchUser => self.search_users(params).await,
+            Command::SearchFiles => self.search_files(params).await,
+            Command::GlobalSearch => self.global_search(params).await,
+            // M5: voice
+            Command::VoiceTranscribe => self.transcribe_voice(params).await,
+            // M5: schedule
+            Command::ScheduleMessage => self.schedule_message(params).await,
+            Command::CancelSchedule => self.cancel_schedule(params).await,
+            Command::GetScheduledMessages => self.get_scheduled_messages(params).await,
+            // M5: translate
+            Command::TranslateMessage => self.translate_message(params).await,
+            Command::GetTranslationLanguages => self.get_translation_languages(params).await,
 
             _ => return Err(anyhow::anyhow!("not handled")),
         };

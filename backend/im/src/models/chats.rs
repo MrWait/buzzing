@@ -158,6 +158,7 @@ impl ChatModel {
             content: ActiveValue::set(msg.content.clone()),
             summary: ActiveValue::set(msg.summary.clone()),
             version: ActiveValue::set(0),
+            thread_root_id: ActiveValue::set(msg.thread_root_id),
             cmv_id: ActiveValue::set(msg.cmv_id),
             cmv_count: ActiveValue::set(msg.cmv_count),
             read_count: ActiveValue::set(msg.read_count),

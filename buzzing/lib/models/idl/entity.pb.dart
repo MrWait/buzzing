@@ -1584,6 +1584,7 @@ class Message extends $pb.GeneratedMessage {
     $core.Iterable<$core.MapEntry<$core.int, Reaction>>? reactions,
     $fixnum.Int64? refMessageId,
     MessageReference? refData,
+    $fixnum.Int64? threadRootId,
   }) {
     final result = create();
     if (tpy != null) result.tpy = tpy;
@@ -1604,6 +1605,7 @@ class Message extends $pb.GeneratedMessage {
     if (reactions != null) result.reactions.addEntries(reactions);
     if (refMessageId != null) result.refMessageId = refMessageId;
     if (refData != null) result.refData = refData;
+    if (threadRootId != null) result.threadRootId = threadRootId;
     return result;
   }
 
@@ -1648,6 +1650,7 @@ class Message extends $pb.GeneratedMessage {
     ..aInt64(31, _omitFieldNames ? '' : 'refMessageId')
     ..aOM<MessageReference>(32, _omitFieldNames ? '' : 'refData',
         subBuilder: MessageReference.create)
+    ..aInt64(33, _omitFieldNames ? '' : 'threadRootId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1822,6 +1825,16 @@ class Message extends $pb.GeneratedMessage {
   void clearRefData() => $_clearField(32);
   @$pb.TagNumber(32)
   MessageReference ensureRefData() => $_ensure(17);
+
+  /// Thread root message ID (0 = normal message or root message)
+  @$pb.TagNumber(33)
+  $fixnum.Int64 get threadRootId => $_getI64(18);
+  @$pb.TagNumber(33)
+  set threadRootId($fixnum.Int64 value) => $_setInt64(18, value);
+  @$pb.TagNumber(33)
+  $core.bool hasThreadRootId() => $_has(18);
+  @$pb.TagNumber(33)
+  void clearThreadRootId() => $_clearField(33);
 }
 
 class MessageReference extends $pb.GeneratedMessage {

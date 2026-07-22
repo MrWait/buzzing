@@ -51,6 +51,27 @@ pub mod idl {
     pub mod join_request {
         include!("idl/join_request.rs");
     }
+    pub mod pin {
+        include!("idl/pin.rs");
+    }
+    pub mod thread {
+        include!("idl/thread.rs");
+    }
+    pub mod presence {
+        include!("idl/presence.rs");
+    }
+    pub mod typing {
+        include!("idl/typing.rs");
+    }
+    pub mod search {
+        include!("idl/search.rs");
+    }
+    pub mod timer {
+        include!("idl/timer.rs");
+    }
+    pub mod translate {
+        include!("idl/translate.rs");
+    }
 }
 
 pub fn get_build_info() -> HashMap<&'static str, &'static str> {

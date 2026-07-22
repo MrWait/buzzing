@@ -15,6 +15,13 @@ files = [
       "dept.proto",
       "message.proto",
       "pipeline.proto",
+      "pin.proto",
+      "thread.proto",
+      "presence.proto",
+      "typing.proto",
+      "search.proto",
+      "timer.proto",
+      "translate.proto",
 ]
 
 [rust]

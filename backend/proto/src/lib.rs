@@ -47,4 +47,25 @@ pub mod idl {
     pub mod join_request {
         include!(concat!("./idl/join_request.rs"));
     }
+    pub mod pin {
+        include!(concat!("./idl/pin.rs"));
+    }
+    pub mod thread {
+        include!(concat!("./idl/thread.rs"));
+    }
+    pub mod presence {
+        include!(concat!("./idl/presence.rs"));
+    }
+    pub mod typing {
+        include!(concat!("./idl/typing.rs"));
+    }
+    pub mod search {
+        include!(concat!("./idl/search.rs"));
+    }
+    pub mod timer {
+        include!(concat!("./idl/timer.rs"));
+    }
+    pub mod translate {
+        include!(concat!("./idl/translate.rs"));
+    }
 }

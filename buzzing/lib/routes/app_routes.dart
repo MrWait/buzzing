@@ -19,6 +19,7 @@ abstract class AppRoute {
   static const MEMBER_LIST = "/member_list";
   static const JOIN_REQUESTS = "/join_requests";
   static const INVITE_LINKS = "/invite_links";
+  static const SEARCH = "/search";
 }
 
 extension RoutesExtention on String {
