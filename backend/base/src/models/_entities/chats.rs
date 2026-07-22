@@ -28,6 +28,7 @@ pub struct Model {
     pub description: String,
     pub join_mode: i16,
     pub global_mute_until: Option<DateTimeWithTimeZone>,
+    pub allow_at_all: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

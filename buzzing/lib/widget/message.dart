@@ -2,18 +2,23 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:buzzing/controller/im.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
+import 'package:buzzing/models/idl/entity.pbenum.dart';
+import 'package:buzzing/models/idl/im_ext.pb.dart';
 import 'package:buzzing/models/idl/meeting.pb.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/widget/forward_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MessageBox extends ConsumerStatefulWidget {
   final User user;
@@ -38,6 +43,11 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
     final isSelf = msg.fromId == im.userId;
     final showAvatar = !isSelf;
     final isSystem = msg.tpy == MessageType.SYSTEM.value;
+    final isDeleted = msg.status == EntityStatus.DELETED.value || msg.status == 5;
+
+    if (isDeleted) {
+      return _DeletedMessage(msg: msg, cs: cs, tt: tt);
+    }
 
     if (isSystem) {
       return _SystemContent(msg: msg, tt: tt, cs: cs);
@@ -67,14 +77,61 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
           ),
           child: DefaultTextStyle(
             style: tt.bodyMedium!.copyWith(color: textColor),
-            child: _buildContent(im),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildContent(im),
+                // M5-F: translation result
+                if (im.translationCache[msg.id]?.containsKey('zh') == true) ...[
+                  const SizedBox(height: 6),
+                  Divider(height: 1, color: cs.outlineVariant.withOpacity(0.3)),
+                  const SizedBox(height: 4),
+                  Text(
+                    im.translationCache[msg.id]!['zh']!,
+                    style: tt.bodySmall?.copyWith(
+                      color: isSelf ? cs.onPrimary.withOpacity(0.85) : cs.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
         Padding(
           padding: const EdgeInsets.only(top: 2),
-          child: Text(
-            _formatTime(msg.createTimeMs),
-            style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (msg.hasReadState() && !isSelf)
+                GestureDetector(
+                  onTap: () => _showReadDetail(context, im, msg),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Text(
+                      '${msg.readState.readCount}/${msg.readState.total} 已读',
+                      style: tt.labelSmall?.copyWith(color: cs.primary),
+                    ),
+                  ),
+                ),
+              if (im.pinnedMessages.any((m) => m.id == msg.id))
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.push_pin, size: 12, color: cs.primary),
+                      const SizedBox(width: 2),
+                      Text('已置顶', style: tt.labelSmall?.copyWith(color: cs.primary)),
+                    ],
+                  ),
+                ),
+              Text(
+                _formatTime(msg.createTimeMs),
+                style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+              ),
+            ],
           ),
         ),
       ],
@@ -158,12 +215,34 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
             _actionBtn(Icons.reply_rounded, '回复', () {
               im.setReplyTarget(msg);
             }, cs),
+            _actionBtn(Icons.forum_outlined, 'Thread', () {
+              im.openThread(msg);
+            }, cs),
             _actionBtn(Icons.forward_rounded, '转发', () {
               _showForwardDialog(context, im);
             }, cs),
             _actionBtn(Icons.star_outline, '收藏', () {
               im.favoriteMessage(msg);
             }, cs),
+            // 检查消息是否已被置顶（通过 pinnedMessages 列表判断）
+            if (im.pinnedMessages.any((m) => m.id == msg.id))
+              _actionBtn(Icons.push_pin, '取消置顶', () {
+                im.unpinMessage(msg.chatId, msg.id);
+              }, cs)
+            else
+              _actionBtn(Icons.push_pin_outlined, '置顶', () {
+                im.pinMessage(msg.chatId, msg.id);
+              }, cs),
+            // M5-A: voice transcribe
+            if (msg.tpy == 4)
+              _actionBtn(Icons.notes, t.transcribe, () {
+                im.transcribeVoice(msg.id, msg.chatId);
+              }, cs),
+            // M5-F: translate (for text/richtext/markdown)
+            if ([1, 11, 13].contains(msg.tpy))
+              _actionBtn(Icons.translate, '翻译', () {
+                im.translateMessage(msg.id, msg.chatId, 'zh');
+              }, cs),
             _actionBtn(Icons.delete_outline, '删除', () {
               _confirmDelete(context, im, msg);
             }, cs),
@@ -201,6 +280,13 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
           visualDensity: VisualDensity.compact,
           contentPadding: EdgeInsets.zero,
         )),
+        PopupMenuItem(value: 'thread', child: ListTile(
+          leading: Icon(Icons.forum_outlined, size: 18),
+          title: Text('Thread', style: tt.bodySmall),
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          contentPadding: EdgeInsets.zero,
+        )),
         PopupMenuItem(value: 'forward', child: ListTile(
           leading: Icon(Icons.forward_rounded, size: 18),
           title: Text('转发', style: tt.bodySmall),
@@ -215,6 +301,40 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
           visualDensity: VisualDensity.compact,
           contentPadding: EdgeInsets.zero,
         )),
+        if (im.pinnedMessages.any((m) => m.id == msg.id))
+          PopupMenuItem(value: 'unpin', child: ListTile(
+            leading: Icon(Icons.push_pin, size: 18),
+            title: Text('取消置顶', style: tt.bodySmall),
+            dense: true,
+            visualDensity: VisualDensity.compact,
+            contentPadding: EdgeInsets.zero,
+          ))
+        else
+          PopupMenuItem(value: 'pin', child: ListTile(
+            leading: Icon(Icons.push_pin_outlined, size: 18),
+            title: Text('置顶', style: tt.bodySmall),
+            dense: true,
+            visualDensity: VisualDensity.compact,
+            contentPadding: EdgeInsets.zero,
+          )),
+        // M5-A: voice transcribe
+        if (msg.tpy == 4)
+          PopupMenuItem(value: 'transcribe', child: ListTile(
+            leading: Icon(Icons.notes, size: 18),
+            title: Text(t.transcribe, style: tt.bodySmall),
+            dense: true,
+            visualDensity: VisualDensity.compact,
+            contentPadding: EdgeInsets.zero,
+          )),
+        // M5-F: translate
+        if ([1, 11, 13].contains(msg.tpy))
+          PopupMenuItem(value: 'translate', child: ListTile(
+            leading: Icon(Icons.translate, size: 18),
+            title: Text('翻译', style: tt.bodySmall),
+            dense: true,
+            visualDensity: VisualDensity.compact,
+            contentPadding: EdgeInsets.zero,
+          )),
         PopupMenuItem(value: 'delete', child: ListTile(
           leading: Icon(Icons.delete_outline, size: 18),
           title: Text('删除', style: tt.bodySmall),
@@ -226,12 +346,22 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
     ).then((value) {
       if (value == 'reply') {
         im.setReplyTarget(msg);
+      } else if (value == 'thread') {
+        im.openThread(msg);
       } else if (value == 'forward') {
         _showForwardDialog(context, im);
       } else if (value == 'favorite') {
         im.favoriteMessage(msg);
+      } else if (value == 'pin') {
+        im.pinMessage(msg.chatId, msg.id);
+      } else if (value == 'unpin') {
+        im.unpinMessage(msg.chatId, msg.id);
       } else if (value == 'delete') {
         _confirmDelete(context, im, msg);
+      } else if (value == 'transcribe') {
+        im.transcribeVoice(msg.id, msg.chatId);
+      } else if (value == 'translate') {
+        im.translateMessage(msg.id, msg.chatId, 'zh');
       }
     });
   }
@@ -253,16 +383,24 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('删除消息'),
-        content: const Text('确定要删除这条消息吗？'),
+        content: const Text('选择删除方式：'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              im.recallMessage(msg.id);
+              im.deleteMessage(msg.id, mode: 0);
             },
-            child: const Text('删除'),
+            child: const Text('删除（仅对我）'),
           ),
+          if (msg.fromId == im.userId)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                im.deleteMessage(msg.id, mode: 1);
+              },
+              child: const Text('删除（对所有成员）'),
+            ),
         ],
       ),
     );
@@ -277,11 +415,19 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
     switch (msg.tpy) {
       case 1:
         var m = MessageText.fromBuffer(msg.content);
-        return Text(m.text, style: tt.bodyMedium);
+        return _buildTextWithMentions(m.text, tt.bodyMedium!, cs);
       case 2:
         return _ImageContent(msg: msg, cs: cs, tt: tt);
       case 3:
         return _FileContent(msg: msg, cs: cs, tt: tt);
+      case 4:
+        return _VoiceContent(msg: msg, im: im, cs: cs, tt: tt);
+      case 5:
+        return _VideoContent(msg: msg, cs: cs, tt: tt);
+      case 7:
+        return _LocationContent(msg: msg, cs: cs, tt: tt);
+      case 8:
+        return _CardContent(msg: msg, cs: cs, tt: tt);
       case 11:
         var m = MessageText.fromBuffer(msg.content);
         try {
@@ -316,21 +462,91 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final u = widget.user;
+    final im = ref.watch(imProvider);
+    final presence = im.presenceMap[u.id];
+    final isOnline = presence?.status == 1;
     return GestureDetector(
       onTap: () {},
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: cs.primary,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          u.name.isNotEmpty ? u.name[0].toUpperCase() : '?',
-          style: tt.bodySmall?.copyWith(color: cs.onPrimary),
-        ),
+      child: Stack(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: cs.primary,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              u.name.isNotEmpty ? u.name[0].toUpperCase() : '?',
+              style: tt.bodySmall?.copyWith(color: cs.onPrimary),
+            ),
+          ),
+          if (presence != null)
+            Positioned(
+              right: 0, bottom: 0,
+              child: Container(
+                width: 8, height: 8,
+                decoration: BoxDecoration(
+                  color: isOnline ? cs.primary : cs.onSurfaceVariant,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: cs.surface, width: 1),
+                ),
+              ),
+            ),
+        ],
       ),
+    );
+  }
+
+  void _showReadDetail(BuildContext context, ImController im, Message msg) async {
+    final resp = await im.getReadMembers(msg.chatId, msg.id);
+    if (resp == null || context.mounted == false) return;
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        final cs = Theme.of(context).colorScheme;
+        final tt = Theme.of(context).textTheme;
+        return Container(
+          padding: const EdgeInsets.all(16),
+          constraints: BoxConstraints(maxHeight: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('已读详情 (${msg.readState.readCount}/${msg.readState.total})', style: tt.titleSmall),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: resp.members.length,
+                  itemBuilder: (ctx, i) {
+                    final m = resp.members[i];
+                    return ListTile(
+                      dense: true,
+                      leading: Container(
+                        width: 28, height: 28,
+                        decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(4)),
+                        alignment: Alignment.center,
+                        child: Text(
+                          (m.name.isNotEmpty ? m.name : '?')[0].toUpperCase(),
+                          style: tt.bodySmall?.copyWith(color: cs.onPrimary),
+                        ),
+                      ),
+                      title: Text(m.name, style: tt.bodySmall),
+                      trailing: Icon(
+                        m.isRead ? Icons.check_circle : Icons.access_time,
+                        size: 16,
+                        color: m.isRead ? cs.primary : cs.onSurfaceVariant,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -492,6 +708,388 @@ class _FileContent extends StatelessWidget {
   }
 }
 
+/// M5-B: video message bubble
+class _VideoContent extends StatelessWidget {
+  final Message msg;
+  final ColorScheme cs;
+  final TextTheme tt;
+
+  const _VideoContent({required this.msg, required this.cs, required this.tt});
+
+  @override
+  Widget build(BuildContext context) {
+    MediaContent media;
+    try {
+      media = MediaContent.fromBuffer(msg.content);
+    } catch (_) {
+      return Text(msg.summary, style: tt.bodyMedium);
+    }
+    final durText = media.durationSec > 0
+        ? '${media.durationSec ~/ 60}:${(media.durationSec % 60).toString().padLeft(2, '0')}'
+        : null;
+
+    return GestureDetector(
+      onTap: () {
+        // TODO: open full-screen video player using url
+      },
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: media.thumbnailUrl.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: media.thumbnailUrl,
+                    width: 200,
+                    height: 150,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(
+                      width: 200,
+                      height: 150,
+                      color: cs.surfaceContainerHighest,
+                      child: Icon(Icons.movie_creation_outlined, size: 40, color: cs.onSurfaceVariant),
+                    ),
+                    errorWidget: (_, __, ___) => Container(
+                      width: 200,
+                      height: 150,
+                      color: cs.surfaceContainerHighest,
+                      child: Icon(Icons.movie_creation_outlined, size: 40, color: cs.onSurfaceVariant),
+                    ),
+                  )
+                : Container(
+                    width: 200,
+                    height: 150,
+                    color: cs.surfaceContainerHighest,
+                    child: Icon(Icons.movie_creation_outlined, size: 40, color: cs.onSurfaceVariant),
+                  ),
+          ),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: cs.surface.withValues(alpha: 0.8),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.play_arrow, size: 32, color: cs.onSurface),
+          ),
+          if (durText != null)
+            Positioned(
+              right: 8,
+              bottom: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: cs.surface.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(durText, style: tt.labelSmall?.copyWith(color: cs.onSurface)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// M5-C: location message bubble
+class _LocationContent extends StatelessWidget {
+  final Message msg;
+  final ColorScheme cs;
+  final TextTheme tt;
+
+  const _LocationContent({
+    required this.msg,
+    required this.cs,
+    required this.tt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = LocationContent.fromBuffer(msg.content);
+    final name = loc.name.isNotEmpty ? loc.name : loc.address;
+    final lat = loc.latitude;
+    final lng = loc.longitude;
+
+    // static map thumbnail via OSM
+    final staticMapUrl = lat != 0 && lng != 0
+        ? 'https://staticmap.openstreetmap.de/staticmap.php?center=$lat,$lng&zoom=14&size=240x160&markers=$lat,$lng,red-pushpin'
+        : null;
+
+    return GestureDetector(
+      onTap: () async {
+        final uri = Uri.parse(
+          'https://www.openstreetmap.org/?mlat=$lat&mlon=$lng#map=15/$lat/$lng',
+        );
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri);
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (staticMapUrl != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: Image.network(
+                staticMapUrl,
+                width: 240,
+                height: 160,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 240,
+                  height: 160,
+                  color: cs.surfaceContainerHighest,
+                  child: Icon(Icons.map, size: 48, color: cs.onSurfaceVariant),
+                ),
+              ),
+            ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.location_on, size: 16, color: cs.primary),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  name,
+                  style: tt.bodyMedium,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// M5-D: card message bubble
+class _CardContent extends StatelessWidget {
+  final Message msg;
+  final ColorScheme cs;
+  final TextTheme tt;
+
+  const _CardContent({
+    required this.msg,
+    required this.cs,
+    required this.tt,
+  });
+
+  void _handleAction(BuildContext context, CardAction action) {
+    switch (action.actionType) {
+      case 0: // URL
+        if (action.url.isNotEmpty) {
+          launchUrl(Uri.parse(action.url));
+        }
+      case 1: // 复制文本
+        Clipboard.setData(ClipboardData(text: action.value));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('已复制')),
+          );
+        }
+      case 2: // 回调
+        // For now, just show a toast; server callback can be added later
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('操作: ${action.label}')),
+          );
+        }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final card = CardContent.fromBuffer(msg.content);
+    final hasActions = card.actions.isNotEmpty;
+
+    Widget? banner;
+    if (card.imageUrl.isNotEmpty) {
+      banner = ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+        child: Image.network(
+          card.imageUrl,
+          width: double.infinity,
+          height: 120,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            height: 120,
+            color: cs.surfaceContainerHighest,
+            child: Icon(Icons.broken_image, color: cs.onSurfaceVariant),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      width: 260,
+      decoration: BoxDecoration(
+        border: Border.all(color: cs.outlineVariant),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (banner != null) banner,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, hasActions ? 4 : 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (card.iconUrl.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Image.network(
+                      card.iconUrl,
+                      width: 20,
+                      height: 20,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(card.title, style: tt.titleSmall),
+                      if (card.description.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          card.description,
+                          style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (card.url.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+              child: InkWell(
+                onTap: () => launchUrl(Uri.parse(card.url)),
+                child: Text(
+                  '查看详情',
+                  style: tt.labelSmall?.copyWith(color: cs.primary),
+                ),
+              ),
+            ),
+          if (hasActions)
+            Container(
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: cs.outlineVariant)),
+              ),
+              child: Row(
+                children: card.actions.map((a) {
+                  return Expanded(
+                    child: InkWell(
+                      onTap: () => _handleAction(context, a),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        alignment: Alignment.center,
+                        child: Text(
+                          a.label,
+                          style: tt.labelSmall?.copyWith(color: cs.primary),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// M5-A: voice message bubble
+class _VoiceContent extends StatefulWidget {
+  final Message msg;
+  final ImController im;
+  final ColorScheme cs;
+  final TextTheme tt;
+
+  const _VoiceContent({required this.msg, required this.im, required this.cs, required this.tt});
+
+  @override
+  _VoiceContentState createState() => _VoiceContentState();
+}
+
+class _VoiceContentState extends State<_VoiceContent> {
+  var _playing = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final msg = widget.msg;
+    VoiceContent voice;
+    try {
+      voice = VoiceContent.fromBuffer(msg.content);
+    } catch (_) {
+      return Text(msg.summary, style: widget.tt.bodyMedium);
+    }
+    final isSelf = msg.fromId == widget.im.userId;
+    final durText = '${voice.durationSec}${t.seconds}';
+    final hasTranscript =
+        voice.transcriptionStatus == 2 && voice.transcription.isNotEmpty;
+
+    return InkWell(
+      onTap: () {
+        // TODO: play/pause via audioplayers package
+        setState(() => _playing = !_playing);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _playing ? Icons.pause_circle_filled : Icons.play_circle_filled,
+              size: 32,
+              color: widget.cs.onPrimary,
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(durText, style: widget.tt.bodyMedium?.copyWith(color: widget.cs.onPrimary)),
+                if (hasTranscript)
+                  Text(
+                    voice.transcription,
+                    style: widget.tt.bodySmall?.copyWith(color: widget.cs.onPrimary.withValues(alpha: 0.7)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+            // unplayed dot (for received msgs only)
+            if (!isSelf && !_playing)
+              Container(
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.only(left: 8),
+                decoration: BoxDecoration(
+                  color: widget.cs.error,
+                  shape: BoxShape.circle,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _MarkdownContent extends StatelessWidget {
   final Message msg;
   final TextTheme tt;
@@ -597,6 +1195,41 @@ class _ForwardContent extends StatelessWidget {
   }
 }
 
+class _DeletedMessage extends StatelessWidget {
+  final Message msg;
+  final ColorScheme cs;
+  final TextTheme tt;
+
+  const _DeletedMessage({required this.msg, required this.cs, required this.tt});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.delete_outline, size: 14, color: cs.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Text(
+                '消息已被删除',
+                style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SystemContent extends StatelessWidget {
   final Message msg;
   final TextTheme tt;
@@ -625,6 +1258,27 @@ class _SystemContent extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 将文本中的 @xxx 高亮渲染
+Widget _buildTextWithMentions(String text, TextStyle baseStyle, ColorScheme cs) {
+  final pattern = RegExp(r'@\S+');
+  final spans = <InlineSpan>[];
+  int lastEnd = 0;
+  for (final match in pattern.allMatches(text)) {
+    if (match.start > lastEnd) {
+      spans.add(TextSpan(text: text.substring(lastEnd, match.start), style: baseStyle));
+    }
+    spans.add(TextSpan(
+      text: match.group(0),
+      style: baseStyle.copyWith(color: cs.primary, fontWeight: FontWeight.w600, backgroundColor: cs.primary.withValues(alpha: 0.1)),
+    ));
+    lastEnd = match.end;
+  }
+  if (lastEnd < text.length) {
+    spans.add(TextSpan(text: text.substring(lastEnd), style: baseStyle));
+  }
+  return RichText(text: TextSpan(children: spans));
 }
 
 class _MeetingInviteCard extends ConsumerWidget {

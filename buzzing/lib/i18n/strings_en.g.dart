@@ -2780,6 +2780,14 @@ extension on Translations {
 			'chatPlaceholder' => 'Type a message...',
 			'joinedMeeting' => 'joined the meeting',
 			'leftMeeting' => 'left the meeting',
+			'searchLocation' => 'Search location',
+			'sendLocation' => 'Send this location',
+			'scheduleSend' => 'Schedule send',
+			'scheduledMessages' => 'Scheduled messages',
+			'pending' => 'Pending',
+			'sent' => 'Sent',
+			'cancelled' => 'Cancelled',
+			'translate' => 'Translate',
 			_ => null,
 		};
 	}

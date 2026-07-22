@@ -146,3 +146,51 @@ pub async fn text_image_to_store(
 
     Ok(key)
 }
+
+/// Extract a video frame via ffmpeg CLI and return (jpeg_bytes, width, height).
+/// Returns Err if ffmpeg is not installed or the command fails.
+pub async fn generate_video_thumbnail(data: &[u8], ext: &str) -> Result<(Vec<u8>, u32, u32), String> {
+    let tmp_dir = std::env::temp_dir();
+    let input_name = format!("thumb_{}", id_gen(None));
+    let input_path = tmp_dir.join(&input_name).with_extension(ext);
+    let output_path = tmp_dir.join(&input_name).with_extension("jpg");
+
+    tokio::fs::write(&input_path, data)
+        .await
+        .map_err(|e| format!("write tmp file: {e}"))?;
+
+    let result = tokio::process::Command::new("ffmpeg")
+        .arg("-i")
+        .arg(&input_path)
+        .arg("-ss")
+        .arg("00:00:01")
+        .arg("-vframes")
+        .arg("1")
+        .arg("-q:v")
+        .arg("2")
+        .arg("-y")
+        .arg(&output_path)
+        .output()
+        .await;
+
+    let _ = tokio::fs::remove_file(&input_path).await;
+
+    match result {
+        Ok(out) if out.status.success() => {
+            let thumb_data = tokio::fs::read(&output_path)
+                .await
+                .map_err(|e| format!("read thumb: {e}"))?;
+            let _ = tokio::fs::remove_file(&output_path).await;
+            let (w, h) = match image::load_from_memory(&thumb_data) {
+                Ok(img) => img.dimensions(),
+                Err(_) => (0, 0),
+            };
+            Ok((thumb_data, w, h))
+        }
+        Ok(out) => {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            Err(format!("ffmpeg failed: {stderr}"))
+        }
+        Err(e) => Err(format!("ffmpeg not available: {e}")),
+    }
+}

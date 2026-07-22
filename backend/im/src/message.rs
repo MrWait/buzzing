@@ -245,8 +245,78 @@ pub(crate) async fn message_send(
     let mut message = req.message.take().ok_or(Error::string("bad request"))?;
     message.id = id;
 
+    // ─── Step 2: @Mention parsing + @all validation ─────────────────
+    if !message.content.is_empty() {
+        if let Ok(text) = entity::MessageText::decode(message.content.as_slice()) {
+            let mut at_ids = Vec::new();
+            let mut has_at_all = false;
+            for mention in text.mentions.iter() {
+                if mention.user_id == -1 {
+                    has_at_all = true;
+                } else if mention.user_id > 0 && !at_ids.contains(&mention.user_id) {
+                    at_ids.push(mention.user_id);
+                }
+            }
+            if has_at_all {
+                let c = _chat_context.read().await;
+                if c.chat.r#type == entity::ChatType::ChatGroup as i16 {
+                    let allow = ctx.db.query_one(Statement::from_sql_and_values(
+                        DbBackend::Postgres,
+                        "SELECT allow_at_all FROM chats WHERE id = $1",
+                        vec![c.chat.id.into()],
+                    )).await.map_err(|e| common_error(&format!("query allow_at_all error: {e}")))?
+                    .and_then(|row| row.try_get::<bool>("", "allow_at_all").ok())
+                    .unwrap_or(true);
+                    if !allow {
+                        return Ok((ErrorCode::ErrorNoPermision as i32, resp.encode_to_vec()));
+                    }
+                }
+                // Expand @all to all member IDs
+                let c2 = _chat_context.read().await;
+                at_ids = c2.cmv.ids();
+            }
+            message.at_user_ids = at_ids;
+        }
+    }
+
     // debug!("step 1.1");
     let mut message = MessageModel::from(message).0;
+
+    // ─── Step 4: Thread meta tracking ────────────────────────────────
+    if message.thread_root_id > 0 {
+        let user_name = if let Ok(hub) = BizHub::get() {
+            hub.user.get_user_by_id(ctx, brief.id).await.map(|u| u.name).unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let summary = if message.summary.is_empty() {
+            format!("[回复] {}", user_name)
+        } else {
+            message.summary.clone()
+        };
+        let _ = ctx.db.execute(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            r#"
+            INSERT INTO chat_threads (id, chat_id, root_message_id, message_count, last_message_at, last_message_id, last_message_summary, last_message_from_id)
+            VALUES ($1, $2, $3, 1, NOW(), $4, $5, $6)
+            ON CONFLICT (chat_id, root_message_id) DO UPDATE SET
+                message_count = chat_threads.message_count + 1,
+                last_message_at = NOW(),
+                last_message_id = $4,
+                last_message_summary = $5,
+                last_message_from_id = $6
+            "#,
+            vec![
+                id_gen(None).into(),
+                message.chat_id.into(),
+                message.thread_root_id.into(),
+                message.id.into(),
+                summary.into(),
+                brief.id.into(),
+            ],
+        )).await;
+    }
+
     debug!("start insert message: {:?}", message);
     let member_ids = super::chat::update_last_message(ctx, brief, &mut message).await?;
     // debug!("step 1.2");
@@ -611,5 +681,103 @@ pub(crate) async fn reaction_set(
     }
 
     debug!("reaction set, resp: {resp:?}");
+    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+}
+
+// ─── Step 5: GetReadMembers ──────────────────────────────────────────
+
+pub(crate) async fn message_get_read_members(
+    ctx: &AppContext,
+    _brief: &UserBrief,
+    packet: &entity::Packet,
+    _ws: bool,
+) -> Result<(i32, Vec<u8>)> {
+    let req = pb_decode::<message::GetReadMembersRequest>(&packet.payload)?;
+    debug!("get read members, req: {req:?}");
+    let mut resp = message::GetReadMembersResponse::default();
+
+    let msg_ctx = cache_get_message(ctx, req.message_id).await?;
+    let (chat_id, cmv_count, read_chunks) = {
+        let msg = msg_ctx.read().await;
+        (msg.message.chat_id, msg.message.cmv_count, msg.message.read_states.clone())
+    };
+
+    let chat = super::chat::chat_cache_get(ctx, chat_id).await?;
+    let cmv = { chat.read().await.cmv.clone() };
+
+    let read_state = VecBool::with(cmv_count as u64, read_chunks);
+    let read_ids: std::collections::HashSet<i64> = cmv.extract(&read_state).into_iter().collect();
+    let all_ids = cmv.ids();
+
+    let users = if let Ok(hub) = BizHub::get() {
+        hub.user.get_user_by_ids(ctx, all_ids.clone()).await.unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+    let user_map: std::collections::HashMap<i64, _> = users.into_iter().map(|u| (u.id, u)).collect();
+
+    for uid in all_ids {
+        let is_read = read_ids.contains(&uid);
+        let user = user_map.get(&uid);
+        resp.members.push(message::ReadMemberItem {
+            user_id: uid,
+            name: user.map(|u| u.name.clone()).unwrap_or_default(),
+            avatar: user.map(|u| u.avatar.clone()).unwrap_or_default(),
+            is_read,
+        });
+    }
+
+    debug!("get read members done, count: {}", resp.members.len());
+    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+}
+
+// ─── Step 8: DeleteMessage ───────────────────────────────────────────
+
+pub(crate) async fn message_delete(
+    ctx: &AppContext,
+    brief: &UserBrief,
+    packet: &entity::Packet,
+    _ws: bool,
+) -> Result<(i32, Vec<u8>)> {
+    let req = pb_decode::<message::DeleteMessageRequest>(&packet.payload)?;
+    debug!("delete message, req: {req:?}");
+    let resp = message::DeleteMessageResponse::default();
+
+    if req.mode == 0 {
+        // local delete — nothing to do server-side
+        return Ok((ErrorCode::Ok as i32, resp.encode_to_vec()));
+    }
+
+    // global delete — verify permission
+    let msg_ctx = cache_get_message(ctx, req.message_id).await?;
+    let chat_id = { msg_ctx.read().await.message.chat_id };
+
+    let chat = super::chat::chat_cache_get(ctx, chat_id).await?;
+    {
+        let c = chat.read().await;
+        if c.chat.r#type == entity::ChatType::ChatGroup as i16 {
+            let is_owner = c.chat.owner_id == brief.id;
+            let is_admin = c.chat.admin_ids.contains(&brief.id);
+            if !is_owner && !is_admin {
+                return Ok((ErrorCode::ErrorNoPermision as i32, resp.encode_to_vec()));
+            }
+        }
+    }
+
+    // Set status = Deleted (2)
+    let now = current_ms() as i64;
+    {
+        let mut msg = msg_ctx.write().await;
+        msg.message.status = EntityStatus::Deleted as i16;
+        msg.message.version = now;
+    }
+    MessageModel::set_status(&ctx.db, req.message_id, now, EntityStatus::Deleted as i16).await?;
+
+    // Push to all chat members
+    if let Ok(user_ids) = super::chat::chat_get_all_user_ids(ctx, chat_id).await {
+        let _ = push_messages(ctx, brief, &user_ids, &vec![req.message_id]).await;
+    }
+
+    debug!("delete message done");
     Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
 }

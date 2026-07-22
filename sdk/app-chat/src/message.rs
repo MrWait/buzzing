@@ -7,6 +7,7 @@ use tracing::{debug, instrument};
 use crate::{message_database, AppChat};
 use base_util::{gen_i32, id_gen, thread_id, time::current_ms};
 use proto::idl::{command::Command, entity, error::ErrorCode, message};
+use service::network::common_request;
 use proto::EntityIds;
 
 #[derive(Debug)]
@@ -252,6 +253,18 @@ impl AppChat {
         }
 
         Ok(())
+    }
+
+    pub(crate) async fn delete_message(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
+        let req = message::DeleteMessageRequest::decode(params)?;
+        debug!("delete message, req: {req:?}");
+        let ack = common_request::<message::DeleteMessageResponse>(
+            Command::MessageDelete as i32,
+            req.encode_to_vec(),
+            None,
+        )
+        .await?;
+        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
     }
 
     pub(crate) async fn message_forward(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {

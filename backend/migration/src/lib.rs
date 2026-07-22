@@ -31,6 +31,13 @@ mod m20260720_100005_chats_m2;
 mod m20260720_100006_group_mutes;
 mod m20260720_100007_join_requests;
 mod m20260720_100008_invite_links;
+mod m20260721_100001_message_pins;
+mod m20260722_100002_messages_thread_root;
+mod m20260723_100003_chat_threads;
+mod m20260724_100004_user_presence;
+mod m20260725_100005_chats_allow_at_all;
+mod m20260726_100001_search_indexes;
+mod m20260727_100001_scheduled_messages;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -67,6 +74,13 @@ impl MigratorTrait for Migrator {
             Box::new(m20260720_100006_group_mutes::Migration),
             Box::new(m20260720_100007_join_requests::Migration),
             Box::new(m20260720_100008_invite_links::Migration),
+            Box::new(m20260721_100001_message_pins::Migration),
+            Box::new(m20260722_100002_messages_thread_root::Migration),
+            Box::new(m20260723_100003_chat_threads::Migration),
+            Box::new(m20260724_100004_user_presence::Migration),
+            Box::new(m20260725_100005_chats_allow_at_all::Migration),
+            Box::new(m20260726_100001_search_indexes::Migration),
+            Box::new(m20260727_100001_scheduled_messages::Migration),
         ]
     }
 }

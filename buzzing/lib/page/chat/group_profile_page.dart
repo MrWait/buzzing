@@ -1,13 +1,21 @@
+import 'dart:io';
+
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/message.pb.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/routes/app_routes.dart';
+import 'package:buzzing/utils/config/config.dart';
+import 'package:buzzing/utils/logger_util.dart';
+import 'package:dio/dio.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mime_type/mime_type.dart';
+import 'package:path/path.dart' as p;
 
 class GroupProfilePage extends ConsumerWidget {
   final Int64 chatId;
@@ -65,24 +73,103 @@ class GroupProfilePage extends ConsumerWidget {
   }
 }
 
-class _GroupInfoHeader extends StatelessWidget {
+class _GroupInfoHeader extends ConsumerStatefulWidget {
   final Chat chat;
   final ImController im;
 
   const _GroupInfoHeader({required this.chat, required this.im});
 
   @override
+  _GroupInfoHeaderState createState() => _GroupInfoHeaderState();
+}
+
+class _GroupInfoHeaderState extends ConsumerState<_GroupInfoHeader> {
+  Future<void> _pickAndUploadAvatar() async {
+    final picker = ImagePicker();
+    final xFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (xFile == null) return;
+
+    final file = File(xFile.path);
+    final bytes = await file.readAsBytes();
+    final fileName = p.basename(xFile.path);
+
+    final baseUrl = Config.apiUrl();
+    if (baseUrl.isEmpty) return;
+
+    try {
+      final mimeType = mime(fileName) ?? 'image/jpeg';
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: fileName, contentType: DioMediaType.parse(mimeType)),
+      });
+      final resp = await Dio(BaseOptions(baseUrl: baseUrl))
+          .post('/api/files/upload', data: formData);
+
+      if (resp.statusCode != 200) {
+        L.e("avatar upload failed: ${resp.statusCode}");
+        return;
+      }
+
+      final fileId = resp.data['id'] as int;
+      final downloadUrl = '$baseUrl/api/files/$fileId';
+
+      await widget.im.updateChat(widget.chat.id, avatar: downloadUrl);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('头像已更新')),
+        );
+      }
+    } catch (e) {
+      L.e("avatar upload error: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('头像上传失败: $e')),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+    final chat = widget.chat;
+    final isOwner = widget.im.userId == chat.ownerId;
+    final isAdmin = chat.adminIds.contains(widget.im.userId);
+
     return Row(
       children: [
-        CircleAvatar(
-          radius: 32,
-          backgroundColor: cs.primaryContainer,
-          child: Text(
-            chat.name.isNotEmpty ? chat.name[0].toUpperCase() : 'G',
-            style: tt.headlineSmall?.copyWith(color: cs.onPrimaryContainer),
+        GestureDetector(
+          onTap: (isOwner || isAdmin) ? _pickAndUploadAvatar : null,
+          child: Stack(
+            children: [
+              CircleAvatar(
+                radius: 32,
+                backgroundColor: cs.primaryContainer,
+                backgroundImage: chat.avatar.isNotEmpty
+                    ? NetworkImage(chat.avatar)
+                    : null,
+                child: chat.avatar.isEmpty
+                    ? Text(
+                        chat.name.isNotEmpty ? chat.name[0].toUpperCase() : 'G',
+                        style: tt.headlineSmall?.copyWith(color: cs.onPrimaryContainer),
+                      )
+                    : null,
+              ),
+              if (isOwner || isAdmin)
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: cs.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.camera_alt, size: 14, color: cs.onPrimary),
+                  ),
+                ),
+            ],
           ),
         ),
         const SizedBox(width: 16),

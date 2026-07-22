@@ -1,8 +1,11 @@
+pub mod asr;
 pub mod cache;
 pub mod config;
 pub mod model;
+pub mod presence;
 pub mod service;
 pub mod text_image;
+pub mod translate;
 
 use loco_rs::{Error, Result, model::ModelError};
 use rand::Rng;
@@ -12,9 +15,12 @@ use std::sync::atomic::{AtomicU8, AtomicU16, AtomicU64, Ordering};
 use std::sync::{LazyLock, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+pub use asr::{AsrService, StubAsr, get_asr, init_asr};
 pub use cache::{CacheLoader, CommonCache};
 pub use entity::{EntityStatus, EntityType, Operate};
 pub use model::{PresetColor, UserBrief};
+pub use translate::{Language, StubTranslation, TranslateResult, TranslationService, get_translation, init_translation};
+pub use presence::PRESENCE_SUBSCRIBERS;
 use proto::idl::entity::{self, EntityId};
 pub use service::{AppHub, BizHub};
 pub use service::{BizCalendar, BizGateway, BizOffice, BizSetting, BizStore, BizUser, ExternApp};

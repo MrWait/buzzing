@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use base::app::App;
 use calendar::AppCalendar;
-use common::{AppHub, BizCalendar, BizGateway, BizHub, BizOffice, BizSetting, BizStore, BizUser, ExternApp};
+use common::{AppHub, BizCalendar, BizGateway, BizHub, BizOffice, BizSetting, BizStore, BizUser, ExternApp, init_asr, init_translation, StubAsr, StubTranslation};
 use gateway::AppGateway;
 use im::AppIm;
 use office::AppOffice;
@@ -56,6 +56,8 @@ async fn main() -> loco_rs::Result<()> {
 
     AppHub::set(Arc::new(hub));
     BizHub::set(Arc::new(services));
+    init_asr(Box::new(StubAsr));
+    init_translation(Box::new(StubTranslation));
 
     cli::main::<App, Migrator>().await
 }

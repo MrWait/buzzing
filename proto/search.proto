@@ -1,0 +1,98 @@
+syntax = "proto3";
+package search;
+option go_package = "./proto";
+import "entity.proto";
+
+// ── 搜索过滤条件 ──
+
+message SearchFilter {
+    int64 chat_id = 1;       // 0 = 不限
+    int64 from_id = 2;       // 0 = 不限
+    int32 msg_type = 3;      // 0 = 不限（MessageType 枚举值）
+    int64 time_start_ms = 4; // 0 = 不限
+    int64 time_end_ms = 5;   // 0 = 不限
+}
+
+// ── 通用搜索请求 ──
+
+message SearchRequest {
+    string keyword = 1;
+    int32 page = 2;           // 从 1 开始
+    int32 page_size = 3;      // 默认 20，最大 100
+    SearchFilter filter = 4;
+}
+
+// ── 消息搜索 ──
+
+message MessageSearchResult {
+    entity.Message message = 1;
+    string highlight = 2;    // 高亮片段，如 "xxx<mark>关键词</mark>xxx..."
+}
+
+message SearchMessagesResponse {
+    repeated MessageSearchResult results = 1;
+    int32 total = 2;
+}
+
+// ── 会话搜索 ──
+
+message ChatSearchResult {
+    entity.Chat chat = 1;
+    string highlight = 2;
+}
+
+message SearchChatsResponse {
+    repeated ChatSearchResult results = 1;
+    int32 total = 2;
+}
+
+// ── 用户搜索 ──
+
+message UserSearchResult {
+    entity.User user = 1;
+    string highlight = 2;
+}
+
+message SearchUsersResponse {
+    repeated UserSearchResult results = 1;
+    int32 total = 2;
+}
+
+// ── 文件搜索 ──
+
+message FileSearchResult {
+    string file_id = 1;
+    string file_name = 2;
+    string mime_type = 3;
+    int64 size = 4;
+    string url = 5;
+    string highlight = 6;
+    int64 created_at_ms = 7;
+    int64 uploader_id = 8;
+}
+
+message SearchFilesResponse {
+    repeated FileSearchResult results = 1;
+    int32 total = 2;
+}
+
+// ── 全局搜索（并行搜索各分类，合并返回顶部结果） ──
+
+message GlobalSearchRequest {
+    string keyword = 1;
+    int32 page = 2;
+    int32 page_size = 3;
+    // 限定搜索范围，空列表 = 搜全部
+    repeated string types = 4; // "message", "chat", "user", "file"
+}
+
+message GlobalSearchResponse {
+    repeated MessageSearchResult messages = 1;
+    repeated ChatSearchResult chats = 2;
+    repeated UserSearchResult users = 3;
+    repeated FileSearchResult files = 4;
+    int32 message_total = 5;
+    int32 chat_total = 6;
+    int32 user_total = 7;
+    int32 file_total = 8;
+}
