@@ -10,6 +10,7 @@ use common::{AppHub, BizCalendar, BizGateway, BizHub, BizOffice, BizSetting, Biz
 use gateway::AppGateway;
 use im::AppIm;
 use office::AppOffice;
+use openapp::AppOpenApp;
 use rtc::AppRtc;
 use setting::AppSetting;
 use store::AppStore;
@@ -25,6 +26,7 @@ async fn main() -> loco_rs::Result<()> {
     let gateway = Box::new(AppGateway);
     let im = Box::new(AppIm);
     let office = Box::new(AppOffice);
+    let openapp = Box::new(AppOpenApp);
     let rtc = Box::new(AppRtc);
     let store = Box::new(AppStore);
     let setting = Box::new(AppSetting::default());
@@ -36,6 +38,7 @@ async fn main() -> loco_rs::Result<()> {
         gateway: Arc::new(gateway.clone() as Box<dyn ExternApp + Send + Sync>),
         im: Arc::new(im.clone() as Box<dyn ExternApp + Send + Sync>),
         office: Arc::new(office.clone() as Box<dyn ExternApp + Send + Sync>),
+        openapp: Arc::new(openapp.clone() as Box<dyn ExternApp + Send + Sync>),
         rtc: Arc::new(rtc.clone() as Box<dyn ExternApp + Send + Sync>),
         store: Arc::new(store.clone() as Box<dyn ExternApp + Send + Sync>),
         setting: Arc::new(setting.clone() as Box<dyn ExternApp + Send + Sync>),

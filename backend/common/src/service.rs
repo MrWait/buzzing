@@ -69,6 +69,7 @@ pub struct AppHub {
     pub gateway: Arc<Box<dyn ExternApp + Send + Sync>>,
     pub im: Arc<Box<dyn ExternApp + Send + Sync>>,
     pub office: Arc<Box<dyn ExternApp + Send + Sync>>,
+    pub openapp: Arc<Box<dyn ExternApp + Send + Sync>>,
     pub rtc: Arc<Box<dyn ExternApp + Send + Sync>>,
     pub store: Arc<Box<dyn ExternApp + Send + Sync>>,
     pub setting: Arc<Box<dyn ExternApp + Send + Sync>>,
@@ -99,6 +100,7 @@ impl AppHub {
         apps.push(self.gateway.clone());
         apps.push(self.im.clone());
         apps.push(self.office.clone());
+        apps.push(self.openapp.clone());
         apps.push(self.rtc.clone());
         apps.push(self.store.clone());
         apps.push(self.setting.clone());

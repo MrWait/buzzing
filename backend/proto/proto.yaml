@@ -14,6 +14,7 @@ files: [
 ../../proto/message.proto,
 ../../proto/mute.proto,
 ../../proto/pin.proto,
+../../proto/openapp.proto,
 ../../proto/pipeline.proto,
 ../../proto/presence.proto,
 ../../proto/sdk.proto,
@@ -72,4 +73,3 @@ messages:
     attrs:
       - derive(serde::Serialize, serde::Deserialize)
       - serde(default)
-
