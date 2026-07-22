@@ -1,0 +1,106 @@
+syntax = "proto3";
+package openapp;
+option go_package = "./proto";
+
+// ── App ────────────────────────────────────────────────────────────
+
+message OpenApp {
+    int64 id = 1;
+    string app_id = 2;
+    string name = 3;
+    string description = 4;
+    int32 app_type = 5;
+    repeated string scopes = 6;
+    int64 owner_id = 7;
+    int64 tenant_id = 8;
+    int32 status = 9;
+    int64 created_at = 10;
+    int64 updated_at = 11;
+    OpenAppBot bot = 12;
+}
+
+message OpenAppBot {
+    int64 id = 1;
+    int64 bot_user_id = 2;
+    string webhook_url = 3;
+    string webhook_secret = 4;
+    repeated string event_types = 5;
+    int32 status = 6;
+}
+
+// ── Auth ───────────────────────────────────────────────────────────
+
+message TenantAccessTokenRequest {
+    string app_id = 1;
+    string app_secret = 2;
+}
+
+message TenantAccessTokenResponse {
+    string token = 1;
+    int32 expire = 2;
+}
+
+// ── App CRUD ───────────────────────────────────────────────────────
+
+message CreateAppRequest {
+    string name = 1;
+    string description = 2;
+    int32 app_type = 3;
+}
+
+message CreateAppResponse {
+    OpenApp app = 1;
+    string app_secret = 2;
+}
+
+message ListAppsRequest {
+    int32 page = 1;
+    int32 page_size = 2;
+}
+
+message ListAppsResponse {
+    repeated OpenApp apps = 1;
+    int32 total = 2;
+}
+
+message UpdateAppRequest {
+    string name = 1;
+    string description = 2;
+    repeated string scopes = 3;
+}
+
+message UpdateBotRequest {
+    string webhook_url = 1;
+    repeated string event_types = 2;
+}
+
+message RotateSecretResponse {
+    string app_secret = 1;
+}
+
+// ── Bot Message ────────────────────────────────────────────────────
+
+message BotSendMessageRequest {
+    int64 chat_id = 1;
+    string msg_type = 2;
+    bytes content = 3;
+}
+
+message BotSendMessageResponse {
+    int64 message_id = 1;
+}
+
+message BotEditMessageRequest {
+    string msg_type = 1;
+    bytes content = 2;
+}
+
+// ── Event ──────────────────────────────────────────────────────────
+
+message BotEventPayload {
+    string event_id = 1;
+    string app_id = 2;
+    string type = 3;
+    int64 timestamp = 4;
+    bytes payload = 5;
+}

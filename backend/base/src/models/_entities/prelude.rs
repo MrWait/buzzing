@@ -4,6 +4,8 @@ pub use super::accounts::Entity as Accounts;
 pub use super::calendars::Entity as Calendars;
 pub use super::meeting_members::Entity as MeetingMembers;
 pub use super::meetings::Entity as Meetings;
+pub use super::open_app_bots::Entity as OpenAppBots;
+pub use super::open_apps::Entity as OpenApps;
 pub use super::chats::Entity as Chats;
 pub use super::cmvs::Entity as Cmvs;
 pub use super::cycleds::Entity as Cycleds;

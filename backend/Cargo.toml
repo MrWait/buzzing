@@ -9,6 +9,7 @@ members = [
         "im",
         "migration",
         "office",
+        "openapp",
         "proto",
         "rtc",
         "store",
@@ -78,6 +79,7 @@ gateway = { path = "./gateway" }
 im = { path = "./im" }
 migration = { path = "./migration" }
 office = { path = "./office" }
+openapp = { path = "./openapp" }
 proto = { path = "./proto" }
 rtc = { path = "./rtc" }
 todo = { path = "./todo" }
