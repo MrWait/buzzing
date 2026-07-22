@@ -1,0 +1,21 @@
+syntax = "proto3";
+package presence;
+option go_package = "./proto";
+
+message PresenceUpdateRequest {
+    int32 status = 1;       // 0=offline, 1=online, 2=away, 3=busy
+    string status_text = 2; // custom status text
+}
+message PresenceUpdateResponse {}
+
+message PushPresence {
+    int64 user_id = 1;
+    int32 status = 2;
+    string status_text = 3;
+    int64 last_seen_ms = 4;
+}
+
+message PresenceSubscribeRequest {
+    repeated int64 user_ids = 1;
+}
+message PresenceSubscribeResponse {}

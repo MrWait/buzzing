@@ -1413,6 +1413,14 @@ extension on TranslationsZh {
 			'chatPlaceholder' => '输入消息...',
 			'joinedMeeting' => '加入了会议',
 			'leftMeeting' => '离开了会议',
+			'searchLocation' => '搜索地点',
+			'sendLocation' => '发送此位置',
+			'scheduleSend' => '定时发送',
+			'scheduledMessages' => '定时消息',
+			'pending' => '待发送',
+			'sent' => '已发送',
+			'cancelled' => '已取消',
+			'translate' => '翻译',
 			_ => null,
 		};
 	}

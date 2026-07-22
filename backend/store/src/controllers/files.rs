@@ -60,8 +60,18 @@ pub async fn upload(
         .map_err(|_| Error::InternalServerError)?;
 
     let is_image = mime_type.starts_with("image/");
+    let is_video = mime_type.starts_with("video/");
     let (thumbnail_key, width, height) = if is_image {
         match services::generate_thumbnail(&data, 256) {
+            Ok((thumb_data, w, h)) => {
+                let thumb_key = services::generate_thumbnail_key(&storage_key);
+                let _ = services::put(&thumb_key, thumb_data).await;
+                (Some(thumb_key), Some(w as i32), Some(h as i32))
+            }
+            Err(_) => (None, None, None),
+        }
+    } else if is_video {
+        match services::generate_video_thumbnail(&data, &ext).await {
             Ok((thumb_data, w, h)) => {
                 let thumb_key = services::generate_thumbnail_key(&storage_key);
                 let _ = services::put(&thumb_key, thumb_data).await;

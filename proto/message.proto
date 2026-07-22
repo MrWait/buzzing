@@ -109,3 +109,25 @@ message RecallMessageRequest {
 message RecallMessageResponse {
     entity.Entity entity = 1;
 }
+
+message DeleteMessageRequest {
+    int64 message_id = 1;
+    int32 mode = 2;       // 0=local, 1=global
+}
+message DeleteMessageResponse {
+    entity.Entity entities = 1;
+}
+
+message GetReadMembersRequest {
+    int64 chat_id = 1;
+    int64 message_id = 2;
+}
+message ReadMemberItem {
+    int64 user_id = 1;
+    string name = 2;
+    string avatar = 3;
+    bool is_read = 4;
+}
+message GetReadMembersResponse {
+    repeated ReadMemberItem members = 1;
+}

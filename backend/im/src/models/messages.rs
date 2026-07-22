@@ -61,6 +61,7 @@ impl MessageModel {
             version: ActiveValue::set(0),
             ref_message_id: ActiveValue::set(msg.ref_message_id),
             ref_data: ActiveValue::set(msg.ref_data.clone()),
+            thread_root_id: ActiveValue::set(msg.thread_root_id),
             cmv_id: ActiveValue::set(msg.cmv_id),
             cmv_count: ActiveValue::set(msg.cmv_count),
             read_count: ActiveValue::set(msg.read_count),
@@ -173,6 +174,43 @@ impl MessageModel {
         Ok(())
     }
 
+    pub async fn find_by_thread_root(
+        db: &DatabaseConnection,
+        chat_id: i64,
+        root_message_id: i64,
+        page: i32,
+        page_size: i32,
+    ) -> ModelResult<(Vec<Model>, i32)> {
+        let page = if page <= 0 { 1 } else { page };
+        let page_size = if page_size <= 0 { 50 } else { page_size.min(200) };
+        let offset = ((page - 1) * page_size) as u64;
+
+        let total = Entity::find()
+            .filter(
+                model::query::condition()
+                    .eq(Column::ChatId, chat_id)
+                    .eq(Column::ThreadRootId, root_message_id)
+                    .build(),
+            )
+            .count(db)
+            .await? as i32;
+
+        let messages = Entity::find()
+            .filter(
+                model::query::condition()
+                    .eq(Column::ChatId, chat_id)
+                    .eq(Column::ThreadRootId, root_message_id)
+                    .build(),
+            )
+            .order_by_asc(Column::Pos)
+            .offset(offset)
+            .limit(page_size as u64)
+            .all(db)
+            .await?;
+
+        Ok((messages, total))
+    }
+
     pub async fn set_status(db: &DatabaseConnection, id: i64, ts: i64, status: i16) -> Result<()> {
         let message = ActiveModel {
             id: ActiveValue::set(id),
@@ -204,6 +242,7 @@ impl Into<entity::Message> for MessageModel {
             version: self.0.version,
             reactions: std::collections::HashMap::new(),
             read_state: None,
+            thread_root_id: self.0.thread_root_id,
             ref_message_id: self.0.ref_message_id,
             ref_data: if self.0.ref_data.is_empty() {
                 None
@@ -227,6 +266,7 @@ impl From<entity::Message> for MessageModel {
             badge: message.badge_count,
             status: message.status as i16,
             client_id: message.client_id,
+            thread_root_id: message.thread_root_id,
             at_user_ids: std::mem::take(&mut message.at_user_ids),
             content: std::mem::take(&mut message.content),
             summary: std::mem::take(&mut message.summary),

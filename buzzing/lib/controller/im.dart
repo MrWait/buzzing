@@ -18,6 +18,7 @@ import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/idl/feed.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/sdk.pb.dart';
+import 'package:buzzing/models/idl/im_ext.pb.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/widget/feedcard.dart';
 import 'package:flutter/material.dart';
@@ -53,7 +54,11 @@ class ImController extends ChangeNotifier {
   var showMentionPopup = false;
   Offset popuppOffset = Offset.zero;
   final LayerLink layerLink = LayerLink();
-  final List<String> candidates = ["Atom", "Bob", "Crys", "David"];
+  final List<({Int64 id, String name})> mentionCandidates = [];
+  var typingUsers = <Int64, ({String name, Int64 expireAtMs})>{};
+  var presenceMap = <Int64, ({int status, String statusText, Int64 lastSeenMs})>{};
+  var pinnedMessages = <Message>[];
+  var translationCache = <Int64, Map<String, String>>{}; // messageId -> (targetLang -> text)
 
   var avatar = "";
 
@@ -99,13 +104,42 @@ class ImController extends ChangeNotifier {
       showMentionPopup = false;
       notifyListeners();
     }
+    // 发送 typing 信号
+    sendTyping(chatId);
   }
 
   void updatePopupPosition() {
     popuppOffset = const Offset(100, 100);
   }
 
-  void insertMention(String name) {
+  Future<void> loadMentionCandidates() async {
+    var chat = entity.chats[chatId];
+    if (chat == null) return;
+    if (chat.chatType == ChatType.CHAT_GROUP.value) {
+      var resp = await getMembers(chatId, pageSize: 200);
+      if (resp != null) {
+        mentionCandidates.clear();
+        if (chat.chatType == ChatType.CHAT_GROUP.value) {
+          mentionCandidates.add((id: Int64(0), name: '所有成员'));
+        }
+        for (var m in resp.members) {
+          mentionCandidates.add((id: m.userId, name: m.user?.name ?? ''));
+        }
+        notifyListeners();
+      }
+    } else {
+      // P2P: the other user
+      var peerId = chat.peerAId == userId ? chat.peerBId : chat.peerAId;
+      var u = await getUserInfo(peerId);
+      if (u != null) {
+        mentionCandidates.clear();
+        mentionCandidates.add((id: u.id, name: u.name));
+        notifyListeners();
+      }
+    }
+  }
+
+  void insertMention(String name, {Int64 mentionId = Int64.ZERO}) {
     final selection = quillController.selection;
     final offset = selection.baseOffset;
     quillController.replaceText(
@@ -116,13 +150,17 @@ class ImController extends ChangeNotifier {
     );
 
     final mentionText = '@$name';
+    final attrs = <String, dynamic>{
+      'color': '#007AFF',
+      'fontWeight': 'bold',
+      'mention': true,
+    };
+    if (mentionId > Int64(0)) {
+      attrs['mentionId'] = mentionId.toInt().toString();
+    }
     final delta = Delta()
       ..retain(offset - 1)
-      ..insert(mentionText, {
-        'color': '#007AFF',
-        'fontWeight': 'bold',
-        'mention': true,
-      });
+      ..insert(mentionText, attrs);
     quillController.document.compose(delta, ChangeSource.local);
 
     quillController.updateSelection(
@@ -269,7 +307,8 @@ class ImController extends ChangeNotifier {
     if (curMsgIds.length > 0) {
       messagePosList.clear();
       entity.messages.forEach((id, msg) {
-        if (msg.chatId == chatId) {
+        // 跳过公告消息（公告 id == chatId）
+        if (msg.chatId == chatId && msg.id != chatId) {
           messagePosList.add(
             MessageIndex(msg.id, msg.fromId, msg.pos, msg.createTimeMs),
           );
@@ -347,6 +386,7 @@ class ImController extends ChangeNotifier {
       var chat = entity.chats[id];
       if (chat != null) {
         preloadMessage(chatId, chat.lastMessagePos, 30);
+        loadMentionCandidates();
       } else {
         L.w("chat not exists: ${id}");
       }
@@ -370,6 +410,8 @@ class ImController extends ChangeNotifier {
 
     sdk.regPushCallback(Command.PUSH_FEED_LIST.value, onPushFeedList);
     sdk.regPushCallback(Command.PUSH_MESSAGES.value, onPushMessages);
+    sdk.regPushCallback(Command.PUSH_TYPING.value, onPushTyping);
+    sdk.regPushCallback(Command.PUSH_PRESENCE.value, onPushPresence);
     ev.stream.where((e) => e == GlobalEvent.logined).listen((_) {
       Future.delayed(Duration.zero, () async {
         L.d("sdk logined, fetch feed");
@@ -514,7 +556,23 @@ class ImController extends ChangeNotifier {
     } else {
       text = jsonEncode(delta.toJson());
     }
-    L.d("send message, text: ${text}, type: $msgType, summary: $summary");
+    // 从 delta 中提取 @mention 的 userId
+    var atUserIds = <Int64>[];
+    try {
+      var ops = delta.toJson();
+      for (var op in ops) {
+        if (op is Map && op['attributes'] is Map) {
+          var attrs = op['attributes'] as Map;
+          if (attrs['mention'] == true && attrs['mentionId'] != null) {
+            var id = Int64(int.tryParse(attrs['mentionId'].toString()) ?? 0);
+            if (id > Int64(0) && !atUserIds.contains(id)) {
+              atUserIds.add(id);
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    L.d("send message, text: ${text}, type: $msgType, summary: $summary, atUserIds: $atUserIds");
     if (chatId == 0) {
       return;
     }
@@ -531,6 +589,7 @@ class ImController extends ChangeNotifier {
         message.content = inner.writeToBuffer();
         message.summary = summary;
         message.chatId = chatId;
+        message.atUserIds.addAll(atUserIds);
 
         // 引用回复时填充 ref_* 字段
         if (replyTarget != null) {
@@ -634,6 +693,352 @@ class ImController extends ChangeNotifier {
       L.e("create chat error");
       return null;
     }
+  }
+
+  // ─── M3: Pin ─────────────────────────────────────────────────
+
+  Future<void> pinMessage(Int64 chatId, Int64 messageId) async {
+    var req = PinMessageRequest(chatId: chatId, messageId: messageId);
+    var result = await sdk.invokeAsync(
+      Command.CHAT_PIN_MESSAGE,
+      req.writeToBuffer(),
+    );
+    if (result.data != null) {
+      var resp = PinMessageResponse.fromBuffer(result.data!);
+      mergeEntity(resp.entities);
+      await loadPinnedMessages();
+    }
+  }
+
+  Future<void> unpinMessage(Int64 chatId, Int64 messageId) async {
+    var req = UnpinMessageRequest(chatId: chatId, messageId: messageId);
+    var result = await sdk.invokeAsync(
+      Command.CHAT_UNPIN_MESSAGE,
+      req.writeToBuffer(),
+    );
+    if (result.data != null) {
+      var resp = UnpinMessageResponse.fromBuffer(result.data!);
+      mergeEntity(resp.entities);
+      await loadPinnedMessages();
+    }
+  }
+
+  Future<void> loadPinnedMessages() async {
+    if (chatId == Int64(0)) return;
+    var req = GetPinnedMessagesRequest(chatId: chatId);
+    var result = await sdk.invokeAsync(
+      Command.CHAT_GET_PINNED_MESSAGES,
+      req.writeToBuffer(),
+    );
+    if (result.data != null) {
+      var resp = GetPinnedMessagesResponse.fromBuffer(result.data!);
+      pinnedMessages = resp.messages.toList();
+      notifyListeners();
+    }
+  }
+
+  // ─── M5-A: Voice ─────────────────────────────────────────────
+
+  Future<void> transcribeVoice(Int64 messageId, Int64 chatId) async {
+    var req = TranscribeVoiceRequest(messageId: messageId, chatId: chatId);
+    var result = await sdk.invokeAsync(
+      Command.VOICE_TRANSCRIBE,
+      req.writeToBuffer(),
+    );
+    if (result.data != null) {
+      var resp = TranscribeVoiceResponse.fromBuffer(result.data!);
+      // update local message content's transcription
+      var msg = entity.messages[messageId];
+      if (msg != null) {
+        try {
+          var voice = VoiceContent.fromBuffer(msg.content);
+          voice.transcription = resp.transcription;
+          voice.transcriptionStatus = 2;
+          msg.content = voice.writeToBuffer();
+          msg.summary = '[语音] ${resp.transcription}';
+          entity.messages[messageId] = msg;
+          notifyListeners();
+        } catch (_) {}
+      }
+    }
+  }
+
+  // ─── M5-F: Translate ──────────────────────────────────────────
+
+  Future<String?> translateMessage(Int64 messageId, Int64 chatId, String targetLang) async {
+    // check cache
+    final cached = translationCache[messageId]?[targetLang];
+    if (cached != null) return cached;
+
+    try {
+      var req = TranslateMessageRequest(messageId: messageId, chatId: chatId, targetLang: targetLang);
+      var result = await sdk.invokeAsync(
+        Command.TRANSLATE_MESSAGE,
+        req.writeToBuffer(),
+      );
+      var resp = TranslateMessageResponse.fromBuffer(result);
+      translationCache[messageId] ??= {};
+      translationCache[messageId]![targetLang] = resp.translatedText;
+      return resp.translatedText;
+    } catch (e) {
+      L.e("translate error: $e");
+      return null;
+    }
+  }
+
+  // ─── M3: Thread ────────────────────────────────────────────────
+
+  Future<List<Message>> getThread(Int64 chatId, Int64 rootMessageId, {int page = 1, int pageSize = 50}) async {
+    var req = GetThreadRequest(chatId: chatId, rootMessageId: rootMessageId, page: page, pageSize: pageSize);
+    var result = await sdk.invokeAsync(
+      Command.MESSAGE_GET_THREAD,
+      req.writeToBuffer(),
+    );
+    if (result.data != null) {
+      var resp = GetThreadResponse.fromBuffer(result.data!);
+      for (var msg in resp.messages) {
+        entity.messages[msg.id] = msg;
+      }
+      notifyListeners();
+      return resp.messages.toList();
+    }
+    return [];
+  }
+
+  // 当前打开的 thread 信息
+  Message? threadRootMessage;
+  List<Message> threadReplies = [];
+  var isThreadPanelOpen = false;
+
+  void openThread(Message rootMsg) {
+    threadRootMessage = rootMsg;
+    threadReplies = [];
+    isThreadPanelOpen = true;
+    notifyListeners();
+    Future.delayed(Duration.zero, () async {
+      var replies = await getThread(chatId, rootMsg.id);
+      threadReplies = replies;
+      notifyListeners();
+    });
+  }
+
+  void closeThread() {
+    isThreadPanelOpen = false;
+    threadRootMessage = null;
+    threadReplies = [];
+    notifyListeners();
+  }
+
+  Future<void> sendThreadReply(String text) async {
+    if (threadRootMessage == null || chatId == Int64(0)) return;
+    var message = Message.create();
+    var inner = MessageText.create();
+    inner.text = text;
+    message.tpy = MessageType.TEXT.value;
+    message.fromId = userId;
+    message.content = inner.writeToBuffer();
+    message.summary = text;
+    message.chatId = chatId;
+    message.threadRootId = threadRootMessage!.id;
+    var stashId = await preSendMessage(chatId, message);
+    if (stashId != null) {
+      await sendMessage(stashId, message);
+    }
+  }
+
+  // ─── M3: 已读详情 ─────────────────────────────────────────────
+
+  Future<GetReadMembersResponse?> getReadMembers(Int64 chatId, Int64 messageId) async {
+    var req = GetReadMembersRequest(chatId: chatId, messageId: messageId);
+    var result = await sdk.invokeAsync(
+      Command.MESSAGE_GET_READ_MEMBERS,
+      req.writeToBuffer(),
+    );
+    if (result.data != null) {
+      return GetReadMembersResponse.fromBuffer(result.data!);
+    }
+    return null;
+  }
+
+  // ─── M3: Typing ────────────────────────────────────────────────
+
+  DateTime _lastTypingSent = DateTime.fromMillisecondsSinceEpoch(0);
+
+  Future<void> sendTyping(Int64 chatId) async {
+    var now = DateTime.now();
+    if (now.difference(_lastTypingSent).inMilliseconds < 3000) return;
+    _lastTypingSent = now;
+    var req = TypingRequest(chatId: chatId);
+    await sdk.invokeWithoutAck(Command.TYPING, req.writeToBuffer());
+  }
+
+  void onPushTyping(List<int> data) {
+    var push = PushTyping.fromBuffer(data);
+    L.d("push typing: chatId=${push.chatId}, userId=${push.userId}");
+    if (push.chatId == chatId && push.userId != userId) {
+      typingUsers[push.userId] = (name: push.userName, expireAtMs: push.expireAtMs);
+      notifyListeners();
+      Future.delayed(Duration(seconds: 5), () {
+        typingUsers.remove(push.userId);
+        notifyListeners();
+      });
+    }
+  }
+
+  // ─── M3: Presence ──────────────────────────────────────────────
+
+  Future<void> updatePresence(int status, {String statusText = ''}) async {
+    var req = PresenceUpdateRequest(status: status, statusText: statusText);
+    await sdk.invokeAsync(Command.USER_PRESENCE_UPDATE, req.writeToBuffer());
+  }
+
+  void onPushPresence(List<int> data) {
+    var push = PushPresence.fromBuffer(data);
+    L.d("push presence: userId=${push.userId}, status=${push.status}");
+    presenceMap[push.userId] = (status: push.status, statusText: push.statusText, lastSeenMs: push.lastSeenMs);
+    notifyListeners();
+  }
+
+  Future<void> subscribePresence(List<Int64> userIds) async {
+    var req = PresenceSubscribeRequest(userIds: userIds);
+    await sdk.invokeAsync(Command.USER_PRESENCE_SUBSCRIBE, req.writeToBuffer());
+  }
+
+  // ─── M4: 全局搜索 ──────────────────────────────────────────────
+
+  // ─── M4: 会话内搜索 ────────────────────────────────────────────
+  var chatSearchResults = <MessageSearchResult>[];
+  var chatSearchKeyword = '';
+  var chatSearchIndex = 0;
+  var chatSearchVisible = false;
+
+  Future<void> doChatSearch(Int64 chatId, String keyword) async {
+    if (keyword.trim().isEmpty) {
+      chatSearchResults = [];
+      chatSearchKeyword = '';
+      chatSearchIndex = 0;
+      notifyListeners();
+      return;
+    }
+    chatSearchKeyword = keyword;
+    chatSearchIndex = 0;
+    final resp = await searchMessages(keyword, chatId: chatId, pageSize: 50);
+    chatSearchResults = resp.results;
+    notifyListeners();
+
+    if (resp.results.isNotEmpty) {
+      _jumpToChatSearchResult(0);
+    }
+  }
+
+  void nextChatSearchResult() {
+    if (chatSearchResults.isEmpty) return;
+    chatSearchIndex = (chatSearchIndex + 1) % chatSearchResults.length;
+    _jumpToChatSearchResult(chatSearchIndex);
+    notifyListeners();
+  }
+
+  void prevChatSearchResult() {
+    if (chatSearchResults.isEmpty) return;
+    chatSearchIndex = (chatSearchIndex - 1 + chatSearchResults.length) % chatSearchResults.length;
+    _jumpToChatSearchResult(chatSearchIndex);
+    notifyListeners();
+  }
+
+  void _jumpToChatSearchResult(int index) {
+    if (index < 0 || index >= chatSearchResults.length) return;
+    final msg = chatSearchResults[index].message;
+    if (msg == null) return;
+    final match = messagePosList.where((m) => m.id == msg.id).firstOrNull;
+    if (match != null) {
+      jumpToMessage(match.globalKey);
+    }
+  }
+
+  void toggleChatSearch() {
+    chatSearchVisible = !chatSearchVisible;
+    if (!chatSearchVisible) {
+      chatSearchKeyword = '';
+      chatSearchResults = [];
+      chatSearchIndex = 0;
+    }
+    notifyListeners();
+  }
+
+  Future<SearchMessagesResponse> searchMessages(
+    String keyword, {
+    int page = 1,
+    int pageSize = 20,
+    Int64? chatId,
+    Int64? fromId,
+    int? msgType,
+    Int64? timeStartMs,
+    Int64? timeEndMs,
+  }) async {
+    var filter = SearchFilter(
+      chatId: chatId ?? Int64(0),
+      fromId: fromId ?? Int64(0),
+      msgType: msgType ?? 0,
+      timeStartMs: timeStartMs ?? Int64(0),
+      timeEndMs: timeEndMs ?? Int64(0),
+    );
+    var req = SearchRequest(
+      keyword: keyword,
+      page: page,
+      pageSize: pageSize,
+      filter: filter,
+    );
+    var result = await sdk.invokeAsync(Command.SEARCH_MESSAGE, req.writeToBuffer());
+    if (result.data != null) {
+      return SearchMessagesResponse.fromBuffer(result.data!);
+    }
+    return SearchMessagesResponse();
+  }
+
+  Future<SearchChatsResponse> searchChats(String keyword, {int page = 1, int pageSize = 20}) async {
+    var req = SearchRequest(keyword: keyword, page: page, pageSize: pageSize);
+    var result = await sdk.invokeAsync(Command.SEARCH_CHAT, req.writeToBuffer());
+    if (result.data != null) {
+      return SearchChatsResponse.fromBuffer(result.data!);
+    }
+    return SearchChatsResponse();
+  }
+
+  Future<SearchUsersResponse> searchUsers(String keyword, {int page = 1, int pageSize = 20}) async {
+    var req = SearchRequest(keyword: keyword, page: page, pageSize: pageSize);
+    var result = await sdk.invokeAsync(Command.SEARCH_USER, req.writeToBuffer());
+    if (result.data != null) {
+      return SearchUsersResponse.fromBuffer(result.data!);
+    }
+    return SearchUsersResponse();
+  }
+
+  Future<SearchFilesResponse> searchFiles(String keyword, {int page = 1, int pageSize = 20}) async {
+    var req = SearchRequest(keyword: keyword, page: page, pageSize: pageSize);
+    var result = await sdk.invokeAsync(Command.SEARCH_FILES, req.writeToBuffer());
+    if (result.data != null) {
+      return SearchFilesResponse.fromBuffer(result.data!);
+    }
+    return SearchFilesResponse();
+  }
+
+  Future<GlobalSearchResponse> globalSearch(String keyword, {int page = 1, int pageSize = 5, List<String>? types}) async {
+    var req = GlobalSearchRequest(keyword: keyword, page: page, pageSize: pageSize);
+    if (types != null) req.types.addAll(types);
+    var result = await sdk.invokeAsync(Command.GLOBAL_SEARCH, req.writeToBuffer());
+    if (result.data != null) {
+      return GlobalSearchResponse.fromBuffer(result.data!);
+    }
+    return GlobalSearchResponse();
+  }
+
+  // ─── M3: 消息删除 ──────────────────────────────────────────────
+
+  Future<void> deleteMessage(Int64 messageId, {int mode = 0}) async {
+    var req = DeleteMessageRequest(messageId: messageId, mode: mode);
+    await sdk.invokeAsync(Command.MESSAGE_DELETE, req.writeToBuffer());
+    entity.messages.remove(messageId);
+    notifyListeners();
   }
 
   // ─── M2: 群公告 ─────────────────────────────────────────────────

@@ -13,9 +13,17 @@ files: [
 ../../proto/meeting.proto,
 ../../proto/message.proto,
 ../../proto/mute.proto,
+../../proto/pin.proto,
 ../../proto/pipeline.proto,
+../../proto/presence.proto,
 ../../proto/sdk.proto,
+../../proto/search.proto,
 ../../proto/setting.proto,
+../../proto/setting.proto,
+../../proto/thread.proto,
+../../proto/timer.proto,
+../../proto/translate.proto,
+../../proto/typing.proto,
 ../../proto/user.proto,
 ]
 output: src/idl

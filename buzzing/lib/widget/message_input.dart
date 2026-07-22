@@ -3,9 +3,12 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:buzzing/controller/im.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
+import 'package:buzzing/models/idl/im_ext.pb.dart';
 import 'package:buzzing/models/idl/setting.pb.dart';
+import 'package:buzzing/page/im/location_picker.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/utils/config/config.dart';
@@ -42,13 +45,21 @@ class MessageInput extends ConsumerWidget {
             // 引用回复预览条
             if (im.replyTarget != null)
               _ReplyPreviewBar(im: im, cs: cs, tt: tt),
-            if (im.showMentionPopup)
+            if (im.showMentionPopup && im.mentionCandidates.isNotEmpty)
               MentionPopup(
-                candidates: im.candidates,
+                candidates: im.mentionCandidates.map((e) => e.name).toList(),
                 layerLink: im.layerLink,
-                onTap: im.insertMention,
+                onTap: (name) {
+                  var entry = im.mentionCandidates.firstWhere(
+                    (e) => e.name == name,
+                    orElse: () => (id: Int64(0), name: name),
+                  );
+                  im.insertMention(name, mentionId: entry.id);
+                },
                 offset: im.popuppOffset,
               ),
+            // 禁言提示
+            _MuteHint(im: im),
             CompositedTransformTarget(
               link: im.layerLink,
               child: QuillEditor.basic(
@@ -77,14 +88,30 @@ class MessageInput extends ConsumerWidget {
                   _ToolbarBtn(icon: Icons.emoji_emotions_outlined, onTap: () async {}),
                   _ToolbarBtn(icon: Icons.alternate_email, onTap: () async {}),
                   _ToolbarBtn(
+                    icon: Icons.movie_creation_outlined,
+                    onTap: () => _pickVideo(context, ref, im),
+                  ),
+                  _ToolbarBtn(
+                    icon: Icons.mic_none,
+                    onTap: () => _startVoiceRecord(context, ref, im),
+                  ),
+                  _ToolbarBtn(
+                    icon: Icons.location_on_outlined,
+                    onTap: () =>
+                        _pickLocation(context, im),
+                  ),
+                  _ToolbarBtn(
                     icon: Icons.videocam,
                     onTap: () => _createMeetingAndShare(context, ref, im),
                   ),
                   const Spacer(),
-                  _ToolbarBtn(
-                    icon: Icons.send,
-                    color: cs.primary,
-                    onTap: () => im.onSendMessage(""),
+                  GestureDetector(
+                    onLongPress: () => _showScheduleOptions(context, im),
+                    child: _ToolbarBtn(
+                      icon: Icons.send,
+                      color: cs.primary,
+                      onTap: () => im.onSendMessage(""),
+                    ),
                   ),
                 ],
               ),
@@ -120,6 +147,134 @@ class MessageInput extends ConsumerWidget {
     await _uploadAndSend(context, im, bytes, fileName, fileSize, MessageType.FILE.value);
   }
 
+  Future<void> _pickVideo(BuildContext context, WidgetRef ref, ImController im) async {
+    final picker = ImagePicker();
+    final xFile = await picker.pickVideo(source: ImageSource.gallery);
+    if (xFile == null || im.chatId == Int64(0)) return;
+
+    final file = File(xFile.path);
+    final bytes = await file.readAsBytes();
+    final fileName = p.basename(xFile.path);
+    final fileSize = await file.length();
+
+    // TODO: extract video duration via platform channel or FFmpeg package
+    await _uploadAndSend(context, im, bytes, fileName, fileSize, MessageType.MEDIA.value);
+  }
+
+  Future<void> _pickLocation(BuildContext context, ImController im) async {
+    if (im.chatId == Int64(0)) return;
+    final loc = await Navigator.push<LocationContent>(
+      context,
+      MaterialPageRoute(builder: (_) => const LocationPickerPage()),
+    );
+    if (loc == null || context.mounted == false) return;
+
+    final summary = loc.name.isNotEmpty ? loc.name : loc.address;
+    final draftMsg = Message.create()
+      ..tpy = MessageType.LOCATION.value
+      ..fromId = im.userId
+      ..content = loc.writeToBuffer()
+      ..summary = summary
+      ..chatId = im.chatId;
+    final stashId = await im.preSendMessage(im.chatId, draftMsg);
+    if (stashId == null) return;
+    final sendMsg = Message.create()
+      ..tpy = MessageType.LOCATION.value
+      ..fromId = im.userId
+      ..content = loc.writeToBuffer()
+      ..summary = summary
+      ..chatId = im.chatId;
+    await im.sendMessage(stashId, sendMsg);
+  }
+
+  void _showScheduleOptions(BuildContext context, ImController im) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.send, color: cs.primary),
+              title: Text('立即发送', style: tt.bodyMedium),
+              onTap: () {
+                Navigator.pop(ctx);
+                im.onSendMessage('');
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.schedule, color: cs.primary),
+              title: Text(t.scheduleSend, style: tt.bodyMedium),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickScheduleTime(context, im);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickScheduleTime(BuildContext context, ImController im) async {
+    if (im.chatId == Int64(0)) return;
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now.add(const Duration(hours: 1)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 30)),
+    );
+    if (picked == null || context.mounted == false) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(now.add(const Duration(hours: 1))),
+    );
+    if (time == null || context.mounted == false) return;
+
+    final sendAt = DateTime(picked.year, picked.month, picked.day, time.hour, time.minute);
+    final sendAtMs = sendAt.millisecondsSinceEpoch;
+    if (sendAtMs <= DateTime.now().millisecondsSinceEpoch) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('定时时间必须在未来')),
+        );
+      }
+      return;
+    }
+
+    // Schedule the message: for text messages, get content from the input
+    final inputNotifier = context.findAncestorStateOfType<MessageInput>();
+    if (inputNotifier == null) return;
+
+    // Build a minimal ScheduleMessageRequest and send via SDK
+    final req = ScheduleMessageRequest(
+      chatId: im.chatId.toInt(),
+      sendAtMs: sendAtMs,
+      tpy: MessageType.TEXT.value,
+      content: Uint8List(0), // content will be filled via SDK
+      clientId: DateTime.now().microsecondsSinceEpoch,
+    );
+    try {
+      await im.sdk.invokeAsync(Command.SCHEDULE_MESSAGE, req.writeToBuffer());
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已定时于 ${time.format(context)} 发送')),
+        );
+      }
+    } catch (e) {
+      L.e("schedule message error: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('定时发送失败: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _uploadAndSend(
     BuildContext context,
     ImController im,
@@ -137,6 +292,8 @@ class MessageInput extends ConsumerWidget {
     // 1. Create draft message
     final draftContent = msgType == MessageType.IMAGE.value
         ? MessageImage(altText: fileName).writeToBuffer()
+        : msgType == MessageType.MEDIA.value
+        ? MediaContent(mimeType: mime(fileName) ?? 'video/mp4').writeToBuffer()
         : MessageFile(name: fileName, size: Int64(fileSize)).writeToBuffer();
 
     final draftMsg = Message.create()
@@ -194,6 +351,16 @@ class MessageInput extends ConsumerWidget {
               width: width,
               height: height,
               altText: fileName,
+            ).writeToBuffer()
+          : msgType == MessageType.MEDIA.value
+          ? MediaContent(
+              fileId: fileId.toString(),
+              url: downloadUrl,
+              thumbnailUrl: thumbnailUrl ?? '',
+              width: width,
+              height: height,
+              fileSize: Int64(fileSize),
+              mimeType: mime(fileName) ?? 'video/mp4',
             ).writeToBuffer()
           : MessageFile(url: downloadUrl, name: fileName, size: Int64(fileSize)).writeToBuffer();
 
@@ -259,6 +426,60 @@ class MessageInput extends ConsumerWidget {
       );
     }
   }
+  Future<void> _startVoiceRecord(
+      BuildContext context, WidgetRef ref, ImController im) async {
+    // TODO: add record / flutter_sound package, then integrate actual recording
+    // For now, show a bottom sheet with recording UI placeholder
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        final cs = Theme.of(context).colorScheme;
+        final tt = Theme.of(context).textTheme;
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(t.holdToRecord, style: tt.titleMedium),
+              const SizedBox(height: 24),
+              GestureDetector(
+                onLongPressStart: (_) async {
+                  // TODO: start recording via MethodChannel / flutter_sound
+                  L.d('voice record started');
+                },
+                onLongPressEnd: (details) async {
+                  // TODO: stop recording, upload, send as voice message
+                  L.d('voice record ended, local=${details.localPosition}');
+                  // If swipe up (dy < -100), cancel
+                  if (details.localPosition.dy < -100) {
+                    L.d('voice record cancelled');
+                    return;
+                  }
+                  // Placeholder: create a dummy voice message
+                  if (im.chatId == Int64(0)) return;
+                  // TODO: upload recorded file, then send
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('语音录制功能待接入')),
+                  );
+                },
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: cs.error,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.mic, size: 40, color: cs.onError),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(t.swipeUpCancel, style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _ToolbarBtn extends StatelessWidget {
@@ -298,6 +519,47 @@ class MentionEmbedBuilder extends EmbedBuilder {
         color: cs.primary,
         fontWeight: FontWeight.normal,
         backgroundColor: cs.primary.withValues(alpha: 0.1),
+      ),
+    );
+  }
+}
+
+class _MuteHint extends ConsumerWidget {
+  final ImController im;
+
+  const _MuteHint({required this.im});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final chat = im.getChat(im.chatId);
+    if (chat == null || chat.chatType != 2) return const SizedBox.shrink();
+
+    final isOwner = im.userId == chat.ownerId;
+    final isAdmin = chat.adminIds.contains(im.userId);
+    if (isOwner || isAdmin) return const SizedBox.shrink();
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final globalMuted = chat.globalMuteUntil > Int64.ZERO &&
+        chat.globalMuteUntil > Int64(now);
+
+    if (!globalMuted) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      color: cs.errorContainer.withValues(alpha: 0.3),
+      child: Row(
+        children: [
+          Icon(Icons.volume_off, size: 14, color: cs.error),
+          const SizedBox(width: 6),
+          Text(
+            '群聊已开启全员禁言',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: cs.error,
+            ),
+          ),
+        ],
       ),
     );
   }

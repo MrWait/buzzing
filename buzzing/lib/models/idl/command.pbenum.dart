@@ -163,6 +163,45 @@ class Command extends $pb.ProtobufEnum {
       Command._(1215, _omitEnumNames ? '' : 'PUSH_REACTIONS');
   static const Command MESSAGE_FORWARD =
       Command._(1216, _omitEnumNames ? '' : 'MESSAGE_FORWARD');
+  static const Command CHAT_PIN_MESSAGE =
+      Command._(1134, _omitEnumNames ? '' : 'CHAT_PIN_MESSAGE');
+  static const Command CHAT_UNPIN_MESSAGE =
+      Command._(1135, _omitEnumNames ? '' : 'CHAT_UNPIN_MESSAGE');
+  static const Command CHAT_GET_PINNED_MESSAGES =
+      Command._(1136, _omitEnumNames ? '' : 'CHAT_GET_PINNED_MESSAGES');
+  static const Command MESSAGE_GET_THREAD =
+      Command._(1217, _omitEnumNames ? '' : 'MESSAGE_GET_THREAD');
+  static const Command MESSAGE_GET_READ_MEMBERS =
+      Command._(1218, _omitEnumNames ? '' : 'MESSAGE_GET_READ_MEMBERS');
+  static const Command USER_PRESENCE_UPDATE =
+      Command._(1351, _omitEnumNames ? '' : 'USER_PRESENCE_UPDATE');
+  static const Command PUSH_PRESENCE =
+      Command._(1352, _omitEnumNames ? '' : 'PUSH_PRESENCE');
+  static const Command USER_PRESENCE_SUBSCRIBE =
+      Command._(1353, _omitEnumNames ? '' : 'USER_PRESENCE_SUBSCRIBE');
+  static const Command TYPING =
+      Command._(1403, _omitEnumNames ? '' : 'TYPING');
+  static const Command PUSH_TYPING =
+      Command._(1404, _omitEnumNames ? '' : 'PUSH_TYPING');
+  static const Command SEARCH_FILES =
+      Command._(1405, _omitEnumNames ? '' : 'SEARCH_FILES');
+  static const Command GLOBAL_SEARCH =
+      Command._(1406, _omitEnumNames ? '' : 'GLOBAL_SEARCH');
+
+  /// M5: 高级消息 (1410-1421)
+  static const Command VOICE_TRANSCRIBE =
+      Command._(1410, _omitEnumNames ? '' : 'VOICE_TRANSCRIBE');
+  static const Command SCHEDULE_MESSAGE =
+      Command._(1415, _omitEnumNames ? '' : 'SCHEDULE_MESSAGE');
+  static const Command CANCEL_SCHEDULE =
+      Command._(1416, _omitEnumNames ? '' : 'CANCEL_SCHEDULE');
+  static const Command GET_SCHEDULED_MESSAGES =
+      Command._(1417, _omitEnumNames ? '' : 'GET_SCHEDULED_MESSAGES');
+  static const Command TRANSLATE_MESSAGE =
+      Command._(1420, _omitEnumNames ? '' : 'TRANSLATE_MESSAGE');
+  static const Command GET_TRANSLATION_LANGUAGES =
+      Command._(1421, _omitEnumNames ? '' : 'GET_TRANSLATION_LANGUAGES');
+
   static const Command USER_GET_BY_IDS =
       Command._(1300, _omitEnumNames ? '' : 'USER_GET_BY_IDS');
   static const Command USER_UPDATE =
@@ -316,6 +355,24 @@ class Command extends $pb.ProtobufEnum {
     REACTION_SET,
     PUSH_REACTIONS,
     MESSAGE_FORWARD,
+    CHAT_PIN_MESSAGE,
+    CHAT_UNPIN_MESSAGE,
+    CHAT_GET_PINNED_MESSAGES,
+    MESSAGE_GET_THREAD,
+    MESSAGE_GET_READ_MEMBERS,
+    USER_PRESENCE_UPDATE,
+    PUSH_PRESENCE,
+    USER_PRESENCE_SUBSCRIBE,
+    TYPING,
+    PUSH_TYPING,
+    SEARCH_FILES,
+    GLOBAL_SEARCH,
+    VOICE_TRANSCRIBE,
+    SCHEDULE_MESSAGE,
+    CANCEL_SCHEDULE,
+    GET_SCHEDULED_MESSAGES,
+    TRANSLATE_MESSAGE,
+    GET_TRANSLATION_LANGUAGES,
     USER_GET_BY_IDS,
     USER_UPDATE,
     PUSH_USER_INFO,

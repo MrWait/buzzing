@@ -12,7 +12,8 @@ use tokio_tungstenite::tungstenite::Message;
 use tracing::{debug, info, instrument, warn};
 use tungstenite::handshake::server::{ErrorResponse, Request, Response};
 
-use common::{UserBrief, cost, pb_decode, time::current_s};
+use sea_orm::{DbBackend, Statement};
+use common::{UserBrief, cost, pb_decode, rid, time::current_s};
 use proto::idl::{command, entity, error as idl_error};
 
 static USER_CONTEXT: OnceLock<Arc<UserContext>> = OnceLock::new();
@@ -179,6 +180,29 @@ async fn handle_client(
         .entry(detail.brief.id)
         .or_default()
         .insert(conn_id);
+    // M3: presence online on WS connect
+    let _ = ctx.db.execute(Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        "INSERT INTO user_presence (user_id, status, status_text, updated_at) VALUES ($1, 1, '', NOW()) ON CONFLICT (user_id) DO UPDATE SET status = 1, updated_at = NOW()",
+        vec![detail.brief.id.into()],
+    )).await;
+    // Push online to subscribers
+    if let Some(watchers) = common::PRESENCE_SUBSCRIBERS.get(&detail.brief.id) {
+        let watcher_ids: Vec<i64> = watchers.iter().copied().collect();
+        if !watcher_ids.is_empty() {
+            let push = proto::idl::presence::PushPresence {
+                user_id: detail.brief.id,
+                status: 1,
+                status_text: String::new(),
+                last_seen_ms: 0,
+            };
+            let _ = send_packet_to_users(
+                ctx, &watcher_ids, command::Command::PushPresence,
+                common::rid(), push.encode_to_vec(),
+            ).await;
+        }
+    }
+
     let tx_1 = tx.clone();
     let tx_2 = tx.clone();
     user_ctx.conn_receiver.insert(conn_id, Arc::new(tx));
@@ -277,9 +301,39 @@ async fn handle_client(
             set.remove(&conn_id);
         });
         user_ctx.conn_receiver.remove(&conn_id);
-    }
 
-    // debug!("client worker done");
+        // M3: presence offline only if no remaining connections
+        let has_remaining = user_ctx.user_conn.get(&detail.brief.id)
+            .map(|set| !set.is_empty())
+            .unwrap_or(false);
+        if !has_remaining {
+            let now = common::time::current_ms() as i64;
+            let _ = ctx.db.execute(Statement::from_sql_and_values(
+                DbBackend::Postgres,
+                "UPDATE user_presence SET status = 0, last_seen_at = $1, updated_at = NOW() WHERE user_id = $2",
+                vec![
+                    common::time::date_time(now).into(),
+                    detail.brief.id.into(),
+                ],
+            )).await;
+
+            if let Some(watchers) = common::PRESENCE_SUBSCRIBERS.get(&detail.brief.id) {
+                let watcher_ids: Vec<i64> = watchers.iter().copied().collect();
+                if !watcher_ids.is_empty() {
+                    let push = proto::idl::presence::PushPresence {
+                        user_id: detail.brief.id,
+                        status: 0,
+                        status_text: String::new(),
+                        last_seen_ms: now,
+                    };
+                    let _ = send_packet_to_users(
+                        ctx, &watcher_ids, command::Command::PushPresence,
+                        common::rid(), push.encode_to_vec(),
+                    ).await;
+                }
+            }
+        }
+    }
 
     Ok(())
 }
