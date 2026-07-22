@@ -39,6 +39,7 @@ files = [
     "search.proto",
     "timer.proto",
     "translate.proto",
+    "openapp.proto",
 ]
 
 class bcolors:

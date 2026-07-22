@@ -41,6 +41,9 @@ mod m20260727_100001_scheduled_messages;
 mod m20260728_100001_office_m5;
 mod m20260729_100001_office_m7;
 mod m20260730_100001_office_m8;
+mod m20260722_100001_open_apps;
+mod m20260722_100002_open_app_bots;
+mod m20260722_100003_users_bot_app_id;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -87,6 +90,9 @@ impl MigratorTrait for Migrator {
             Box::new(m20260728_100001_office_m5::Migration),
             Box::new(m20260729_100001_office_m7::Migration),
             Box::new(m20260730_100001_office_m8::Migration),
+            Box::new(m20260722_100001_open_apps::Migration),
+            Box::new(m20260722_100002_open_app_bots::Migration),
+            Box::new(m20260722_100003_users_bot_app_id::Migration),
         ]
     }
 }

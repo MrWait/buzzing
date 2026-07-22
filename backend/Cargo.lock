@@ -213,6 +213,7 @@ dependencies = [
  "migration",
  "mimalloc",
  "office",
+ "openapp",
  "proto",
  "rtc",
  "setting",
@@ -3884,6 +3885,29 @@ name = "opaque-debug"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
+
+[[package]]
+name = "openapp"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "base",
+ "chrono",
+ "common",
+ "hex",
+ "loco-rs",
+ "prost",
+ "proto",
+ "rand 0.8.5",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tokio",
+ "tracing",
+ "uuid",
+]
 
 [[package]]
 name = "opendal"
