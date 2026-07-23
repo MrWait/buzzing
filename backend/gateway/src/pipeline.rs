@@ -9,7 +9,6 @@ use tracing::debug;
 
 use crate::models::pipelines::{self, PipelineModel};
 use base::util::EntityType;
-use base::util::cache_get;
 use common::model::UserBrief;
 use proto::idl::{command, entity, pipeline};
 
@@ -29,7 +28,7 @@ static CACHE_PIPE: LazyLock<Cache<i64, CacheEntry>> = LazyLock::new(|| Cache::ne
 static PIPE_TX: LazyLock<dashmap::DashMap<i64, UnboundedSender<entity::Packet>>> =
     LazyLock::new(|| dashmap::DashMap::new());
 
-// pipeline: 数据存储在 redis 中。如果 redis 重启数据丢失，所有相关数据需要重新拉取。
+// pipeline: 数据存储在 Postgres 中，通过 pipelines 表持久化，重启不丢失。
 // global: 租户内用户共享
 // personal: 用户级别
 // group: 聚合模式，按特定规则选取批量用户

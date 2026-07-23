@@ -8,7 +8,7 @@ Buzzing 是一个企业级协作平台（类飞书/钉钉/Slack），包含完�
 
 | 层 | 技术 | 说明 |
 |----|------|------|
-| 后端 | Rust, loco-rs 0.16 (axum 0.8), sea-orm 1.1 | PostgreSQL + Redis |
+| 后端 | Rust, loco-rs 0.16 (axum 0.8), sea-orm 1.1 | PostgreSQL |
 | SDK | Rust, tokio, reqwest, tokio-tungstenite | 嵌入 Flutter 进程 |
 | 客户端 | Flutter 3.9, Riverpod, flutter_rust_bridge 2.11 | 桌面端 (Windows/macOS/Linux) |
 | 前端 SPA | Vue 3.5, Pinia 3, Vue Router 4, Axios, Vite 8 | 管理后台/Web 版 |
@@ -19,7 +19,7 @@ Buzzing 是一个企业级协作平台（类飞书/钉钉/Slack），包含完�
 ```
 [Flutter Desktop Client]  <--FFI-->  [Rust SDK]  <--WS/HTTP-->  [Rust Backend (loco-rs)]
                                                                        |
-[Vue3 SPA (Web)]        <-------------WS/HTTP-------------------> [PostgreSQL] [Redis]
+[Vue3 SPA (Web)]        <-------------WS/HTTP-------------------> [PostgreSQL]
 ```
 
 ## 模块分布
@@ -105,6 +105,7 @@ Buzzing 是一个企业级协作平台（类飞书/钉钉/Slack），包含完�
 | [前端设计指南](docs/frontend_style.md) | 设计令牌、组件模式、布局系统、写作规范 |
 | [office 业务](docs/office/)| office 业务相关文档，包括 roadmap，PRD，设计方案等|
 | [视频会议业务](docs/vc/)| vc 业务相关文档，包括 roadmap，PRD，设计方案等 |
+| [IM 业务](docs/im/) | IM 业务相关文档，包括 roadmap，PRD，设计方案等 |
 
 ## 编译命令
 常用命令都在 justfile 中，大部分命令都可以通过 just 运行。如果新增命令或脚本，建议添加到 justfile。
