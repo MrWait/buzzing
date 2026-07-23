@@ -1,17 +1,18 @@
 use std::sync::LazyLock;
 use std::sync::Mutex;
 
-static TRANSLATION_SERVICE: LazyLock<Mutex<Option<Box<dyn TranslationService + Send + Sync>>>> =
+static TRANSLATION_SERVICE: LazyLock<Mutex<Option<&'static (dyn TranslationService + Send + Sync)>>> =
     LazyLock::new(|| Mutex::new(None));
 
 pub fn init_translation(svc: Box<dyn TranslationService + Send + Sync>) {
+    let svc_ref: &'static mut (dyn TranslationService + Send + Sync) = Box::leak(svc);
     let mut guard = TRANSLATION_SERVICE.lock().unwrap();
-    *guard = Some(svc);
+    *guard = Some(svc_ref);
 }
 
 pub fn get_translation() -> Option<&'static (dyn TranslationService + Send + Sync)> {
     let guard = TRANSLATION_SERVICE.lock().unwrap();
-    guard.as_deref()
+    *guard
 }
 
 #[derive(Debug, Clone)]

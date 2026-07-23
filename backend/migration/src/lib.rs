@@ -38,6 +38,9 @@ mod m20260724_100004_user_presence;
 mod m20260725_100005_chats_allow_at_all;
 mod m20260726_100001_search_indexes;
 mod m20260727_100001_scheduled_messages;
+mod m20260728_100001_office_m5;
+mod m20260729_100001_office_m7;
+mod m20260730_100001_office_m8;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -81,6 +84,9 @@ impl MigratorTrait for Migrator {
             Box::new(m20260725_100005_chats_allow_at_all::Migration),
             Box::new(m20260726_100001_search_indexes::Migration),
             Box::new(m20260727_100001_scheduled_messages::Migration),
+            Box::new(m20260728_100001_office_m5::Migration),
+            Box::new(m20260729_100001_office_m7::Migration),
+            Box::new(m20260730_100001_office_m8::Migration),
         ]
     }
 }

@@ -36,7 +36,8 @@ impl MigrationTrait for Migration {
             "CREATE INDEX IF NOT EXISTS idx_files_name_trgm ON files USING gin (file_name gin_trgm_ops)"
                 .to_owned(),
         ))
-        .await
+        .await?;
+        Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
@@ -60,6 +61,7 @@ impl MigrationTrait for Migration {
             manager.get_database_backend(),
             "DROP INDEX IF EXISTS idx_files_name_trgm".to_owned(),
         ))
-        .await
+        .await?;
+        Ok(())
     }
 }

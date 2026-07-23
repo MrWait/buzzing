@@ -1,6 +1,6 @@
 use loco_rs::{model::ModelResult, prelude::*};
 use prost::Message;
-use sea_orm::{PaginatorTrait, QueryOrder};
+use sea_orm::{PaginatorTrait, QueryOrder, QuerySelect};
 use std::collections::HashMap;
 use tracing::debug;
 

@@ -9,7 +9,7 @@ axum = { workspace = true }
 proto = { workspace = true }
 tracing = { workspace = true }
 tokio-util = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["process"] }
 async-trait = { workspace = true }
 object_store = { version = "0.14", default-features = false, features = ["fs"] }
 bytes = { workspace = true }

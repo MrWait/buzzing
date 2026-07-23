@@ -1,6 +1,11 @@
 pub mod document_members;
+pub mod document_mentions;
 pub mod document_shares;
 pub mod document_spaces;
 pub mod document_stars;
+pub mod document_versions;
 pub mod document_visits;
 pub mod documents;
+pub mod wiki_members;
+pub mod wiki_pins;
+pub mod wikis;

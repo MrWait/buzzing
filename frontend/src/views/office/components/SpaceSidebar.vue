@@ -13,6 +13,12 @@
     </div>
 
     <div v-show="!sidebarCollapsed || sidebarFloating" class="sidebar-body">
+      <div class="wiki-selector">
+        <select v-model="selectedWikiId" class="wiki-select" @change="onWikiChange">
+          <option value="">全部空间</option>
+          <option v-for="w in wikiStore.wikis" :key="w.id" :value="w.id">{{ w.name }}</option>
+        </select>
+      </div>
       <button class="search-btn" @click="$emit('search')">
         <span class="search-icon">🔍</span>
         <span>搜索文档</span>
@@ -45,8 +51,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useDocumentStore } from '@/stores/document'
+import { useWikiStore } from '@/stores/wiki'
 import SpaceTree from './SpaceTree.vue'
 
 defineProps<{
@@ -60,6 +67,20 @@ const emit = defineEmits<{
 }>()
 
 const store = useDocumentStore()
+const wikiStore = useWikiStore()
+const selectedWikiId = ref('')
+
+onMounted(() => {
+  wikiStore.loadWikis()
+  if (wikiStore.currentWikiId) {
+    selectedWikiId.value = wikiStore.currentWikiId
+  }
+})
+
+function onWikiChange() {
+  wikiStore.setCurrentWiki(selectedWikiId.value || null)
+  store.setFilter({ wiki_id: selectedWikiId.value || undefined })
+}
 const showNewSpace = ref(false)
 const newSpaceName = ref('')
 
@@ -182,6 +203,23 @@ function clearFloatTimer() {
   font-size: 14px;
   font-weight: 600;
   color: #333;
+}
+.wiki-selector {
+  margin-bottom: 8px;
+}
+.wiki-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  color: #333;
+  outline: none;
+  cursor: pointer;
+}
+.wiki-select:focus {
+  border-color: #1565c0;
 }
 .search-btn {
   width: 100%;

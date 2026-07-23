@@ -4,25 +4,33 @@
     @mouseenter="mouseInEditor = true"
     @mouseleave="mouseInEditor = false"
   >
-    <div ref="editorContainer" class="editor-container"></div>
+    <div class="prose-editor-body">
+      <div ref="editorContainer" class="editor-container"></div>
+      <Outline />
+    </div>
     <FloatingToolbar @link="showLinkDialog = true" />
     <SlashMenu />
     <LinkDialog :open="showLinkDialog" @close="showLinkDialog = false" />
     <ImageUpload ref="imageUploadRef" />
     <BlockMenuTrigger />
     <TableMenu />
+    <MentionPopup :state="mentionState" :on-insert="onMentionInsert" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, inject, onMounted, onUnmounted, provide, computed, watch } from 'vue'
 import { useEditorSchema } from '../composables/useEditorSchema'
+import { createMentionPlugin, createMentionState, type MentionSuggestion } from '../composables/useMention'
+import { customNodeSpecs, buildNodeViews } from '../nodes'
 import FloatingToolbar from './FloatingToolbar.vue'
 import SlashMenu from './SlashMenu.vue'
 import LinkDialog from './LinkDialog.vue'
 import ImageUpload from './ImageUpload.vue'
 import BlockMenuTrigger from './BlockMenuTrigger.vue'
 import TableMenu from './TableMenu.vue'
+import MentionPopup from './MentionPopup.vue'
+import Outline from './Outline.vue'
 import type { XmlFragment } from 'yjs'
 import type { WebsocketProvider } from 'y-websocket'
 
@@ -38,6 +46,9 @@ const mouseInEditor = ref(true)
 const editorContainer = ref<HTMLDivElement | null>(null)
 const editable = computed(() => !props.readonly)
 
+const mentionState = createMentionState()
+const { plugin: mentionPlugin, insertMention } = createMentionPlugin(mentionState, props.docId)
+
 const { editorView, schema, mount, destroy } = useEditorSchema(
   type,
   provider,
@@ -48,8 +59,20 @@ const { editorView, schema, mount, destroy } = useEditorSchema(
       if (!props.readonly) showLinkDialog.value = true
     },
   },
-  { editable },
+  {
+    editable,
+    extraPlugins: [mentionPlugin],
+    extraNodes: customNodeSpecs,
+    nodeViews: buildNodeViews(),
+  },
 )
+
+function onMentionInsert(item: MentionSuggestion) {
+  if (editorView.value) {
+    insertMention(editorView.value, item)
+  }
+}
+
 provide('editorView', editorView)
 provide('schema', schema)
 provide('triggerImageUpload', () => imageUploadRef.value?.trigger())
@@ -74,6 +97,13 @@ onUnmounted(destroy)
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+.prose-editor-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
 }
 .editor-container {
   flex: 1 1 auto;
@@ -85,6 +115,7 @@ onUnmounted(destroy)
   padding: 24px;
   outline: none;
   background: #fff;
+  overflow-y: auto;
 }
 .editor-container :deep(.ProseMirror) {
   flex: 1 1 auto;

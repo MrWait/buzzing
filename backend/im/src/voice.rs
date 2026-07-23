@@ -1,6 +1,6 @@
 use loco_rs::{Result, app::AppContext};
 use prost::Message;
-use sea_orm::{DbBackend, Statement};
+use sea_orm::{ConnectionTrait, DbBackend, Statement};
 use tracing::debug;
 
 use crate::models::messages::MessageModel;

@@ -1,11 +1,12 @@
 use dashmap::mapref::entry;
 use loco_rs::{Result, app::AppContext};
-use sea_orm::{DbBackend, Statement};
+use prost::Message;
+use sea_orm::{ConnectionTrait, DbBackend, Statement, Value};
 use std::collections::HashSet;
 use tracing::debug;
 
 use common::{BizHub, PRESENCE_SUBSCRIBERS, UserBrief, common_error, pb_decode, rid};
-use proto::idl::{command::Command, error::ErrorCode, presence};
+use proto::idl::{command::Command, entity, error::ErrorCode, presence};
 
 /// Update own presence status (called from client or gateway on connect/disconnect)
 pub(crate) async fn update_presence_internal(
@@ -33,7 +34,7 @@ pub(crate) async fn update_presence_internal(
             status.into(),
             status_text.into(),
             last_seen.map(|t| common::time::date_time(t).into())
-                .unwrap_or(sea_orm::Value::Null),
+                .unwrap_or(Value::from(None::<sea_orm::prelude::DateTimeWithTimeZone>)),
         ],
     )).await.map_err(|e| common_error(&format!("update presence error: {e}")))?;
 

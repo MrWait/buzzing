@@ -1,4 +1,5 @@
 use loco_rs::{Result, app::AppContext};
+use prost::Message;
 use sea_orm::{ConnectionTrait, DbBackend, Statement};
 use tracing::debug;
 
