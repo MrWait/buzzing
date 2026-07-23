@@ -129,9 +129,6 @@ impl Hooks for App {
         tracing::info!("listen on addr: {:?}", addr);
         // let listener = tokio::net::TcpListener::bind(&addr).await?;
 
-        let _ = crate::util::cache_get(ctx).await;
-        tracing::debug!("cache init ok");
-
         let settings = ctx
             .config
             .settings

@@ -61,7 +61,7 @@ backend/
     → (code, data) 响应
     → BizGateway::send_packet_to_user() 推送其他用户
       → WebSocket 直接推送
-      → 离线：Pipeline 表 + Redis
+      → 离线：Pipeline 表 (Postgres)
 ```
 
 ## 核心实现
@@ -81,7 +81,7 @@ backend/
 ### Common (`common/src/`)
 - `service.rs` — AppHub/BizHub 定义
 - `model.rs` — UserBrief, PresetColor
-- `cache.rs` — CommonCache + CacheLoader (moka + Redis 双缓存)
+- `cache.rs` — CommonCache + CacheLoader (moka 内存缓存)
 - `config.rs` — 配置读取
 - `text_image.rs` — 文字转图片头像 (ab_glyph 字体渲染)
 

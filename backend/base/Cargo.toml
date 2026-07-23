@@ -29,7 +29,6 @@ tokio-tungstenite = { workspace = true }
 tungstenite = { workspace = true }
 futures-util = { workspace = true }
 prost = { workspace = true }
-redis = { workspace = true }
 moka = { workspace = true }
 include_dir = { workspace = true }
 uuid = { workspace = true }

@@ -6,11 +6,11 @@
 [Flutter Desktop Client]  <--FFI-->  [Rust SDK (本地)]  <--WS/HTTP-->  [Rust Backend (Loco-RS)]
        ^                                                                         |
        |                                                                         v
-  (flutter_rust_bridge)                                                   [PostgreSQL] [Redis]
+  (flutter_rust_bridge)                                                   [PostgreSQL]
 ```
 
 三层架构：
-1. **服务端** (Rust/Loco-RS) — 提供 REST + WebSocket 接口，连接 PostgreSQL 和 Redis
+1. **服务端** (Rust/Loco-RS) — 提供 REST + WebSocket 接口，连接 PostgreSQL
 2. **SDK** (Rust) — 嵌入在 Flutter 进程中的客户端库，管理本地状态和网络连接
 3. **客户端** (Flutter) — 桌面端 UI，通过 FFI 调用 Rust SDK
 
@@ -21,8 +21,8 @@
 | 后端框架 | **loco-rs** 0.16 | 基于 axum 0.8 的 Rails-like 框架 |
 | HTTP 服务器 | **axum-server** 0.7 | 支持 TLS (rustls) |
 | ORM | **sea-orm** 1.1 | 支持 PostgreSQL + SQLite |
-| 数据库 | **PostgreSQL** | 主存储 |
-| 缓存 | **Redis** + **moka** | 离线消息管道 + 内存缓存 |
+| 数据库 | **PostgreSQL** | 主存储（含 loco queue） |
+| 缓存 | **moka** | 进程内内存缓存 |
 | 序列化 | **prost** 0.13 | Protobuf 编解码 |
 | WebSocket | **tokio-tungstenite** | 全双工长连接 |
 | CRDT | **yrs** + **yrs-axum** | 协作文档编辑 |
