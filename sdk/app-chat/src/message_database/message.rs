@@ -68,6 +68,8 @@ fn parse_message(row: &Row) -> Result<(entity::Message, bool)> {
             read_state,
             ref_message_id: 0,
             ref_data: None,
+            // TODO: add column in sql
+            thread_root_id: 0,
         },
         dirty,
     ))

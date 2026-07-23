@@ -203,7 +203,7 @@ impl MessageModel {
                     .build(),
             )
             .order_by_asc(Column::Pos)
-            .offset(offset)
+            .offset(offset as u64)
             .limit(page_size as u64)
             .all(db)
             .await?;

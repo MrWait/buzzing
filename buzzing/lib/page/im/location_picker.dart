@@ -1,5 +1,5 @@
 import 'package:buzzing/i18n/strings.g.dart';
-import 'package:buzzing/models/idl/im_ext.pb.dart';
+import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 

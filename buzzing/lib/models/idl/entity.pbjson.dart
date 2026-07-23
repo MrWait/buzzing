@@ -761,6 +761,7 @@ const Message$json = {
       '6': '.entity.MessageReference',
       '10': 'refData'
     },
+    {'1': 'thread_root_id', '3': 33, '4': 1, '5': 3, '10': 'threadRootId'},
   ],
   '3': [Message_ReactionsEntry$json],
 };
@@ -794,8 +795,9 @@ final $typed_data.Uint8List messageDescriptor = $convert.base64Decode(
     'VhZF9zdGF0ZRgXIAEoCzIRLmVudGl0eS5SZWFkU3RhdGVSCXJlYWRTdGF0ZRI8CglyZWFjdGlv'
     'bnMYGCADKAsyHi5lbnRpdHkuTWVzc2FnZS5SZWFjdGlvbnNFbnRyeVIJcmVhY3Rpb25zEiQKDn'
     'JlZl9tZXNzYWdlX2lkGB8gASgDUgxyZWZNZXNzYWdlSWQSMwoIcmVmX2RhdGEYICABKAsyGC5l'
-    'bnRpdHkuTWVzc2FnZVJlZmVyZW5jZVIHcmVmRGF0YRpOCg5SZWFjdGlvbnNFbnRyeRIQCgNrZX'
-    'kYASABKAVSA2tleRImCgV2YWx1ZRgCIAEoCzIQLmVudGl0eS5SZWFjdGlvblIFdmFsdWU6AjgB');
+    'bnRpdHkuTWVzc2FnZVJlZmVyZW5jZVIHcmVmRGF0YRIkCg50aHJlYWRfcm9vdF9pZBghIAEoA1'
+    'IMdGhyZWFkUm9vdElkGk4KDlJlYWN0aW9uc0VudHJ5EhAKA2tleRgBIAEoBVIDa2V5EiYKBXZh'
+    'bHVlGAIgASgLMhAuZW50aXR5LlJlYWN0aW9uUgV2YWx1ZToCOAE=');
 
 @$core.Deprecated('Use messageReferenceDescriptor instead')
 const MessageReference$json = {
@@ -912,6 +914,147 @@ const MessageRichText$json = {
 /// Descriptor for `MessageRichText`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List messageRichTextDescriptor = $convert
     .base64Decode('Cg9NZXNzYWdlUmljaFRleHQSFAoFZGVsdGEYASABKAlSBWRlbHRh');
+
+@$core.Deprecated('Use voiceContentDescriptor instead')
+const VoiceContent$json = {
+  '1': 'VoiceContent',
+  '2': [
+    {'1': 'file_id', '3': 1, '4': 1, '5': 9, '10': 'fileId'},
+    {'1': 'url', '3': 2, '4': 1, '5': 9, '10': 'url'},
+    {'1': 'duration_sec', '3': 3, '4': 1, '5': 5, '10': 'durationSec'},
+    {'1': 'transcription', '3': 4, '4': 1, '5': 9, '10': 'transcription'},
+    {
+      '1': 'transcription_status',
+      '3': 5,
+      '4': 1,
+      '5': 5,
+      '10': 'transcriptionStatus'
+    },
+  ],
+};
+
+/// Descriptor for `VoiceContent`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List voiceContentDescriptor = $convert.base64Decode(
+    'CgxWb2ljZUNvbnRlbnQSFwoHZmlsZV9pZBgBIAEoCVIGZmlsZUlkEhAKA3VybBgCIAEoCVIDdX'
+    'JsEiEKDGR1cmF0aW9uX3NlYxgDIAEoBVILZHVyYXRpb25TZWMSJAoNdHJhbnNjcmlwdGlvbhgE'
+    'IAEoCVINdHJhbnNjcmlwdGlvbhIxChR0cmFuc2NyaXB0aW9uX3N0YXR1cxgFIAEoBVITdHJhbn'
+    'NjcmlwdGlvblN0YXR1cw==');
+
+@$core.Deprecated('Use transcribeVoiceRequestDescriptor instead')
+const TranscribeVoiceRequest$json = {
+  '1': 'TranscribeVoiceRequest',
+  '2': [
+    {'1': 'message_id', '3': 1, '4': 1, '5': 3, '10': 'messageId'},
+    {'1': 'chat_id', '3': 2, '4': 1, '5': 3, '10': 'chatId'},
+  ],
+};
+
+/// Descriptor for `TranscribeVoiceRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List transcribeVoiceRequestDescriptor =
+    $convert.base64Decode(
+        'ChZUcmFuc2NyaWJlVm9pY2VSZXF1ZXN0Eh0KCm1lc3NhZ2VfaWQYASABKANSCW1lc3NhZ2VJZB'
+        'IXCgdjaGF0X2lkGAIgASgDUgZjaGF0SWQ=');
+
+@$core.Deprecated('Use transcribeVoiceResponseDescriptor instead')
+const TranscribeVoiceResponse$json = {
+  '1': 'TranscribeVoiceResponse',
+  '2': [
+    {'1': 'message_id', '3': 1, '4': 1, '5': 3, '10': 'messageId'},
+    {'1': 'transcription', '3': 2, '4': 1, '5': 9, '10': 'transcription'},
+  ],
+};
+
+/// Descriptor for `TranscribeVoiceResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List transcribeVoiceResponseDescriptor =
+    $convert.base64Decode(
+        'ChdUcmFuc2NyaWJlVm9pY2VSZXNwb25zZRIdCgptZXNzYWdlX2lkGAEgASgDUgltZXNzYWdlSW'
+        'QSJAoNdHJhbnNjcmlwdGlvbhgCIAEoCVINdHJhbnNjcmlwdGlvbg==');
+
+@$core.Deprecated('Use mediaContentDescriptor instead')
+const MediaContent$json = {
+  '1': 'MediaContent',
+  '2': [
+    {'1': 'file_id', '3': 1, '4': 1, '5': 9, '10': 'fileId'},
+    {'1': 'url', '3': 2, '4': 1, '5': 9, '10': 'url'},
+    {'1': 'thumbnail_url', '3': 3, '4': 1, '5': 9, '10': 'thumbnailUrl'},
+    {'1': 'width', '3': 4, '4': 1, '5': 5, '10': 'width'},
+    {'1': 'height', '3': 5, '4': 1, '5': 5, '10': 'height'},
+    {'1': 'duration_sec', '3': 6, '4': 1, '5': 5, '10': 'durationSec'},
+    {'1': 'file_size', '3': 7, '4': 1, '5': 3, '10': 'fileSize'},
+    {'1': 'mime_type', '3': 8, '4': 1, '5': 9, '10': 'mimeType'},
+  ],
+};
+
+/// Descriptor for `MediaContent`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List mediaContentDescriptor = $convert.base64Decode(
+    'CgxNZWRpYUNvbnRlbnQSFwoHZmlsZV9pZBgBIAEoCVIGZmlsZUlkEhAKA3VybBgCIAEoCVIDdX'
+    'JsEiMKDXRodW1ibmFpbF91cmwYAyABKAlSDHRodW1ibmFpbFVybBIUCgV3aWR0aBgEIAEoBVIF'
+    'd2lkdGgSFgoGaGVpZ2h0GAUgASgFUgZoZWlnaHQSIQoMZHVyYXRpb25fc2VjGAYgASgFUgtkdX'
+    'JhdGlvblNlYxIbCglmaWxlX3NpemUYByABKANSCGZpbGVTaXplEhsKCW1pbWVfdHlwZRgIIAEo'
+    'CVIIbWltZVR5cGU=');
+
+@$core.Deprecated('Use locationContentDescriptor instead')
+const LocationContent$json = {
+  '1': 'LocationContent',
+  '2': [
+    {'1': 'name', '3': 1, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'address', '3': 2, '4': 1, '5': 9, '10': 'address'},
+    {'1': 'latitude', '3': 3, '4': 1, '5': 1, '10': 'latitude'},
+    {'1': 'longitude', '3': 4, '4': 1, '5': 1, '10': 'longitude'},
+    {'1': 'zoom', '3': 5, '4': 1, '5': 5, '10': 'zoom'},
+    {'1': 'map_url', '3': 6, '4': 1, '5': 9, '10': 'mapUrl'},
+  ],
+};
+
+/// Descriptor for `LocationContent`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List locationContentDescriptor = $convert.base64Decode(
+    'Cg9Mb2NhdGlvbkNvbnRlbnQSEgoEbmFtZRgBIAEoCVIEbmFtZRIYCgdhZGRyZXNzGAIgASgJUg'
+    'dhZGRyZXNzEhoKCGxhdGl0dWRlGAMgASgBUghsYXRpdHVkZRIcCglsb25naXR1ZGUYBCABKAFS'
+    'CWxvbmdpdHVkZRISCgR6b29tGAUgASgFUgR6b29tEhcKB21hcF91cmwYBiABKAlSBm1hcFVybA'
+    '==');
+
+@$core.Deprecated('Use cardContentDescriptor instead')
+const CardContent$json = {
+  '1': 'CardContent',
+  '2': [
+    {'1': 'title', '3': 1, '4': 1, '5': 9, '10': 'title'},
+    {'1': 'description', '3': 2, '4': 1, '5': 9, '10': 'description'},
+    {'1': 'icon_url', '3': 3, '4': 1, '5': 9, '10': 'iconUrl'},
+    {'1': 'image_url', '3': 4, '4': 1, '5': 9, '10': 'imageUrl'},
+    {'1': 'url', '3': 5, '4': 1, '5': 9, '10': 'url'},
+    {
+      '1': 'actions',
+      '3': 6,
+      '4': 3,
+      '5': 11,
+      '6': '.entity.CardAction',
+      '10': 'actions'
+    },
+  ],
+};
+
+/// Descriptor for `CardContent`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cardContentDescriptor = $convert.base64Decode(
+    'CgtDYXJkQ29udGVudBIUCgV0aXRsZRgBIAEoCVIFdGl0bGUSIAoLZGVzY3JpcHRpb24YAiABKA'
+    'lSC2Rlc2NyaXB0aW9uEhkKCGljb25fdXJsGAMgASgJUgdpY29uVXJsEhsKCWltYWdlX3VybBgE'
+    'IAEoCVIIaW1hZ2VVcmwSEAoDdXJsGAUgASgJUgN1cmwSLAoHYWN0aW9ucxgGIAMoCzISLmVudG'
+    'l0eS5DYXJkQWN0aW9uUgdhY3Rpb25z');
+
+@$core.Deprecated('Use cardActionDescriptor instead')
+const CardAction$json = {
+  '1': 'CardAction',
+  '2': [
+    {'1': 'label', '3': 1, '4': 1, '5': 9, '10': 'label'},
+    {'1': 'url', '3': 2, '4': 1, '5': 9, '10': 'url'},
+    {'1': 'action_type', '3': 3, '4': 1, '5': 5, '10': 'actionType'},
+    {'1': 'value', '3': 4, '4': 1, '5': 9, '10': 'value'},
+  ],
+};
+
+/// Descriptor for `CardAction`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List cardActionDescriptor = $convert.base64Decode(
+    'CgpDYXJkQWN0aW9uEhQKBWxhYmVsGAEgASgJUgVsYWJlbBIQCgN1cmwYAiABKAlSA3VybBIfCg'
+    'thY3Rpb25fdHlwZRgDIAEoBVIKYWN0aW9uVHlwZRIUCgV2YWx1ZRgEIAEoCVIFdmFsdWU=');
 
 @$core.Deprecated('Use messageMarkdownDescriptor instead')
 const MessageMarkdown$json = {

@@ -4,6 +4,7 @@
 
 ---
 
+
 ## 测试 (M1 Step 11)
 
 - [ ] **11.1** 服务端测试 (`backend_test/`)
@@ -61,3 +62,20 @@
   - 输入中状态 → 对方看到提示
   - 在线状态 → 头像圆点 + P2P 头部文字
   - 删除消息 (仅自己 / 所有人)
+
+---
+
+## M5-E: 定时消息
+- [ ] **M5-E.16** Flutter — 消息气泡定时标记（待 Message proto 增加 schedule_id 字段后实现）
+
+---
+
+## M6-9.4: 富文本消息 (Quill.js)
+
+- [ ] SPA 接入 Quill.js 富文本编辑器，支持 RICH_TEXT_QUILL (tpy=11) 消息的编辑与渲染
+  - quill 包引入 + Vue 组件封装
+  - Quill Delta → protobuf 序列化发送
+  - push 收到 tpy=11 → Delta → HTML 渲染
+  - 图片粘贴/拖拽上传集成
+
+---

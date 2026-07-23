@@ -3,7 +3,7 @@ import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/const.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/entity.pbenum.dart';
-import 'package:buzzing/models/idl/im_ext.pb.dart';
+
 import 'package:buzzing/models/model.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/res/theme.dart';
@@ -493,7 +493,7 @@ class MessageView extends ConsumerWidget {
                 var mi = im.messagePosList[index];
                 var msg = im.entity.messages[mi.id] ?? Message();
                 var user = im.entity.users[msg.fromId] ?? User();
-                return MessageBox(key: mi.globalKey, msg: msg, user: user);
+                return MessageBox(msg: msg, user: user);
               },
             ),
           ),

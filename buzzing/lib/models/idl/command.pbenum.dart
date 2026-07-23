@@ -129,6 +129,14 @@ class Command extends $pb.ProtobufEnum {
       Command._(1132, _omitEnumNames ? '' : 'CHAT_JOIN_REQUEST_LIST');
   static const Command CHAT_GET_MEMBERS =
       Command._(1133, _omitEnumNames ? '' : 'CHAT_GET_MEMBERS');
+
+  /// M3: 消息互动 (1134-1136)
+  static const Command CHAT_PIN_MESSAGE =
+      Command._(1134, _omitEnumNames ? '' : 'CHAT_PIN_MESSAGE');
+  static const Command CHAT_UNPIN_MESSAGE =
+      Command._(1135, _omitEnumNames ? '' : 'CHAT_UNPIN_MESSAGE');
+  static const Command CHAT_GET_PINNED_MESSAGES =
+      Command._(1136, _omitEnumNames ? '' : 'CHAT_GET_PINNED_MESSAGES');
   static const Command MESSAGE_CREATE_DRAFT =
       Command._(1200, _omitEnumNames ? '' : 'MESSAGE_CREATE_DRAFT');
   static const Command MESSAGE_DELETE_DRAFT =
@@ -163,26 +171,41 @@ class Command extends $pb.ProtobufEnum {
       Command._(1215, _omitEnumNames ? '' : 'PUSH_REACTIONS');
   static const Command MESSAGE_FORWARD =
       Command._(1216, _omitEnumNames ? '' : 'MESSAGE_FORWARD');
-  static const Command CHAT_PIN_MESSAGE =
-      Command._(1134, _omitEnumNames ? '' : 'CHAT_PIN_MESSAGE');
-  static const Command CHAT_UNPIN_MESSAGE =
-      Command._(1135, _omitEnumNames ? '' : 'CHAT_UNPIN_MESSAGE');
-  static const Command CHAT_GET_PINNED_MESSAGES =
-      Command._(1136, _omitEnumNames ? '' : 'CHAT_GET_PINNED_MESSAGES');
+
+  /// M3: Thread + 已读详情 (1217-1218)
   static const Command MESSAGE_GET_THREAD =
       Command._(1217, _omitEnumNames ? '' : 'MESSAGE_GET_THREAD');
   static const Command MESSAGE_GET_READ_MEMBERS =
       Command._(1218, _omitEnumNames ? '' : 'MESSAGE_GET_READ_MEMBERS');
+  static const Command USER_GET_BY_IDS =
+      Command._(1300, _omitEnumNames ? '' : 'USER_GET_BY_IDS');
+  static const Command USER_UPDATE =
+      Command._(1301, _omitEnumNames ? '' : 'USER_UPDATE');
+  static const Command PUSH_USER_INFO =
+      Command._(1302, _omitEnumNames ? '' : 'PUSH_USER_INFO');
+  static const Command DEPT_GET_BY_ID =
+      Command._(1350, _omitEnumNames ? '' : 'DEPT_GET_BY_ID');
+
+  /// M3: 在线状态 (1351-1354)
   static const Command USER_PRESENCE_UPDATE =
       Command._(1351, _omitEnumNames ? '' : 'USER_PRESENCE_UPDATE');
   static const Command PUSH_PRESENCE =
       Command._(1352, _omitEnumNames ? '' : 'PUSH_PRESENCE');
   static const Command USER_PRESENCE_SUBSCRIBE =
       Command._(1353, _omitEnumNames ? '' : 'USER_PRESENCE_SUBSCRIBE');
-  static const Command TYPING =
-      Command._(1403, _omitEnumNames ? '' : 'TYPING');
+  static const Command SEARCH_USER =
+      Command._(1400, _omitEnumNames ? '' : 'SEARCH_USER');
+  static const Command SEARCH_MESSAGE =
+      Command._(1401, _omitEnumNames ? '' : 'SEARCH_MESSAGE');
+  static const Command SEARCH_CHAT =
+      Command._(1402, _omitEnumNames ? '' : 'SEARCH_CHAT');
+
+  /// M3: 输入指示 (1403-1404)
+  static const Command TYPING = Command._(1403, _omitEnumNames ? '' : 'TYPING');
   static const Command PUSH_TYPING =
       Command._(1404, _omitEnumNames ? '' : 'PUSH_TYPING');
+
+  /// M4: 搜索 (1405-1406)
   static const Command SEARCH_FILES =
       Command._(1405, _omitEnumNames ? '' : 'SEARCH_FILES');
   static const Command GLOBAL_SEARCH =
@@ -201,21 +224,6 @@ class Command extends $pb.ProtobufEnum {
       Command._(1420, _omitEnumNames ? '' : 'TRANSLATE_MESSAGE');
   static const Command GET_TRANSLATION_LANGUAGES =
       Command._(1421, _omitEnumNames ? '' : 'GET_TRANSLATION_LANGUAGES');
-
-  static const Command USER_GET_BY_IDS =
-      Command._(1300, _omitEnumNames ? '' : 'USER_GET_BY_IDS');
-  static const Command USER_UPDATE =
-      Command._(1301, _omitEnumNames ? '' : 'USER_UPDATE');
-  static const Command PUSH_USER_INFO =
-      Command._(1302, _omitEnumNames ? '' : 'PUSH_USER_INFO');
-  static const Command DEPT_GET_BY_ID =
-      Command._(1350, _omitEnumNames ? '' : 'DEPT_GET_BY_ID');
-  static const Command SEARCH_USER =
-      Command._(1400, _omitEnumNames ? '' : 'SEARCH_USER');
-  static const Command SEARCH_MESSAGE =
-      Command._(1401, _omitEnumNames ? '' : 'SEARCH_MESSAGE');
-  static const Command SEARCH_CHAT =
-      Command._(1402, _omitEnumNames ? '' : 'SEARCH_CHAT');
   static const Command FAVORITE_ADD =
       Command._(1500, _omitEnumNames ? '' : 'FAVORITE_ADD');
   static const Command FAVORITE_REMOVE =
@@ -339,6 +347,9 @@ class Command extends $pb.ProtobufEnum {
     CHAT_JOIN_REQUEST_REJECT,
     CHAT_JOIN_REQUEST_LIST,
     CHAT_GET_MEMBERS,
+    CHAT_PIN_MESSAGE,
+    CHAT_UNPIN_MESSAGE,
+    CHAT_GET_PINNED_MESSAGES,
     MESSAGE_CREATE_DRAFT,
     MESSAGE_DELETE_DRAFT,
     MESSAGE_GET_ALL_DRAFTS,
@@ -355,14 +366,18 @@ class Command extends $pb.ProtobufEnum {
     REACTION_SET,
     PUSH_REACTIONS,
     MESSAGE_FORWARD,
-    CHAT_PIN_MESSAGE,
-    CHAT_UNPIN_MESSAGE,
-    CHAT_GET_PINNED_MESSAGES,
     MESSAGE_GET_THREAD,
     MESSAGE_GET_READ_MEMBERS,
+    USER_GET_BY_IDS,
+    USER_UPDATE,
+    PUSH_USER_INFO,
+    DEPT_GET_BY_ID,
     USER_PRESENCE_UPDATE,
     PUSH_PRESENCE,
     USER_PRESENCE_SUBSCRIBE,
+    SEARCH_USER,
+    SEARCH_MESSAGE,
+    SEARCH_CHAT,
     TYPING,
     PUSH_TYPING,
     SEARCH_FILES,
@@ -373,13 +388,6 @@ class Command extends $pb.ProtobufEnum {
     GET_SCHEDULED_MESSAGES,
     TRANSLATE_MESSAGE,
     GET_TRANSLATION_LANGUAGES,
-    USER_GET_BY_IDS,
-    USER_UPDATE,
-    PUSH_USER_INFO,
-    DEPT_GET_BY_ID,
-    SEARCH_USER,
-    SEARCH_MESSAGE,
-    SEARCH_CHAT,
     FAVORITE_ADD,
     FAVORITE_REMOVE,
     FAVORITE_GET_LIST,

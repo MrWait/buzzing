@@ -6,7 +6,7 @@ import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/entity.pbenum.dart';
-import 'package:buzzing/models/idl/im_ext.pb.dart';
+
 import 'package:buzzing/models/idl/meeting.pb.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/provider/page_providers.dart';
@@ -937,7 +937,7 @@ class _CardContent extends StatelessWidget {
         children: [
           if (banner != null) banner,
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, hasActions ? 4 : 10),
+            padding: EdgeInsets.fromLTRB(12, 10, 12, hasActions ? 4 : 10),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

@@ -21,6 +21,10 @@
             <span class="trb-hub-icon">🏠</span>
             <span class="trb-hub-label">应用中心</span>
           </div>
+          <div class="trb-hub-item" @click="goIm">
+            <span class="trb-hub-icon">💬</span>
+            <span class="trb-hub-label">即时通讯</span>
+          </div>
           <div class="trb-hub-item" @click="goOffice">
             <span class="trb-hub-icon">📄</span>
             <span class="trb-hub-label">办公文档</span>
@@ -66,6 +70,7 @@ const hubOpen = ref(false)
 const avatarOpen = ref(false)
 
 function goHub() { hubOpen.value = false; router.push({ name: 'Hub' }) }
+function goIm() { hubOpen.value = false; router.push({ name: 'ImFeed' }) }
 function goOffice() { hubOpen.value = false; router.push({ name: 'OfficeHome' }) }
 function goCalendar() { hubOpen.value = false }
 function goTodo() { hubOpen.value = false }

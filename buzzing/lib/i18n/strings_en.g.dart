@@ -1226,8 +1226,8 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	/// en: 'Minutes'
 	String get minute => 'Minutes';
 
-	/// en: 'Seconds'
-	String get seconds => 'Seconds';
+	/// en: 's'
+	String get seconds => 's';
 
 	/// en: 'Scan code to log in'
 	String get scanQrLogin => 'Scan code to log in';
@@ -2086,6 +2086,75 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 
 	/// en: 'left the meeting'
 	String get leftMeeting => 'left the meeting';
+
+	/// en: 'Messages'
+	String get searchMessages => 'Messages';
+
+	/// en: 'Chats'
+	String get searchChats => 'Chats';
+
+	/// en: 'Users'
+	String get searchUsers => 'Users';
+
+	/// en: 'Files'
+	String get searchFiles => 'Files';
+
+	/// en: 'Search messages, chats, users...'
+	String get searchPlaceholder => 'Search messages, chats, users...';
+
+	/// en: 'Search History'
+	String get searchHistory => 'Search History';
+
+	/// en: 'No results found'
+	String get searchNoResults => 'No results found';
+
+	/// en: 'Search in this chat'
+	String get searchInChat => 'Search in this chat';
+
+	/// en: '{count} results'
+	String get searchResultCount => '{count} results';
+
+	/// en: 'Previous'
+	String get searchPrevious => 'Previous';
+
+	/// en: 'Next'
+	String get searchNext => 'Next';
+
+	/// en: 'Hold to record'
+	String get holdToRecord => 'Hold to record';
+
+	/// en: 'Release to send'
+	String get releaseToSend => 'Release to send';
+
+	/// en: 'Swipe up to cancel'
+	String get swipeUpCancel => 'Swipe up to cancel';
+
+	/// en: 'Transcribe'
+	String get transcribe => 'Transcribe';
+
+	/// en: 'Voice message'
+	String get voiceMsg => 'Voice message';
+
+	/// en: 'Search location'
+	String get searchLocation => 'Search location';
+
+	/// en: 'Send this location'
+	String get sendLocation => 'Send this location';
+
+	/// en: 'Schedule send'
+	String get scheduleSend => 'Schedule send';
+
+	/// en: 'Scheduled messages'
+	String get scheduledMessages => 'Scheduled messages';
+
+	/// en: 'Pending'
+	String get pending => 'Pending';
+
+	/// en: 'Sent'
+	String get sent => 'Sent';
+
+	/// en: 'Translate'
+	String get translate => 'Translate';
 }
 
 /// The flat map containing all translations for locale <en>.
@@ -2491,7 +2560,7 @@ extension on Translations {
 			'oneMinutes' => 'One minutes',
 			'hour' => 'Hour',
 			'minute' => 'Minutes',
-			'seconds' => 'Seconds',
+			'seconds' => 's',
 			'scanQrLogin' => 'Scan code to log in',
 			'pcLoginConfirmation' => 'Desktop login confirmation',
 			'confirmLogin' => 'Confirm',
@@ -2780,13 +2849,28 @@ extension on Translations {
 			'chatPlaceholder' => 'Type a message...',
 			'joinedMeeting' => 'joined the meeting',
 			'leftMeeting' => 'left the meeting',
+			'searchMessages' => 'Messages',
+			'searchChats' => 'Chats',
+			'searchUsers' => 'Users',
+			'searchFiles' => 'Files',
+			'searchPlaceholder' => 'Search messages, chats, users...',
+			'searchHistory' => 'Search History',
+			'searchNoResults' => 'No results found',
+			'searchInChat' => 'Search in this chat',
+			'searchResultCount' => '{count} results',
+			'searchPrevious' => 'Previous',
+			'searchNext' => 'Next',
+			'holdToRecord' => 'Hold to record',
+			'releaseToSend' => 'Release to send',
+			'swipeUpCancel' => 'Swipe up to cancel',
+			'transcribe' => 'Transcribe',
+			'voiceMsg' => 'Voice message',
 			'searchLocation' => 'Search location',
 			'sendLocation' => 'Send this location',
 			'scheduleSend' => 'Schedule send',
 			'scheduledMessages' => 'Scheduled messages',
 			'pending' => 'Pending',
 			'sent' => 'Sent',
-			'cancelled' => 'Cancelled',
 			'translate' => 'Translate',
 			_ => null,
 		};

@@ -1826,7 +1826,7 @@ class Message extends $pb.GeneratedMessage {
   @$pb.TagNumber(32)
   MessageReference ensureRefData() => $_ensure(17);
 
-  /// Thread root message ID (0 = normal message or root message)
+  /// M3: Thread 根消息 ID，thread_root_id ≠ 0 表示本条是 Thread 回复
   @$pb.TagNumber(33)
   $fixnum.Int64 get threadRootId => $_getI64(18);
   @$pb.TagNumber(33)
@@ -2413,6 +2413,697 @@ class MessageRichText extends $pb.GeneratedMessage {
   $core.bool hasDelta() => $_has(0);
   @$pb.TagNumber(1)
   void clearDelta() => $_clearField(1);
+}
+
+/// ── M5: 语音消息 ─────────────────────────────────────────────────
+class VoiceContent extends $pb.GeneratedMessage {
+  factory VoiceContent({
+    $core.String? fileId,
+    $core.String? url,
+    $core.int? durationSec,
+    $core.String? transcription,
+    $core.int? transcriptionStatus,
+  }) {
+    final result = create();
+    if (fileId != null) result.fileId = fileId;
+    if (url != null) result.url = url;
+    if (durationSec != null) result.durationSec = durationSec;
+    if (transcription != null) result.transcription = transcription;
+    if (transcriptionStatus != null)
+      result.transcriptionStatus = transcriptionStatus;
+    return result;
+  }
+
+  VoiceContent._();
+
+  factory VoiceContent.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory VoiceContent.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'VoiceContent',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'entity'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'fileId')
+    ..aOS(2, _omitFieldNames ? '' : 'url')
+    ..aI(3, _omitFieldNames ? '' : 'durationSec')
+    ..aOS(4, _omitFieldNames ? '' : 'transcription')
+    ..aI(5, _omitFieldNames ? '' : 'transcriptionStatus')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  VoiceContent clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  VoiceContent copyWith(void Function(VoiceContent) updates) =>
+      super.copyWith((message) => updates(message as VoiceContent))
+          as VoiceContent;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static VoiceContent create() => VoiceContent._();
+  @$core.override
+  VoiceContent createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static VoiceContent getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<VoiceContent>(create);
+  static VoiceContent? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get fileId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set fileId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasFileId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFileId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get url => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set url($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasUrl() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearUrl() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get durationSec => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set durationSec($core.int value) => $_setSignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasDurationSec() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearDurationSec() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get transcription => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set transcription($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasTranscription() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearTranscription() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get transcriptionStatus => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set transcriptionStatus($core.int value) => $_setSignedInt32(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasTranscriptionStatus() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearTranscriptionStatus() => $_clearField(5);
+}
+
+class TranscribeVoiceRequest extends $pb.GeneratedMessage {
+  factory TranscribeVoiceRequest({
+    $fixnum.Int64? messageId,
+    $fixnum.Int64? chatId,
+  }) {
+    final result = create();
+    if (messageId != null) result.messageId = messageId;
+    if (chatId != null) result.chatId = chatId;
+    return result;
+  }
+
+  TranscribeVoiceRequest._();
+
+  factory TranscribeVoiceRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory TranscribeVoiceRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'TranscribeVoiceRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'entity'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'messageId')
+    ..aInt64(2, _omitFieldNames ? '' : 'chatId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TranscribeVoiceRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TranscribeVoiceRequest copyWith(
+          void Function(TranscribeVoiceRequest) updates) =>
+      super.copyWith((message) => updates(message as TranscribeVoiceRequest))
+          as TranscribeVoiceRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TranscribeVoiceRequest create() => TranscribeVoiceRequest._();
+  @$core.override
+  TranscribeVoiceRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static TranscribeVoiceRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<TranscribeVoiceRequest>(create);
+  static TranscribeVoiceRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get messageId => $_getI64(0);
+  @$pb.TagNumber(1)
+  set messageId($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasMessageId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMessageId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get chatId => $_getI64(1);
+  @$pb.TagNumber(2)
+  set chatId($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasChatId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearChatId() => $_clearField(2);
+}
+
+class TranscribeVoiceResponse extends $pb.GeneratedMessage {
+  factory TranscribeVoiceResponse({
+    $fixnum.Int64? messageId,
+    $core.String? transcription,
+  }) {
+    final result = create();
+    if (messageId != null) result.messageId = messageId;
+    if (transcription != null) result.transcription = transcription;
+    return result;
+  }
+
+  TranscribeVoiceResponse._();
+
+  factory TranscribeVoiceResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory TranscribeVoiceResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'TranscribeVoiceResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'entity'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'messageId')
+    ..aOS(2, _omitFieldNames ? '' : 'transcription')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TranscribeVoiceResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  TranscribeVoiceResponse copyWith(
+          void Function(TranscribeVoiceResponse) updates) =>
+      super.copyWith((message) => updates(message as TranscribeVoiceResponse))
+          as TranscribeVoiceResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static TranscribeVoiceResponse create() => TranscribeVoiceResponse._();
+  @$core.override
+  TranscribeVoiceResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static TranscribeVoiceResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<TranscribeVoiceResponse>(create);
+  static TranscribeVoiceResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get messageId => $_getI64(0);
+  @$pb.TagNumber(1)
+  set messageId($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasMessageId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMessageId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get transcription => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set transcription($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasTranscription() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTranscription() => $_clearField(2);
+}
+
+/// ── M5: 视频消息 ─────────────────────────────────────────────────
+class MediaContent extends $pb.GeneratedMessage {
+  factory MediaContent({
+    $core.String? fileId,
+    $core.String? url,
+    $core.String? thumbnailUrl,
+    $core.int? width,
+    $core.int? height,
+    $core.int? durationSec,
+    $fixnum.Int64? fileSize,
+    $core.String? mimeType,
+  }) {
+    final result = create();
+    if (fileId != null) result.fileId = fileId;
+    if (url != null) result.url = url;
+    if (thumbnailUrl != null) result.thumbnailUrl = thumbnailUrl;
+    if (width != null) result.width = width;
+    if (height != null) result.height = height;
+    if (durationSec != null) result.durationSec = durationSec;
+    if (fileSize != null) result.fileSize = fileSize;
+    if (mimeType != null) result.mimeType = mimeType;
+    return result;
+  }
+
+  MediaContent._();
+
+  factory MediaContent.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory MediaContent.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'MediaContent',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'entity'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'fileId')
+    ..aOS(2, _omitFieldNames ? '' : 'url')
+    ..aOS(3, _omitFieldNames ? '' : 'thumbnailUrl')
+    ..aI(4, _omitFieldNames ? '' : 'width')
+    ..aI(5, _omitFieldNames ? '' : 'height')
+    ..aI(6, _omitFieldNames ? '' : 'durationSec')
+    ..aInt64(7, _omitFieldNames ? '' : 'fileSize')
+    ..aOS(8, _omitFieldNames ? '' : 'mimeType')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MediaContent clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MediaContent copyWith(void Function(MediaContent) updates) =>
+      super.copyWith((message) => updates(message as MediaContent))
+          as MediaContent;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MediaContent create() => MediaContent._();
+  @$core.override
+  MediaContent createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static MediaContent getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<MediaContent>(create);
+  static MediaContent? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get fileId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set fileId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasFileId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFileId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get url => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set url($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasUrl() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearUrl() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get thumbnailUrl => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set thumbnailUrl($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasThumbnailUrl() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearThumbnailUrl() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.int get width => $_getIZ(3);
+  @$pb.TagNumber(4)
+  set width($core.int value) => $_setSignedInt32(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasWidth() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearWidth() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get height => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set height($core.int value) => $_setSignedInt32(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasHeight() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearHeight() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get durationSec => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set durationSec($core.int value) => $_setSignedInt32(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasDurationSec() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearDurationSec() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $fixnum.Int64 get fileSize => $_getI64(6);
+  @$pb.TagNumber(7)
+  set fileSize($fixnum.Int64 value) => $_setInt64(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasFileSize() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearFileSize() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.String get mimeType => $_getSZ(7);
+  @$pb.TagNumber(8)
+  set mimeType($core.String value) => $_setString(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasMimeType() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearMimeType() => $_clearField(8);
+}
+
+/// ── M5: 位置消息 ─────────────────────────────────────────────────
+class LocationContent extends $pb.GeneratedMessage {
+  factory LocationContent({
+    $core.String? name,
+    $core.String? address,
+    $core.double? latitude,
+    $core.double? longitude,
+    $core.int? zoom,
+    $core.String? mapUrl,
+  }) {
+    final result = create();
+    if (name != null) result.name = name;
+    if (address != null) result.address = address;
+    if (latitude != null) result.latitude = latitude;
+    if (longitude != null) result.longitude = longitude;
+    if (zoom != null) result.zoom = zoom;
+    if (mapUrl != null) result.mapUrl = mapUrl;
+    return result;
+  }
+
+  LocationContent._();
+
+  factory LocationContent.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory LocationContent.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'LocationContent',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'entity'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'name')
+    ..aOS(2, _omitFieldNames ? '' : 'address')
+    ..aD(3, _omitFieldNames ? '' : 'latitude')
+    ..aD(4, _omitFieldNames ? '' : 'longitude')
+    ..aI(5, _omitFieldNames ? '' : 'zoom')
+    ..aOS(6, _omitFieldNames ? '' : 'mapUrl')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LocationContent clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  LocationContent copyWith(void Function(LocationContent) updates) =>
+      super.copyWith((message) => updates(message as LocationContent))
+          as LocationContent;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static LocationContent create() => LocationContent._();
+  @$core.override
+  LocationContent createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static LocationContent getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<LocationContent>(create);
+  static LocationContent? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get name => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set name($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearName() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get address => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set address($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasAddress() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAddress() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.double get latitude => $_getN(2);
+  @$pb.TagNumber(3)
+  set latitude($core.double value) => $_setDouble(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasLatitude() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearLatitude() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.double get longitude => $_getN(3);
+  @$pb.TagNumber(4)
+  set longitude($core.double value) => $_setDouble(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasLongitude() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearLongitude() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get zoom => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set zoom($core.int value) => $_setSignedInt32(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasZoom() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearZoom() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get mapUrl => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set mapUrl($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasMapUrl() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearMapUrl() => $_clearField(6);
+}
+
+/// ── M5: 卡片消息 ─────────────────────────────────────────────────
+class CardContent extends $pb.GeneratedMessage {
+  factory CardContent({
+    $core.String? title,
+    $core.String? description,
+    $core.String? iconUrl,
+    $core.String? imageUrl,
+    $core.String? url,
+    $core.Iterable<CardAction>? actions,
+  }) {
+    final result = create();
+    if (title != null) result.title = title;
+    if (description != null) result.description = description;
+    if (iconUrl != null) result.iconUrl = iconUrl;
+    if (imageUrl != null) result.imageUrl = imageUrl;
+    if (url != null) result.url = url;
+    if (actions != null) result.actions.addAll(actions);
+    return result;
+  }
+
+  CardContent._();
+
+  factory CardContent.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CardContent.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CardContent',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'entity'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'title')
+    ..aOS(2, _omitFieldNames ? '' : 'description')
+    ..aOS(3, _omitFieldNames ? '' : 'iconUrl')
+    ..aOS(4, _omitFieldNames ? '' : 'imageUrl')
+    ..aOS(5, _omitFieldNames ? '' : 'url')
+    ..pPM<CardAction>(6, _omitFieldNames ? '' : 'actions',
+        subBuilder: CardAction.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CardContent clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CardContent copyWith(void Function(CardContent) updates) =>
+      super.copyWith((message) => updates(message as CardContent))
+          as CardContent;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CardContent create() => CardContent._();
+  @$core.override
+  CardContent createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CardContent getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CardContent>(create);
+  static CardContent? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get title => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set title($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasTitle() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearTitle() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get description => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set description($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasDescription() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearDescription() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get iconUrl => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set iconUrl($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasIconUrl() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearIconUrl() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get imageUrl => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set imageUrl($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasImageUrl() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearImageUrl() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get url => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set url($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasUrl() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearUrl() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $pb.PbList<CardAction> get actions => $_getList(5);
+}
+
+class CardAction extends $pb.GeneratedMessage {
+  factory CardAction({
+    $core.String? label,
+    $core.String? url,
+    $core.int? actionType,
+    $core.String? value,
+  }) {
+    final result = create();
+    if (label != null) result.label = label;
+    if (url != null) result.url = url;
+    if (actionType != null) result.actionType = actionType;
+    if (value != null) result.value = value;
+    return result;
+  }
+
+  CardAction._();
+
+  factory CardAction.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory CardAction.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'CardAction',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'entity'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'label')
+    ..aOS(2, _omitFieldNames ? '' : 'url')
+    ..aI(3, _omitFieldNames ? '' : 'actionType')
+    ..aOS(4, _omitFieldNames ? '' : 'value')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CardAction clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  CardAction copyWith(void Function(CardAction) updates) =>
+      super.copyWith((message) => updates(message as CardAction)) as CardAction;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static CardAction create() => CardAction._();
+  @$core.override
+  CardAction createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static CardAction getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<CardAction>(create);
+  static CardAction? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get label => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set label($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasLabel() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearLabel() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get url => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set url($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasUrl() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearUrl() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.int get actionType => $_getIZ(2);
+  @$pb.TagNumber(3)
+  set actionType($core.int value) => $_setSignedInt32(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasActionType() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearActionType() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get value => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set value($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasValue() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearValue() => $_clearField(4);
 }
 
 class MessageMarkdown extends $pb.GeneratedMessage {

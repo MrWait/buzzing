@@ -1,7 +1,7 @@
 import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
-import 'package:buzzing/models/idl/im_ext.pb.dart';
+import 'package:buzzing/models/idl/search.pb.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/utils/data_persistence.dart';
 import 'package:sp_util/sp_util.dart';

@@ -296,6 +296,7 @@ impl From<entity::Chat> for ChatModel {
         })
         .encode_to_vec();
         Self(Model {
+            allow_at_all: true,
             created_at: DateTimeWithTimeZone::from(
                 chrono::DateTime::<chrono::Utc>::from_timestamp_millis(value.create_at_ms).unwrap(),
             ),
@@ -325,7 +326,6 @@ global_mute_until: if value.global_mute_until > 0 {
             } else {
                 None
             },
-            allow_at_all: false,
         })
     }
 }
