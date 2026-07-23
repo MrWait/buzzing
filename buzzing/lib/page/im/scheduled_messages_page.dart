@@ -1,7 +1,7 @@
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
-import 'package:buzzing/models/idl/im_ext.pb.dart';
+import 'package:buzzing/models/idl/timer.pb.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:flutter/material.dart';
 

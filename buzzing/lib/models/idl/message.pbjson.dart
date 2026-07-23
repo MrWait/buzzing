@@ -485,3 +485,88 @@ const RecallMessageResponse$json = {
 final $typed_data.Uint8List recallMessageResponseDescriptor = $convert.base64Decode(
     'ChVSZWNhbGxNZXNzYWdlUmVzcG9uc2USJgoGZW50aXR5GAEgASgLMg4uZW50aXR5LkVudGl0eV'
     'IGZW50aXR5');
+
+@$core.Deprecated('Use deleteMessageRequestDescriptor instead')
+const DeleteMessageRequest$json = {
+  '1': 'DeleteMessageRequest',
+  '2': [
+    {'1': 'message_id', '3': 1, '4': 1, '5': 3, '10': 'messageId'},
+    {'1': 'mode', '3': 2, '4': 1, '5': 5, '10': 'mode'},
+  ],
+};
+
+/// Descriptor for `DeleteMessageRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteMessageRequestDescriptor = $convert.base64Decode(
+    'ChREZWxldGVNZXNzYWdlUmVxdWVzdBIdCgptZXNzYWdlX2lkGAEgASgDUgltZXNzYWdlSWQSEg'
+    'oEbW9kZRgCIAEoBVIEbW9kZQ==');
+
+@$core.Deprecated('Use deleteMessageResponseDescriptor instead')
+const DeleteMessageResponse$json = {
+  '1': 'DeleteMessageResponse',
+  '2': [
+    {
+      '1': 'entities',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.entity.Entity',
+      '10': 'entities'
+    },
+  ],
+};
+
+/// Descriptor for `DeleteMessageResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List deleteMessageResponseDescriptor = $convert.base64Decode(
+    'ChVEZWxldGVNZXNzYWdlUmVzcG9uc2USKgoIZW50aXRpZXMYASABKAsyDi5lbnRpdHkuRW50aX'
+    'R5UghlbnRpdGllcw==');
+
+@$core.Deprecated('Use getReadMembersRequestDescriptor instead')
+const GetReadMembersRequest$json = {
+  '1': 'GetReadMembersRequest',
+  '2': [
+    {'1': 'chat_id', '3': 1, '4': 1, '5': 3, '10': 'chatId'},
+    {'1': 'message_id', '3': 2, '4': 1, '5': 3, '10': 'messageId'},
+  ],
+};
+
+/// Descriptor for `GetReadMembersRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getReadMembersRequestDescriptor = $convert.base64Decode(
+    'ChVHZXRSZWFkTWVtYmVyc1JlcXVlc3QSFwoHY2hhdF9pZBgBIAEoA1IGY2hhdElkEh0KCm1lc3'
+    'NhZ2VfaWQYAiABKANSCW1lc3NhZ2VJZA==');
+
+@$core.Deprecated('Use readMemberItemDescriptor instead')
+const ReadMemberItem$json = {
+  '1': 'ReadMemberItem',
+  '2': [
+    {'1': 'user_id', '3': 1, '4': 1, '5': 3, '10': 'userId'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'avatar', '3': 3, '4': 1, '5': 9, '10': 'avatar'},
+    {'1': 'is_read', '3': 4, '4': 1, '5': 8, '10': 'isRead'},
+  ],
+};
+
+/// Descriptor for `ReadMemberItem`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List readMemberItemDescriptor = $convert.base64Decode(
+    'Cg5SZWFkTWVtYmVySXRlbRIXCgd1c2VyX2lkGAEgASgDUgZ1c2VySWQSEgoEbmFtZRgCIAEoCV'
+    'IEbmFtZRIWCgZhdmF0YXIYAyABKAlSBmF2YXRhchIXCgdpc19yZWFkGAQgASgIUgZpc1JlYWQ=');
+
+@$core.Deprecated('Use getReadMembersResponseDescriptor instead')
+const GetReadMembersResponse$json = {
+  '1': 'GetReadMembersResponse',
+  '2': [
+    {
+      '1': 'members',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.message.ReadMemberItem',
+      '10': 'members'
+    },
+  ],
+};
+
+/// Descriptor for `GetReadMembersResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getReadMembersResponseDescriptor =
+    $convert.base64Decode(
+        'ChZHZXRSZWFkTWVtYmVyc1Jlc3BvbnNlEjEKB21lbWJlcnMYASADKAsyFy5tZXNzYWdlLlJlYW'
+        'RNZW1iZXJJdGVtUgdtZW1iZXJz');

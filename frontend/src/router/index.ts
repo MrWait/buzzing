@@ -56,6 +56,24 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/im',
+    component: () => import('@/layouts/ModuleLayout.vue'),
+    beforeEnter: tenantGuard,
+    children: [
+      { path: '', redirect: { name: 'ImFeed' } },
+      { path: 'feed', name: 'ImFeed', component: () => import('@/views/im/ImHome.vue') },
+      {
+        path: 'chat/:chatId',
+        name: 'ImChat',
+        component: () => import('@/views/im/ImHome.vue'),
+        children: [
+          { path: '', name: 'ImChatMain', component: () => import('@/views/im/chat/ChatPanel.vue') },
+          { path: 'profile', name: 'ImGroupProfile', component: () => import('@/views/im/chat/GroupProfile.vue') },
+        ],
+      },
+    ],
+  },
+  {
     path: '/meeting',
     component: () => import('@/layouts/ModuleLayout.vue'),
     beforeEnter: tenantGuard,

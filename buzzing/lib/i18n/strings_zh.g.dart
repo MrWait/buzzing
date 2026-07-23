@@ -439,7 +439,7 @@ class TranslationsZh with BaseTranslations<AppLocale, Translations> implements T
 	@override String get cancelLogin => '取消登录';
 	@override String get loginSuccessful => '登录成功';
 	@override String get loginFailed => '登录失败';
-	@override String get searchAll => '综合';
+	@override String get searchAll => '全部';
 	@override String get searchContacts => '联系人';
 	@override String get searchGroup => '群组';
 	@override String get searchChatHistory => '聊天记录';
@@ -719,6 +719,29 @@ class TranslationsZh with BaseTranslations<AppLocale, Translations> implements T
 	@override String get chatPlaceholder => '输入消息...';
 	@override String get joinedMeeting => '加入了会议';
 	@override String get leftMeeting => '离开了会议';
+	@override String get searchMessages => '消息';
+	@override String get searchChats => '会话';
+	@override String get searchUsers => '用户';
+	@override String get searchFiles => '文件';
+	@override String get searchPlaceholder => '搜索消息、会话、用户...';
+	@override String get searchHistory => '搜索历史';
+	@override String get searchNoResults => '未找到结果';
+	@override String get searchInChat => '在当前会话中搜索';
+	@override String get searchResultCount => '共 {count} 条结果';
+	@override String get searchPrevious => '上一条';
+	@override String get searchNext => '下一条';
+	@override String get holdToRecord => '长按录音';
+	@override String get releaseToSend => '松开发送';
+	@override String get swipeUpCancel => '上滑取消';
+	@override String get transcribe => '转文字';
+	@override String get voiceMsg => '语音消息';
+	@override String get searchLocation => '搜索地点';
+	@override String get sendLocation => '发送此位置';
+	@override String get scheduleSend => '定时发送';
+	@override String get scheduledMessages => '定时消息';
+	@override String get pending => '待发送';
+	@override String get sent => '已发送';
+	@override String get translate => '翻译';
 }
 
 /// The flat map containing all translations for locale <zh>.
@@ -1131,7 +1154,7 @@ extension on TranslationsZh {
 			'cancelLogin' => '取消登录',
 			'loginSuccessful' => '登录成功',
 			'loginFailed' => '登录失败',
-			'searchAll' => '综合',
+			'searchAll' => '全部',
 			'searchContacts' => '联系人',
 			'searchGroup' => '群组',
 			'searchChatHistory' => '聊天记录',
@@ -1413,13 +1436,28 @@ extension on TranslationsZh {
 			'chatPlaceholder' => '输入消息...',
 			'joinedMeeting' => '加入了会议',
 			'leftMeeting' => '离开了会议',
+			'searchMessages' => '消息',
+			'searchChats' => '会话',
+			'searchUsers' => '用户',
+			'searchFiles' => '文件',
+			'searchPlaceholder' => '搜索消息、会话、用户...',
+			'searchHistory' => '搜索历史',
+			'searchNoResults' => '未找到结果',
+			'searchInChat' => '在当前会话中搜索',
+			'searchResultCount' => '共 {count} 条结果',
+			'searchPrevious' => '上一条',
+			'searchNext' => '下一条',
+			'holdToRecord' => '长按录音',
+			'releaseToSend' => '松开发送',
+			'swipeUpCancel' => '上滑取消',
+			'transcribe' => '转文字',
+			'voiceMsg' => '语音消息',
 			'searchLocation' => '搜索地点',
 			'sendLocation' => '发送此位置',
 			'scheduleSend' => '定时发送',
 			'scheduledMessages' => '定时消息',
 			'pending' => '待发送',
 			'sent' => '已发送',
-			'cancelled' => '已取消',
 			'translate' => '翻译',
 			_ => null,
 		};

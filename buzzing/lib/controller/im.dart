@@ -18,7 +18,12 @@ import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/idl/feed.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/sdk.pb.dart';
-import 'package:buzzing/models/idl/im_ext.pb.dart';
+import 'package:buzzing/models/idl/pin.pb.dart';
+import 'package:buzzing/models/idl/thread.pb.dart';
+import 'package:buzzing/models/idl/typing.pb.dart';
+import 'package:buzzing/models/idl/presence.pb.dart';
+import 'package:buzzing/models/idl/search.pb.dart';
+import 'package:buzzing/models/idl/translate.pb.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/widget/feedcard.dart';
 import 'package:flutter/material.dart';
@@ -123,7 +128,7 @@ class ImController extends ChangeNotifier {
           mentionCandidates.add((id: Int64(0), name: '所有成员'));
         }
         for (var m in resp.members) {
-          mentionCandidates.add((id: m.userId, name: m.user?.name ?? ''));
+          mentionCandidates.add((id: m.userId, name: m.name ?? ''));
         }
         notifyListeners();
       }
@@ -776,7 +781,7 @@ class ImController extends ChangeNotifier {
         Command.TRANSLATE_MESSAGE,
         req.writeToBuffer(),
       );
-      var resp = TranslateMessageResponse.fromBuffer(result);
+      var resp = TranslateMessageResponse.fromBuffer(result.data!);
       translationCache[messageId] ??= {};
       translationCache[messageId]![targetLang] = resp.translatedText;
       return resp.translatedText;
@@ -869,7 +874,7 @@ class ImController extends ChangeNotifier {
     if (now.difference(_lastTypingSent).inMilliseconds < 3000) return;
     _lastTypingSent = now;
     var req = TypingRequest(chatId: chatId);
-    await sdk.invokeWithoutAck(Command.TYPING, req.writeToBuffer());
+    sdk.invokeWithoutAck(Command.TYPING, req.writeToBuffer());
   }
 
   void onPushTyping(List<int> data) {

@@ -132,7 +132,7 @@ pub(crate) async fn search_messages(
         ],
     )).await.map_err(|e| common_error(&format!("search messages error: {e}")))?;
 
-    let mut resp = search::SearchMessagesResponse { total, ..Default::default() };
+    let mut resp = search::SearchMessagesResponse { total: total as i32, ..Default::default() };
     for row in rows {
         let summary: String = row.try_get("", "summary").unwrap_or_default();
         let hl = highlight(&summary, keyword);
@@ -211,7 +211,7 @@ pub(crate) async fn search_chats(
         vec![keyword.into(), brief.id.into(), page_size.into(), offset.into()],
     )).await.map_err(|e| common_error(&format!("search chats error: {e}")))?;
 
-    let mut resp = search::SearchChatsResponse { total, ..Default::default() };
+    let mut resp = search::SearchChatsResponse { total: total as i32, ..Default::default() };
     for row in rows {
         let name: String = row.try_get("", "name").unwrap_or_default();
         let hl = highlight(&name, keyword);
@@ -299,7 +299,7 @@ pub(crate) async fn search_users(
         vec![keyword.into(), brief.tenant_id.into(), page_size.into(), offset.into()],
     )).await.map_err(|e| common_error(&format!("search users error: {e}")))?;
 
-    let mut resp = search::SearchUsersResponse { total, ..Default::default() };
+    let mut resp = search::SearchUsersResponse { total: total as i32, ..Default::default() };
     for row in rows {
         let name: String = row.try_get("", "name").unwrap_or_default();
         let hl = highlight(&name, keyword);
@@ -366,7 +366,7 @@ pub(crate) async fn search_files(
         vec![keyword.into(), page_size.into(), offset.into()],
     )).await.map_err(|e| common_error(&format!("search files error: {e}")))?;
 
-    let mut resp = search::SearchFilesResponse { total, ..Default::default() };
+    let mut resp = search::SearchFilesResponse { total: total as i32, ..Default::default() };
     for row in rows {
         let file_name: String = row.try_get("", "file_name").unwrap_or_default();
         let hl = highlight(&file_name, keyword);

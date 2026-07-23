@@ -1703,6 +1703,337 @@ class RecallMessageResponse extends $pb.GeneratedMessage {
   $0.Entity ensureEntity() => $_ensure(0);
 }
 
+class DeleteMessageRequest extends $pb.GeneratedMessage {
+  factory DeleteMessageRequest({
+    $fixnum.Int64? messageId,
+    $core.int? mode,
+  }) {
+    final result = create();
+    if (messageId != null) result.messageId = messageId;
+    if (mode != null) result.mode = mode;
+    return result;
+  }
+
+  DeleteMessageRequest._();
+
+  factory DeleteMessageRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DeleteMessageRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DeleteMessageRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'message'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'messageId')
+    ..aI(2, _omitFieldNames ? '' : 'mode')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteMessageRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteMessageRequest copyWith(void Function(DeleteMessageRequest) updates) =>
+      super.copyWith((message) => updates(message as DeleteMessageRequest))
+          as DeleteMessageRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DeleteMessageRequest create() => DeleteMessageRequest._();
+  @$core.override
+  DeleteMessageRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DeleteMessageRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DeleteMessageRequest>(create);
+  static DeleteMessageRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get messageId => $_getI64(0);
+  @$pb.TagNumber(1)
+  set messageId($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasMessageId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMessageId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.int get mode => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set mode($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasMode() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMode() => $_clearField(2);
+}
+
+class DeleteMessageResponse extends $pb.GeneratedMessage {
+  factory DeleteMessageResponse({
+    $0.Entity? entities,
+  }) {
+    final result = create();
+    if (entities != null) result.entities = entities;
+    return result;
+  }
+
+  DeleteMessageResponse._();
+
+  factory DeleteMessageResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory DeleteMessageResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'DeleteMessageResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'message'),
+      createEmptyInstance: create)
+    ..aOM<$0.Entity>(1, _omitFieldNames ? '' : 'entities',
+        subBuilder: $0.Entity.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteMessageResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  DeleteMessageResponse copyWith(
+          void Function(DeleteMessageResponse) updates) =>
+      super.copyWith((message) => updates(message as DeleteMessageResponse))
+          as DeleteMessageResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static DeleteMessageResponse create() => DeleteMessageResponse._();
+  @$core.override
+  DeleteMessageResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static DeleteMessageResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<DeleteMessageResponse>(create);
+  static DeleteMessageResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $0.Entity get entities => $_getN(0);
+  @$pb.TagNumber(1)
+  set entities($0.Entity value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasEntities() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearEntities() => $_clearField(1);
+  @$pb.TagNumber(1)
+  $0.Entity ensureEntities() => $_ensure(0);
+}
+
+class GetReadMembersRequest extends $pb.GeneratedMessage {
+  factory GetReadMembersRequest({
+    $fixnum.Int64? chatId,
+    $fixnum.Int64? messageId,
+  }) {
+    final result = create();
+    if (chatId != null) result.chatId = chatId;
+    if (messageId != null) result.messageId = messageId;
+    return result;
+  }
+
+  GetReadMembersRequest._();
+
+  factory GetReadMembersRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetReadMembersRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetReadMembersRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'message'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'chatId')
+    ..aInt64(2, _omitFieldNames ? '' : 'messageId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetReadMembersRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetReadMembersRequest copyWith(
+          void Function(GetReadMembersRequest) updates) =>
+      super.copyWith((message) => updates(message as GetReadMembersRequest))
+          as GetReadMembersRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetReadMembersRequest create() => GetReadMembersRequest._();
+  @$core.override
+  GetReadMembersRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetReadMembersRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetReadMembersRequest>(create);
+  static GetReadMembersRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get chatId => $_getI64(0);
+  @$pb.TagNumber(1)
+  set chatId($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasChatId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearChatId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get messageId => $_getI64(1);
+  @$pb.TagNumber(2)
+  set messageId($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasMessageId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMessageId() => $_clearField(2);
+}
+
+class ReadMemberItem extends $pb.GeneratedMessage {
+  factory ReadMemberItem({
+    $fixnum.Int64? userId,
+    $core.String? name,
+    $core.String? avatar,
+    $core.bool? isRead,
+  }) {
+    final result = create();
+    if (userId != null) result.userId = userId;
+    if (name != null) result.name = name;
+    if (avatar != null) result.avatar = avatar;
+    if (isRead != null) result.isRead = isRead;
+    return result;
+  }
+
+  ReadMemberItem._();
+
+  factory ReadMemberItem.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ReadMemberItem.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ReadMemberItem',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'message'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'userId')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..aOS(3, _omitFieldNames ? '' : 'avatar')
+    ..aOB(4, _omitFieldNames ? '' : 'isRead')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReadMemberItem clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReadMemberItem copyWith(void Function(ReadMemberItem) updates) =>
+      super.copyWith((message) => updates(message as ReadMemberItem))
+          as ReadMemberItem;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ReadMemberItem create() => ReadMemberItem._();
+  @$core.override
+  ReadMemberItem createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ReadMemberItem getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ReadMemberItem>(create);
+  static ReadMemberItem? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get userId => $_getI64(0);
+  @$pb.TagNumber(1)
+  set userId($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUserId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUserId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get avatar => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set avatar($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasAvatar() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAvatar() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get isRead => $_getBF(3);
+  @$pb.TagNumber(4)
+  set isRead($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasIsRead() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearIsRead() => $_clearField(4);
+}
+
+class GetReadMembersResponse extends $pb.GeneratedMessage {
+  factory GetReadMembersResponse({
+    $core.Iterable<ReadMemberItem>? members,
+  }) {
+    final result = create();
+    if (members != null) result.members.addAll(members);
+    return result;
+  }
+
+  GetReadMembersResponse._();
+
+  factory GetReadMembersResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetReadMembersResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetReadMembersResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'message'),
+      createEmptyInstance: create)
+    ..pPM<ReadMemberItem>(1, _omitFieldNames ? '' : 'members',
+        subBuilder: ReadMemberItem.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetReadMembersResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetReadMembersResponse copyWith(
+          void Function(GetReadMembersResponse) updates) =>
+      super.copyWith((message) => updates(message as GetReadMembersResponse))
+          as GetReadMembersResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetReadMembersResponse create() => GetReadMembersResponse._();
+  @$core.override
+  GetReadMembersResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetReadMembersResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetReadMembersResponse>(create);
+  static GetReadMembersResponse? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<ReadMemberItem> get members => $_getList(0);
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =
