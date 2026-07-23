@@ -3,7 +3,7 @@
 Buzzing 是一个功能丰富的 IM 工具软件（类飞书/钉钉/Slack），包含完整的服务端、客户端。
 目标包括以下几点：
 - 安全性：可独立部署，所有产生的数据都拥有完全自主权。
-- 易部署：服务端为单体结构，打包为单个文件即可部署。外部仅依赖 PG、Redis，30 分钟即可搭建完整运行环境。
+- 易部署：服务端为单体结构，打包为单个文件即可部署。外部仅依赖 PG，30 分钟即可搭建完整运行环境。
 - 高性能：整体使用 Rust + Flutter 实现，为性能而生，完全摆脱基于 web 技术的弊端。
 - 多功能：提供了 IM、日历、文档、视频会议等常用功能，可满足大部分核心使用场景。
 
@@ -14,7 +14,7 @@ Buzzing 是一个功能丰富的 IM 工具软件（类飞书/钉钉/Slack），�
 常用命令都在 justfile 中，大部分命令都可以通过 just 运行。如果新增命令或脚本，建议添加到 justfile。
 
 ## 安装依赖
-- 安装 PostgreSql、Redis。
+- 安装 PostgreSql。
 - 安装 rust 工具链。
 - 安装 just 工具，可使用 `cargo install just`。
 
@@ -24,7 +24,7 @@ Buzzing 是一个功能丰富的 IM 工具软件（类飞书/钉钉/Slack），�
 服务端强制使用 TLS 加密，需要自行准备 SSL 证书。可以使用自签名证书，存储在 backend/base/assets/cert/ 中。
 
 需要修改配置文件中 server.port, server.host，其中 host 影响 URL 生成，务必使用有意义的值，且和证书对应。
-修改 database.uri, queue.uri，配置 DB 和 redis。
+修改 database.uri, queue.uri，配置 DB（queue 复用 Postgres）。
 修改 auth.jwt.secret，使用自定义的密钥。
 其他配置可参考 loco-rs 项目文档。
 
