@@ -11,6 +11,12 @@
             :connected="connected"
           />
           <Collaborators :users="editingUsers" />
+          <div class="panel-trigger" ref="versionTriggerRef">
+            <button class="header-btn" @click="toggleVersions">
+              版本历史
+            </button>
+            <VersionTimeline :open="showVersions" :doc-id="docId" @restored="onRestored" />
+          </div>
           <div v-if="perm.canEdit.value" class="panel-trigger" ref="memberTriggerRef">
             <button class="header-btn" @click="toggleMembers">
               成员
@@ -47,6 +53,7 @@ import Breadcrumb, { type BreadcrumbItem } from './Breadcrumb.vue'
 import SearchBar from './SearchBar.vue'
 import MemberDialog from './MemberDialog.vue'
 import ShareDialog from './ShareDialog.vue'
+import VersionTimeline from './VersionTimeline.vue'
 import TopRightBar from '@/components/TopRightBar.vue'
 
 const props = defineProps<{ docId: string; searchOpen?: boolean }>()
@@ -75,15 +82,20 @@ watch(searchOpen, (v) => {
   emit('update:searchOpen', v)
 })
 const showShare = ref(false)
+const showVersions = ref(false)
 const memberTriggerRef = ref<HTMLElement | null>(null)
 
 const shareTriggerRef = ref<HTMLElement | null>(null)
+const versionTriggerRef = ref<HTMLElement | null>(null)
 
 function toggleMembers() {
   showMembers.value = !showMembers.value
 }
 function toggleShare() {
   showShare.value = !showShare.value
+}
+function toggleVersions() {
+  showVersions.value = !showVersions.value
 }
 
 function onOutsideClick(e: MouseEvent) {
@@ -94,6 +106,13 @@ function onOutsideClick(e: MouseEvent) {
   if (showShare.value && shareTriggerRef.value && !shareTriggerRef.value.contains(t)) {
     showShare.value = false
   }
+  if (showVersions.value && versionTriggerRef.value && !versionTriggerRef.value.contains(t)) {
+    showVersions.value = false
+  }
+}
+
+function onRestored() {
+  showVersions.value = false
 }
 onMounted(() => document.addEventListener('click', onOutsideClick))
 onBeforeUnmount(() => document.removeEventListener('click', onOutsideClick))
@@ -188,11 +207,14 @@ const crumbs = computed<BreadcrumbItem[]>(() => {
   font-size: 12px;
 }
 .header-btn {
-  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
   border: 1px solid #d0d0d0;
   background: #fff;
   color: #333;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
   transition: background 0.15s;

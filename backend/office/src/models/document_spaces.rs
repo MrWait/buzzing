@@ -91,6 +91,22 @@ impl DocumentSpaceModel {
         Ok(model.update(db).await?)
     }
 
+    /// 知识库下的空间
+    pub async fn get_by_wiki(
+        db: &DatabaseConnection,
+        wiki_id: i64,
+    ) -> ModelResult<Vec<Model>> {
+        Ok(Entity::find()
+            .filter(
+                Condition::all()
+                    .add(Column::WikiId.eq(wiki_id))
+                    .add(Column::ArchivedAt.is_null()),
+            )
+            .order_by_asc(Column::SortOrder)
+            .all(db)
+            .await?)
+    }
+
     /// 归档 / 取消归档
     pub async fn set_archived(
         db: &DatabaseConnection,

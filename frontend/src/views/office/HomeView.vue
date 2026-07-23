@@ -8,7 +8,8 @@
     />
 
     <section class="content" :class="{ 'sidebar-collapsed': contentShifted }">
-      <DocList v-if="view === 'space'" />
+      <WikiHome v-if="view === 'wiki' && wikiStore.currentWikiId" />
+      <DocList v-else-if="view === 'space'" />
       <StarredView v-else-if="view === 'starred'" />
       <RecentView v-else-if="view === 'recent'" />
       <TrashView v-else-if="view === 'trash'" />
@@ -21,24 +22,31 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { useDocumentStore } from '@/stores/document'
+import { useWikiStore } from '@/stores/wiki'
 import SpaceSidebar from './components/SpaceSidebar.vue'
 import DocList from './components/DocList.vue'
 import SearchBar from './components/SearchBar.vue'
+import WikiHome from './components/WikiHome.vue'
 import StarredView from './views/StarredView.vue'
 import RecentView from './views/RecentView.vue'
 import TrashView from './TrashView.vue'
 
-type ViewMode = 'space' | 'starred' | 'recent' | 'trash'
+type ViewMode = 'wiki' | 'space' | 'starred' | 'recent' | 'trash'
 
 const store = useDocumentStore()
+const wikiStore = useWikiStore()
 const searchOpen = ref(false)
-const view = ref<ViewMode>('space')
+const view = ref<ViewMode>('wiki')
 const contentShifted = ref(false)
 
 onMounted(async () => {
+  await wikiStore.loadWikis()
   await store.loadSpaces()
   await store.loadStarred()
-  if (store.currentSpaceId) {
+  if (wikiStore.currentWikiId) {
+    view.value = 'wiki'
+  } else if (store.currentSpaceId) {
+    view.value = 'space'
     await store.loadDocuments(store.currentSpaceId)
   }
 })
@@ -48,6 +56,15 @@ watch(
   async (id) => {
     if (id && view.value === 'space') {
       await store.loadDocuments(id)
+    }
+  },
+)
+
+watch(
+  () => wikiStore.currentWikiId,
+  (id) => {
+    if (id && view.value !== 'wiki') {
+      view.value = 'wiki'
     }
   },
 )

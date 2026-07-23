@@ -1,5 +1,6 @@
 use loco_rs::{Result, app::AppContext};
-use sea_orm::{DbBackend, Statement};
+use prost::Message;
+use sea_orm::{ConnectionTrait, DbBackend, Statement};
 use tracing::debug;
 
 use common::{UserBrief, common_error, id_gen, pb_decode};

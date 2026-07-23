@@ -1,4 +1,5 @@
 use loco_rs::{Result, app::AppContext};
+use prost::Message;
 use tracing::debug;
 
 use common::{UserBrief, pb_decode};

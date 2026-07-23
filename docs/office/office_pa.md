@@ -150,6 +150,6 @@ Phase A 由 4 个里程碑组成，覆盖企业级文档协作平台的**基础�
 
 - 全局路线图：[office_roadmap.md](./office_roadmap.md)
 - Phase A 技术方案：[office_pa_design.md](./office_pa_design.md)
-- M1 详细设计：[office_pa_m1_design.md](./office_pa_m1_design.md)
+- M1 详细设计（已合并至技术方案）：[office_pa_design.md](./office_pa_design.md#10-附录m1-编辑器详细设计)
 - 文件上传设计：[file_upload_design.md](./file_upload_design.md)
 - 实施进度：[todo.md](./todo.md)

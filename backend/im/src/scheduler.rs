@@ -1,6 +1,6 @@
 use loco_rs::{Error, Result, app::AppContext};
 use prost::Message;
-use sea_orm::DbBackend;
+use sea_orm::{ConnectionTrait, DbBackend, Statement};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
@@ -8,7 +8,7 @@ use tracing::{debug, error};
 
 use common::time::current_ms;
 use common::{UserBrief, common_error, id_gen, pb_decode};
-use proto::idl::{command::Command, entity, error::ErrorCode, timer};
+use proto::idl::{command::Command, entity, error::ErrorCode, message, timer};
 
 /// Schedule a message for future delivery (M5-E.7)
 pub(crate) async fn schedule_message(
@@ -152,8 +152,8 @@ impl SchedulerService {
         }
     }
 
-    pub fn set_ctx(&self, ctx: AppContext) {
-        let mut guard = self.ctx.blocking_lock();
+    pub async fn set_ctx(&self, ctx: AppContext) {
+        let mut guard = self.ctx.lock().await;
         *guard = Some(ctx);
     }
 
@@ -201,12 +201,14 @@ impl SchedulerService {
                 };
 
                 // Construct a send-message packet
-                let send_req = entity::SendMessageRequest {
-                    chat_id,
-                    tpy: tpy as i32,
-                    content: content.clone(),
+                let send_req = message::SendMessageRequest {
                     client_id: id,
-                    ..Default::default()
+                    message: Some(entity::Message {
+                        chat_id,
+                        tpy: tpy as i32,
+                        content: content.clone(),
+                        ..Default::default()
+                    }),
                 };
 
                 let packet = entity::Packet {

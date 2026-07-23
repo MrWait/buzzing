@@ -16,6 +16,7 @@ export interface SlashMenuItem {
 
 export function buildSlashItems(schema: Schema, triggerImageUpload?: () => void): SlashMenuItem[] {
   const { nodes } = schema
+  const canInsert = (name: string) => !!nodes[name]
   return [
     { label: '正文', description: '普通文本', icon: 'Aa', execute: (state, d) => setBlockType(nodes.paragraph)(state, d) },
     { label: '标题 1', description: '大标题', icon: 'H1', execute: (state, d) => setBlockType(nodes.heading, { level: 1 })(state, d) },
@@ -49,6 +50,32 @@ export function buildSlashItems(schema: Schema, triggerImageUpload?: () => void)
       triggerImageUpload?.()
       return true
     }},
+    ...(canInsert('toggle') ? [{
+      label: '折叠块', description: '可折叠展开的内容块', icon: '▶', execute: (state: EditorState, d: (tr: import('prosemirror-state').Transaction) => void) => {
+        const p = nodes.paragraph.create()
+        const toggleNode = nodes.toggle.create({ collapsed: false }, Fragment.from(p))
+        d(state.tr.replaceSelectionWith(toggleNode))
+        return true
+      },
+    }] : []),
+    ...(canInsert('callout') ? [{
+      label: '标注', description: '信息/警告/错误/成功', icon: '💬', execute: (state: EditorState, d: (tr: import('prosemirror-state').Transaction) => void) => {
+        const p = nodes.paragraph.create()
+        const calloutNode = nodes.callout.create({ calloutType: 'info' }, Fragment.from(p))
+        d(state.tr.replaceSelectionWith(calloutNode))
+        return true
+      },
+    }] : []),
+    ...(canInsert('columns') ? [{
+      label: '分栏', description: '2 栏布局', icon: '▮▮', execute: (state: EditorState, d: (tr: import('prosemirror-state').Transaction) => void) => {
+        const { columns, column, paragraph } = nodes
+        const col1 = column.create(undefined, Fragment.from(paragraph.create()))
+        const col2 = column.create(undefined, Fragment.from(paragraph.create()))
+        const colsNode = columns.create({ count: 2 }, Fragment.from([col1, col2]))
+        d(state.tr.replaceSelectionWith(colsNode))
+        return true
+      },
+    }] : []),
   ]
 }
 

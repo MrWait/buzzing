@@ -2,6 +2,7 @@ import type { MarkSpec, NodeSpec } from 'prosemirror-model'
 import { Schema, Fragment } from 'prosemirror-model'
 import { EditorState, Plugin } from 'prosemirror-state'
 import type { Plugin as PluginType } from 'prosemirror-state'
+import type { NodeViewConstructor } from 'prosemirror-view'
 import { EditorView } from 'prosemirror-view'
 import { keymap } from 'prosemirror-keymap'
 import { setBlockType, toggleMark } from 'prosemirror-commands'
@@ -17,7 +18,7 @@ import { shallowRef, type Ref } from 'vue'
 import { createToolbarPlugin } from './useToolbarState'
 import { createBlockMenuPlugin } from './useBlockMenu'
 
-function buildSchema(): Schema {
+function buildSchema(extraNodes?: Record<string, NodeSpec>): Schema {
   const customNodes: Record<string, NodeSpec> = {
     doc: { content: 'block+' },
     paragraph: {
@@ -64,6 +65,16 @@ function buildSchema(): Schema {
         title: (dom as HTMLElement).getAttribute('title'),
       })}],
     },
+    mention: {
+      inline: true, group: 'inline', atom: true,
+      attrs: { id: {}, mention_type: { default: 'user' }, label: {} },
+      toDOM: node => ['span', { class: 'mention', 'data-mention-id': node.attrs.id, 'data-mention-type': node.attrs.mention_type }, '@' + node.attrs.label],
+      parseDOM: [{ tag: 'span.mention', getAttrs: (dom: unknown) => ({
+        id: (dom as HTMLElement).getAttribute('data-mention-id'),
+        mention_type: (dom as HTMLElement).getAttribute('data-mention-type') || 'user',
+        label: (dom as HTMLElement).textContent?.replace(/^@/, '') || '',
+      })}],
+    },
     hardBreak: {
       inline: true, group: 'inline',
       toDOM: () => ['br'],
@@ -95,6 +106,7 @@ function buildSchema(): Schema {
       toDOM: node => ['li', { 'data-type': 'taskItem', 'data-checked': node.attrs.checked ? 'true' : null }, 0],
     },
     ...tableNodes({ tableGroup: 'block', cellContent: 'block+', cellAttributes: {} }),
+    ...(extraNodes ?? {}),
   }
 
   const marks: Record<string, MarkSpec> = {
@@ -191,6 +203,7 @@ function buildPlugins(
   type: XmlFragment,
   provider: WebsocketProvider,
   callbacks: EditorCallbacks,
+  extraPlugins?: PluginType[],
 ): PluginType[] {
   const { marks, nodes } = schema
   return [
@@ -243,6 +256,7 @@ function buildPlugins(
     taskItemClickHandler(),
     createToolbarPlugin(),
     createBlockMenuPlugin(),
+    ...(extraPlugins ?? []),
     ...exampleSetup({ schema, history: false, menuBar: false }),
   ]
 }
@@ -257,23 +271,29 @@ export function useEditorSchema(
   provider: WebsocketProvider,
   editorContainer: Ref<HTMLDivElement | null>,
   callbacks: EditorCallbacks = {},
-  options: { editable?: Ref<boolean> } = {},
+  options: {
+    editable?: Ref<boolean>;
+    extraPlugins?: PluginType[];
+    extraNodes?: Record<string, NodeSpec>;
+    nodeViews?: Record<string, NodeViewConstructor>;
+  } = {},
 ) {
   // 必须使用 shallowRef：EditorView 内部大量依赖引用相等 (===) 判断
   // (例如 ContentMatch.empty 单例、mark.type 单例、NodeType 单例等)，
   // 若走 deep reactive 会被包成 Proxy，破坏这些身份比较，导致
   // AddMarkStep 等基于 `node.isAtom` 的判定失效。
   const editorView = shallowRef<EditorView | null>(null)
-  const schema = buildSchema()
+  const schema = buildSchema(options.extraNodes)
 
   const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
 
   function mount() {
     if (!editorContainer.value || editorView.value) return
-    const plugins = buildPlugins(schema, type, provider, callbacks)
+    const plugins = buildPlugins(schema, type, provider, callbacks, options.extraPlugins)
     const state = EditorState.create({ schema, plugins })
     editorView.value = new EditorView(editorContainer.value, {
       state,
+      nodeViews: options.nodeViews,
       editable: () => options.editable?.value ?? true,
       handlePaste: (_view, event) => {
         const file = event.clipboardData?.files?.[0]

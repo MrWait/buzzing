@@ -1,5 +1,6 @@
 use loco_rs::{Result, app::AppContext};
-use sea_orm::{DbBackend, Statement, JsonValue};
+use prost::Message;
+use sea_orm::{ConnectionTrait, DbBackend, Statement};
 use tracing::debug;
 
 use common::{UserBrief, common_error, pb_decode};
@@ -56,7 +57,7 @@ pub(crate) async fn search_messages(
 
     let keyword = req.keyword.trim();
     if keyword.is_empty() {
-        return Ok((ErrorCode::ErrorInvalidParam as i32, search::SearchMessagesResponse::default().encode_to_vec()));
+        return Ok((ErrorCode::ErrorParamInvalid as i32, search::SearchMessagesResponse::default().encode_to_vec()));
     }
 
     let (page, page_size, offset) = paginate(req.page, req.page_size);
@@ -81,7 +82,7 @@ pub(crate) async fn search_messages(
           AND ($7 = 0 OR m.created_at <= to_timestamp($7::double precision / 1000))
         "#
     );
-    let total_row: JsonValue = ctx.db.query_one(Statement::from_sql_and_values(
+    let total_row = ctx.db.query_one(Statement::from_sql_and_values(
         DbBackend::Postgres,
         &count_sql,
         vec![
@@ -95,7 +96,7 @@ pub(crate) async fn search_messages(
         ],
     )).await.map_err(|e| common_error(&format!("search messages count error: {e}")))?
         .ok_or_else(|| common_error("search messages count no result"))?;
-    let total: i32 = total_row["total"].as_i64().unwrap_or(0) as i32;
+    let total: i32 = total_row.try_get_by::<i64, _>("total").unwrap_or(0) as i32;
 
     // Data query
     let data_sql = format!(
@@ -174,7 +175,7 @@ pub(crate) async fn search_chats(
 
     let keyword = req.keyword.trim();
     if keyword.is_empty() {
-        return Ok((ErrorCode::ErrorInvalidParam as i32, search::SearchChatsResponse::default().encode_to_vec()));
+        return Ok((ErrorCode::ErrorParamInvalid as i32, search::SearchChatsResponse::default().encode_to_vec()));
     }
 
     let (page, page_size, offset) = paginate(req.page, req.page_size);
@@ -184,13 +185,13 @@ pub(crate) async fn search_chats(
         WHERE c.name % $1
           AND c.id IN (SELECT entity_id FROM feeds WHERE user_id = $2 AND entity_type = 2 AND status = 0)
     "#;
-    let total_row: JsonValue = ctx.db.query_one(Statement::from_sql_and_values(
+    let total_row = ctx.db.query_one(Statement::from_sql_and_values(
         DbBackend::Postgres,
         count_sql,
         vec![keyword.into(), brief.id.into()],
     )).await.map_err(|e| common_error(&format!("search chats count error: {e}")))?
         .ok_or_else(|| common_error("search chats count no result"))?;
-    let total: i32 = total_row["total"].as_i64().unwrap_or(0) as i32;
+    let total: i32 = total_row.try_get_by::<i64, _>("total").unwrap_or(0) as i32;
 
     let data_sql = r#"
         SELECT c.id, c.r#type, c.status, c.name, c.owner_id, c.peer_a_id, c.peer_b_id,
@@ -215,7 +216,7 @@ pub(crate) async fn search_chats(
         let name: String = row.try_get("", "name").unwrap_or_default();
         let hl = highlight(&name, keyword);
         let cmv_bytes: Vec<u8> = row.try_get("", "cmv").unwrap_or_default();
-        let member_ids = crate::models::Cmv::from(cmv_bytes).ids();
+        let member_ids = crate::models::Cmv::from(&cmv_bytes)?.ids();
 
         let create_at: i64 = row.try_get::<chrono::DateTime<chrono::Utc>>("", "created_at")
             .ok().map(|t| t.timestamp_millis()).unwrap_or(0);
@@ -267,7 +268,7 @@ pub(crate) async fn search_users(
 
     let keyword = req.keyword.trim();
     if keyword.is_empty() {
-        return Ok((ErrorCode::ErrorInvalidParam as i32, search::SearchUsersResponse::default().encode_to_vec()));
+        return Ok((ErrorCode::ErrorParamInvalid as i32, search::SearchUsersResponse::default().encode_to_vec()));
     }
 
     let (page, page_size, offset) = paginate(req.page, req.page_size);
@@ -276,13 +277,13 @@ pub(crate) async fn search_users(
         SELECT COUNT(*) AS total FROM users
         WHERE name % $1 AND tenant_id = $2
     "#;
-    let total_row: JsonValue = ctx.db.query_one(Statement::from_sql_and_values(
+    let total_row = ctx.db.query_one(Statement::from_sql_and_values(
         DbBackend::Postgres,
         count_sql,
         vec![keyword.into(), brief.tenant_id.into()],
     )).await.map_err(|e| common_error(&format!("search users count error: {e}")))?
         .ok_or_else(|| common_error("search users count no result"))?;
-    let total: i32 = total_row["total"].as_i64().unwrap_or(0) as i32;
+    let total: i32 = total_row.try_get_by::<i64, _>("total").unwrap_or(0) as i32;
 
     let data_sql = r#"
         SELECT id, name, status, tenant_id, avatar, dept_id,
@@ -334,7 +335,7 @@ pub(crate) async fn search_files(
 
     let keyword = req.keyword.trim();
     if keyword.is_empty() {
-        return Ok((ErrorCode::ErrorInvalidParam as i32, search::SearchFilesResponse::default().encode_to_vec()));
+        return Ok((ErrorCode::ErrorParamInvalid as i32, search::SearchFilesResponse::default().encode_to_vec()));
     }
 
     let (page, page_size, offset) = paginate(req.page, req.page_size);
@@ -343,13 +344,13 @@ pub(crate) async fn search_files(
         SELECT COUNT(*) AS total FROM files
         WHERE file_name % $1 AND deleted_at IS NULL
     "#;
-    let total_row: JsonValue = ctx.db.query_one(Statement::from_sql_and_values(
+    let total_row = ctx.db.query_one(Statement::from_sql_and_values(
         DbBackend::Postgres,
         count_sql,
         vec![keyword.into()],
     )).await.map_err(|e| common_error(&format!("search files count error: {e}")))?
         .ok_or_else(|| common_error("search files count no result"))?;
-    let total: i32 = total_row["total"].as_i64().unwrap_or(0) as i32;
+    let total: i32 = total_row.try_get_by::<i64, _>("total").unwrap_or(0) as i32;
 
     let data_sql = r#"
         SELECT id, user_id, file_name, mime_type, file_size, storage_key, created_at,
@@ -402,7 +403,7 @@ pub(crate) async fn global_search(
 
     let keyword = req.keyword.trim().to_string();
     if keyword.is_empty() {
-        return Ok((ErrorCode::ErrorInvalidParam as i32, search::GlobalSearchResponse::default().encode_to_vec()));
+        return Ok((ErrorCode::ErrorParamInvalid as i32, search::GlobalSearchResponse::default().encode_to_vec()));
     }
 
     let limit = req.page_size.max(1).min(20);
