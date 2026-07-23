@@ -75,6 +75,17 @@ impl DocumentModel {
             .await?)
     }
 
+    /// 按 ID 批量查询
+    pub async fn get_by_ids(
+        db: &DatabaseConnection,
+        ids: &[i64],
+    ) -> ModelResult<Vec<Model>> {
+        Ok(Entity::find()
+            .filter(Column::Id.is_in(ids.iter().copied()))
+            .all(db)
+            .await?)
+    }
+
     /// 超过 `days` 天的回收站文档 (定时 purge 使用)
     pub async fn list_expired_trashed(
         db: &DatabaseConnection,

@@ -1,6 +1,6 @@
 use loco_rs::{Result, app::AppContext};
 use prost::Message;
-use sea_orm::DbBackend;
+use sea_orm::{ConnectionTrait, DbBackend, Statement};
 use tracing::debug;
 
 use common::time::current_ms;
@@ -17,7 +17,7 @@ fn extract_text_for_translation(content: &[u8], tpy: i32) -> Result<String> {
         11 => {
             let text = entity::MessageRichText::decode(content)
                 .map_err(|e| common_error(&format!("decode richtext error: {e}")))?;
-            text.text
+            text.delta
         }
         13 => {
             let md = entity::MessageMarkdown::decode(content)

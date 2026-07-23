@@ -147,7 +147,7 @@ pub async fn permission(
     let role = crate::permission::resolve_role(&ctx, claim.id, id).await?;
     match role {
         Some(r) => format::json(serde_json::json!({
-            "role": r.as_i32(),
+            "role": r as i32,
             "role_label": r.label(),
         })),
         None => Err(Error::Unauthorized("no access to doc".into())),
@@ -445,4 +445,41 @@ fn build_tree(docs: Vec<crate::models::documents::Model>) -> Vec<TreeNode> {
         }
     }
     roots.into_iter().map(to_pub).collect()
+}
+
+/// M8.1 文档预览（供 IM 卡片使用）
+#[debug_handler]
+pub async fn preview(
+    auth: auth::JWT,
+    Path(id): Path<i64>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
+    let claim = UserBrief::from_string(&auth.claims.pid)?;
+    crate::permission::require_role(&ctx, claim.id, id, crate::permission::Role::Viewer).await?;
+    let doc = DocumentModel::get_by_id(&ctx.db, id)
+        .await?
+        .ok_or(Error::NotFound)?;
+    use sea_orm::{DbBackend, FromQueryResult, Statement};
+    #[derive(FromQueryResult, Serialize)]
+    struct CreatorRow {
+        id: i64,
+        name: String,
+        avatar: Option<String>,
+    }
+    let creator = CreatorRow::find_by_statement(Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        "SELECT id, name, avatar FROM \"users\" WHERE id = $1",
+        vec![doc.creator.into()],
+    ))
+    .one(&ctx.db)
+    .await?;
+    let excerpt = doc.plain_text.as_deref().unwrap_or("").chars().take(200).collect::<String>();
+    format::json(serde_json::json!({
+        "id": doc.id.to_string(),
+        "title": doc.title,
+        "icon": doc.icon,
+        "excerpt": excerpt,
+        "updated_at": doc.updated_at.to_rfc3339(),
+        "creator": creator,
+    }))
 }

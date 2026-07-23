@@ -49,9 +49,12 @@ pub struct AppIm;
 #[async_trait::async_trait]
 impl ExternApp for AppIm {
     fn serve(&self, ctx: &AppContext) {
-        let svc = scheduler::SchedulerService::new();
-        svc.set_ctx(ctx.clone());
-        tokio::spawn(svc.run());
+        let ctx = ctx.clone();
+        tokio::spawn(async move {
+            let svc = scheduler::SchedulerService::new();
+            svc.set_ctx(ctx).await;
+            svc.run().await;
+        });
     }
 
     fn handled_command(&self) -> Vec<i32> {

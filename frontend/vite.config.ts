@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath, URL } from 'node:url'
 
 // 需要 dedupe 的 ProseMirror 相关包
@@ -26,7 +27,52 @@ const PROSEMIRROR_PKGS = [
 
 export default defineConfig({
   base: '/',
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https?:\/\/.*\/api\/office\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'office-api-cache',
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
+          {
+            urlPattern: /^https?:\/\/.*\/office\/ws.*/i,
+            handler: 'NetworkOnly',
+            options: { cacheName: 'office-ws' },
+          },
+        ],
+      },
+      manifest: {
+        name: 'Buzzing Office',
+        short_name: 'Buzzing',
+        description: 'Buzzing 协作文档编辑器',
+        theme_color: '#1565c0',
+        background_color: '#f0f0f0',
+        display: 'standalone',
+        scope: '/',
+        start_url: '/',
+        icons: [
+          {
+            src: '/pwa-192x192.svg',
+            sizes: '192x192',
+            type: 'image/svg+xml',
+          },
+          {
+            src: '/pwa-512x512.svg',
+            sizes: '512x512',
+            type: 'image/svg+xml',
+          },
+        ],
+      },
+    }),
+  ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

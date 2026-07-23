@@ -159,24 +159,30 @@ pub async fn generate_video_thumbnail(data: &[u8], ext: &str) -> Result<(Vec<u8>
         .await
         .map_err(|e| format!("write tmp file: {e}"))?;
 
-    let result = tokio::process::Command::new("ffmpeg")
-        .arg("-i")
-        .arg(&input_path)
-        .arg("-ss")
-        .arg("00:00:01")
-        .arg("-vframes")
-        .arg("1")
-        .arg("-q:v")
-        .arg("2")
-        .arg("-y")
-        .arg(&output_path)
-        .output()
-        .await;
+    let ip = input_path.clone();
+    let op = output_path.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        std::process::Command::new("ffmpeg")
+            .arg("-i")
+            .arg(&ip)
+            .arg("-ss")
+            .arg("00:00:01")
+            .arg("-vframes")
+            .arg("1")
+            .arg("-q:v")
+            .arg("2")
+            .arg("-y")
+            .arg(&op)
+            .output()
+    })
+    .await
+    .map_err(|e| format!("spawn ffmpeg: {e}"))?
+    .map_err(|e| format!("ffmpeg failed: {e}"))?;
 
     let _ = tokio::fs::remove_file(&input_path).await;
 
     match result {
-        Ok(out) if out.status.success() => {
+        ref out if out.status.success() => {
             let thumb_data = tokio::fs::read(&output_path)
                 .await
                 .map_err(|e| format!("read thumb: {e}"))?;
@@ -187,10 +193,9 @@ pub async fn generate_video_thumbnail(data: &[u8], ext: &str) -> Result<(Vec<u8>
             };
             Ok((thumb_data, w, h))
         }
-        Ok(out) => {
+        out => {
             let stderr = String::from_utf8_lossy(&out.stderr);
             Err(format!("ffmpeg failed: {stderr}"))
         }
-        Err(e) => Err(format!("ffmpeg not available: {e}")),
     }
 }

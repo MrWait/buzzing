@@ -19,6 +19,9 @@ pub struct Model {
     pub color: Option<String>,
     pub sort_order: i32,
     pub archived_at: Option<DateTimeWithTimeZone>,
+    // M7 扩展：知识库归属
+    pub wiki_id: Option<i64>,
+    pub wiki_space_type: i16,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

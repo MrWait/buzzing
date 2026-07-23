@@ -12,7 +12,7 @@ use tokio_tungstenite::tungstenite::Message;
 use tracing::{debug, info, instrument, warn};
 use tungstenite::handshake::server::{ErrorResponse, Request, Response};
 
-use sea_orm::{DbBackend, Statement};
+use sea_orm::{ConnectionTrait, DbBackend, Statement};
 use common::{UserBrief, cost, pb_decode, rid, time::current_s};
 use proto::idl::{command, entity, error as idl_error};
 

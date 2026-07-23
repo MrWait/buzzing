@@ -200,3 +200,198 @@
   opacity: 0.6;
   text-decoration: line-through;
 }
+
+/* M8.3 @mention */
+.mention {
+  background: #e3f2fd;
+  color: #1565c0;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+.mention--doc {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+/* M9.1 Toggle */
+.ProseMirror .toggle {
+  margin: 0.5em 0;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.ProseMirror .toggle-icon {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 10px;
+  color: #888;
+  user-select: none;
+  flex-shrink: 0;
+  margin: 4px 0 0 4px;
+}
+.ProseMirror .toggle-icon:hover {
+  color: #333;
+}
+.ProseMirror .toggle-body {
+  padding: 4px 12px 8px 32px;
+}
+.ProseMirror .toggle.collapsed .toggle-body > :nth-child(n+1) {
+  display: none;
+}
+.ProseMirror .toggle.collapsed .toggle-body > :first-child {
+  display: block;
+}
+
+/* M9.1 Callout */
+.ProseMirror .callout {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  margin: 0.6em 0;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+.ProseMirror .callout-icon {
+  font-size: 18px;
+  line-height: 1.5;
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+}
+.ProseMirror .callout-body {
+  flex: 1;
+  min-width: 0;
+}
+.ProseMirror .callout-body p {
+  margin: 0.3em 0;
+}
+.ProseMirror .callout--info {
+  background: #e3f2fd;
+  border-color: #1565c0;
+}
+.ProseMirror .callout--warn {
+  background: #fff8e1;
+  border-color: #f9a825;
+}
+.ProseMirror .callout--error {
+  background: #ffebee;
+  border-color: #c62828;
+}
+.ProseMirror .callout--success {
+  background: #e8f5e9;
+  border-color: #2e7d32;
+}
+
+/* M9.1 Columns */
+.ProseMirror .columns {
+  display: flex;
+  gap: 16px;
+  margin: 0.6em 0;
+}
+.ProseMirror .column {
+  flex: 1;
+  min-width: 0;
+  border: 1px dashed #e0e0e0;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.ProseMirror .column p {
+  margin: 0.3em 0;
+}
+
+/* M9.4 Code Block Enhanced */
+.ProseMirror .code-block-wrapper {
+  margin: 0.6em 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #333;
+}
+.ProseMirror .code-block-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #2d2d2d;
+  border-bottom: 1px solid #444;
+}
+.ProseMirror .code-lang-select {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #555;
+  background: #3a3a3a;
+  color: #ccc;
+  outline: none;
+  cursor: pointer;
+}
+.ProseMirror .code-lang-select option {
+  background: #3a3a3a;
+  color: #ccc;
+}
+.ProseMirror .code-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.ProseMirror .code-copy-btn:hover {
+  background: #444;
+  color: #eee;
+}
+.ProseMirror .code-block-wrapper pre {
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  background: #1e1e1e;
+}
+.ProseMirror .code-block-wrapper code {
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  tab-size: 2;
+}
+
+/* M9.4 highlight.js theme override — dark theme */
+.ProseMirror .hljs {
+  background: transparent !important;
+}
+.ProseMirror .hljs-keyword { color: #569cd6; }
+.ProseMirror .hljs-string { color: #ce9178; }
+.ProseMirror .hljs-number { color: #b5cea8; }
+.ProseMirror .hljs-comment { color: #6a9955; font-style: italic; }
+.ProseMirror .hljs-function { color: #dcdcaa; }
+.ProseMirror .hljs-title { color: #dcdcaa; }
+.ProseMirror .hljs-params { color: #9cdcfe; }
+.ProseMirror .hljs-built_in { color: #4ec9b0; }
+.ProseMirror .hljs-literal { color: #569cd6; }
+.ProseMirror .hljs-type { color: #4ec9b0; }
+.ProseMirror .hljs-attr { color: #9cdcfe; }
+.ProseMirror .hljs-attribute { color: #9cdcfe; }
+.ProseMirror .hljs-selector-tag { color: #569cd6; }
+.ProseMirror .hljs-selector-id { color: #569cd6; }
+.ProseMirror .hljs-selector-class { color: #d7ba7d; }
+.ProseMirror .hljs-regexp { color: #d16969; }
+.ProseMirror .hljs-symbol { color: #569cd6; }
+.ProseMirror .hljs-variable { color: #9cdcfe; }
+.ProseMirror .hljs-template-variable { color: #9cdcfe; }
+.ProseMirror .hljs-deletion { color: #d16969; }
+.ProseMirror .hljs-addition { color: #b5cea8; }
+.ProseMirror .hljs-section { color: #ffd700; }
+.ProseMirror .hljs-link { color: #569cd6; }
+.ProseMirror .hljs-meta { color: #d4d4d4; }
+.ProseMirror .hljs-tag { color: #569cd6; }
+.ProseMirror .hljs-name { color: #569cd6; }

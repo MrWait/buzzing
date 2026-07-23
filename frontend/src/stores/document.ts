@@ -16,6 +16,8 @@ export const useDocumentStore = defineStore('document', () => {
   const trash = ref<TrashItemDto[]>([])
   const currentSpaceId = ref('')
   const starredSet = ref<Set<string>>(new Set())
+  // M7 知识库过滤
+  const filter = ref<{ wiki_id?: string }>({})
 
   async function loadSpaces() {
     const res = await spacesApi.list()
@@ -132,6 +134,10 @@ export const useDocumentStore = defineStore('document', () => {
     trash.value = res.data
   }
 
+  function setFilter(f: { wiki_id?: string }) {
+    filter.value = f
+  }
+
   async function reportVisit(id: string) {
     try {
       await docsApi.visit(id)
@@ -142,13 +148,13 @@ export const useDocumentStore = defineStore('document', () => {
 
   return {
     // state
-    spaces, documents, currentTree, starred, recent, trash, currentSpaceId, starredSet,
+    spaces, documents, currentTree, starred, recent, trash, currentSpaceId, starredSet, filter,
     // spaces
     loadSpaces, createSpace, updateSpace, archiveSpace, deleteSpace,
     // documents
     loadDocuments, loadTree, createDocument, deleteDocument, restoreDocument, purgeDocument,
     moveDocument, duplicateDocument, reportVisit,
     // views
-    loadStarred, toggleStar, loadRecent, loadTrash,
+    loadStarred, toggleStar, loadRecent, loadTrash, setFilter,
   }
 })

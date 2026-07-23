@@ -318,13 +318,14 @@ impl From<entity::Chat> for ChatModel {
             extra,
             description: value.description,
             join_mode: value.join_mode as i16,
-            global_mute_until: if value.global_mute_until > 0 {
+global_mute_until: if value.global_mute_until > 0 {
                 Some(DateTimeWithTimeZone::from(
                     chrono::DateTime::<chrono::Utc>::from_timestamp_millis(value.global_mute_until).unwrap()
                 ))
             } else {
                 None
             },
+            allow_at_all: false,
         })
     }
 }
