@@ -32,6 +32,13 @@ files = [
     "mute.proto",
     "invite.proto",
     "join_request.proto",
+    "pin.proto",
+    "thread.proto",
+    "presence.proto",
+    "typing.proto",
+    "search.proto",
+    "timer.proto",
+    "translate.proto",
 ]
 
 class bcolors:

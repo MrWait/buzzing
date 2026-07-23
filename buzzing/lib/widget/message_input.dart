@@ -6,7 +6,7 @@ import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
-import 'package:buzzing/models/idl/im_ext.pb.dart';
+import 'package:buzzing/models/idl/timer.pb.dart';
 import 'package:buzzing/models/idl/setting.pb.dart';
 import 'package:buzzing/page/im/location_picker.dart';
 import 'package:buzzing/provider/im_provider.dart';
@@ -246,17 +246,13 @@ class MessageInput extends ConsumerWidget {
       return;
     }
 
-    // Schedule the message: for text messages, get content from the input
-    final inputNotifier = context.findAncestorStateOfType<MessageInput>();
-    if (inputNotifier == null) return;
-
     // Build a minimal ScheduleMessageRequest and send via SDK
     final req = ScheduleMessageRequest(
-      chatId: im.chatId.toInt(),
-      sendAtMs: sendAtMs,
+      chatId: im.chatId,
+      sendAtMs: Int64(sendAtMs),
       tpy: MessageType.TEXT.value,
       content: Uint8List(0), // content will be filled via SDK
-      clientId: DateTime.now().microsecondsSinceEpoch,
+      clientId: Int64(DateTime.now().microsecondsSinceEpoch),
     );
     try {
       await im.sdk.invokeAsync(Command.SCHEDULE_MESSAGE, req.writeToBuffer());

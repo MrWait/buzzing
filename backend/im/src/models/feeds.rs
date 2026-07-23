@@ -1,6 +1,6 @@
 use loco_rs::{model::ModelResult, prelude::*};
 use sea_orm::{Iterable, QueryOrder, entity::prelude::*};
-use sea_query::{BinOper, OnConflict, extension::postgres::PgExpr};
+use sea_query::{OnConflict, extension::postgres::PgExpr};
 use std::collections::HashSet;
 use tracing::debug;
 

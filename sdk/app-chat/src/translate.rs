@@ -1,23 +1,34 @@
 use anyhow::Result;
-use prost::Message;
+use prost::Message as _;
+use tracing::debug;
 
-use proto::idl::{command::Command, translate};
+use proto::idl::{command::Command, error::ErrorCode, translate};
+use service::network::common_request;
 
 use crate::AppChat;
 
 impl AppChat {
-    pub async fn translate_message(&self, req: &translate::TranslateMessageRequest) -> Result<translate::TranslateMessageResponse> {
-        let data = self
-            .invoke(Command::TranslateMessage as i32, req.encode_to_vec())
-            .await?;
-        Ok(translate::TranslateMessageResponse::decode(data.as_slice())?)
+    pub(crate) async fn translate_message(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
+        let req = translate::TranslateMessageRequest::decode(params)?;
+        debug!("translate message, req: {req:?}");
+        let ack = common_request::<translate::TranslateMessageResponse>(
+            Command::TranslateMessage as i32,
+            req.encode_to_vec(),
+            None,
+        )
+        .await?;
+        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
     }
 
-    pub async fn get_translation_languages(&self) -> Result<translate::GetTranslationLanguagesResponse> {
-        let req = translate::GetTranslationLanguagesRequest {};
-        let data = self
-            .invoke(Command::GetTranslationLanguages as i32, req.encode_to_vec())
-            .await?;
-        Ok(translate::GetTranslationLanguagesResponse::decode(data.as_slice())?)
+    pub(crate) async fn get_translation_languages(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
+        let req = translate::GetTranslationLanguagesRequest::decode(params)?;
+        debug!("get translation languages, req: {req:?}");
+        let ack = common_request::<translate::GetTranslationLanguagesResponse>(
+            Command::GetTranslationLanguages as i32,
+            req.encode_to_vec(),
+            None,
+        )
+        .await?;
+        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
     }
 }
