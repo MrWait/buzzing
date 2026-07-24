@@ -1,13 +1,17 @@
+use std::collections::HashSet;
+use std::net::SocketAddr;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::{Arc, OnceLock};
+use std::time::Duration;
+
 use dashmap::DashMap;
 use futures_util::{SinkExt, StreamExt};
 use loco_rs::{Error, Result, app::AppContext, auth};
 use prost::Message as _;
-use std::collections::HashSet;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, OnceLock};
-use std::{net::SocketAddr, time::Duration};
+use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
+use tokio_rustls::TlsAcceptor;
 use tokio_tungstenite::tungstenite::Message;
 use tracing::{debug, info, instrument, warn};
 use tungstenite::handshake::server::{ErrorResponse, Request, Response};
@@ -147,12 +151,15 @@ impl<'a> tungstenite::handshake::server::Callback for TokenVerify<'a> {
 }
 
 #[instrument(skip(ctx, raw_stream))]
-async fn handle_client(
+async fn handle_client<S>(
     ctx: &AppContext,
-    raw_stream: TcpStream,
+    raw_stream: S,
     addr: SocketAddr,
     conn_id: i64,
-) -> Result<()> {
+) -> Result<()>
+where
+    S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + 'static,
+{
     debug!("incoming tcp connection from: {:?}", addr);
     let (tx, mut rx) = unbounded_channel::<ClientCommand>();
     let mut detail = ConnectionDetail {
@@ -338,15 +345,53 @@ async fn handle_client(
     Ok(())
 }
 
+fn load_tls_config(ctx: &AppContext) -> Result<TlsAcceptor> {
+    use rustls::crypto::ring;
+    use std::fs::File;
+    use std::io::BufReader;
+    let settings = ctx
+        .config
+        .settings
+        .as_ref()
+        .and_then(|v| serde_json::from_value::<common::Settings>(v.clone()).ok())
+        .expect("config settings not found");
+
+    let cert_path = settings.cert.expect("config cert not found");
+    let key_path = settings.cert_key.expect("config cert_key not found");
+
+    let certs = rustls_pemfile::certs(&mut BufReader::new(File::open(&cert_path)?))
+        .collect::<Result<Vec<CertificateDer>, _>>()?;
+    let key = rustls_pemfile::private_key(&mut BufReader::new(File::open(&key_path)?))?
+        .ok_or_else(|| Error::Message("no private key found".into()))?;
+
+    let config = rustls::ServerConfig::builder_with_provider(ring::default_provider().into())
+        .with_protocol_versions(&[&rustls::version::TLS13])
+        .map_err(|e| Error::Message(e.to_string()))?
+        .with_no_client_auth()
+        .with_single_cert(certs, key)
+        .map_err(|e| Error::Message(e.to_string()))?;
+
+    Ok(TlsAcceptor::from(Arc::new(config)))
+}
+
 pub(crate) async fn server(ctx: &AppContext) -> Result<()> {
     debug!("start websocket server");
+    let acceptor = load_tls_config(ctx)?;
     let server = TcpListener::bind("0.0.0.0:8889").await?;
     let mut conn_id: i64 = 0;
     while let Ok((stream, addr)) = server.accept().await {
         let context = ctx.clone();
+        let acceptor = acceptor.clone();
         conn_id += 1;
         tokio::spawn(async move {
-            let _ = handle_client(&context, stream, addr, conn_id).await;
+            match acceptor.accept(stream).await {
+                Ok(tls_stream) => {
+                    let _ = handle_client(&context, tls_stream, addr, conn_id).await;
+                }
+                Err(e) => {
+                    warn!("tls accept error: {:?}", e);
+                }
+            }
         });
     }
     debug!("websocket server stop");
@@ -354,8 +399,8 @@ pub(crate) async fn server(ctx: &AppContext) -> Result<()> {
 }
 
 #[allow(dead_code)]
-pub(crate) fn start_server(_ctx: &AppContext) {
-    let ctx = _ctx.clone();
+pub(crate) fn start_server(ctx: &AppContext) {
+    let ctx = ctx.clone();
     tokio::spawn(async move {
         let _ = server(&ctx).await;
     });

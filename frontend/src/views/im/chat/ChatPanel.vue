@@ -302,8 +302,6 @@ async function uploadAndSend(file: File, tpy: number) {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
     const data = res.data
-    const refMsg = im.replyTarget
-    const refId = refMsg?.id || 0
     if (tpy === 2) {
       const thumbUrl = data.thumbnail_url || data.url
       await im.sendImageMessage(chatId.value, data.id, data.url, file.name, file.type, file.size, thumbUrl)
@@ -380,10 +378,6 @@ function formatTime(ms: number): string {
   if (!ms) return ''
   const d = new Date(ms)
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-}
-
-function getUserName(userId: number): string {
-  return im.users.get(userId)?.name || `用户${userId}`
 }
 
 function scrollToMessage(msgId: number) {
