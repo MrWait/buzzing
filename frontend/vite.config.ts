@@ -94,6 +94,11 @@ export default defineConfig({
         ws: true,
         secure: false,
       },
+      '/ws': {
+        target: 'wss://localhost:8889',
+        ws: true,
+        secure: false,
+      },
     },
   },
 })

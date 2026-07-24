@@ -277,11 +277,45 @@ pub(crate) async fn chat_add_chatters(
             let _ = FeedModel::create_by_chat(&ctx.db, &c.chat, &req.ids).await;
         }
     }
+    // Bot 事件触发：检查添加的成员中是否有 Bot
+    let added_ids = req.ids.clone();
+    if !added_ids.is_empty() {
+        let ctx_clone = ctx.clone();
+        let chat_id = req.chat_id;
+        tokio::spawn(async move {
+            if let Err(e) = trigger_bot_added_event(&ctx_clone, chat_id, &added_ids).await {
+                tracing::debug!("trigger bot added event error: {e}");
+            }
+        });
+    }
+
     if let Some(ids) = user_ids {
         let _ = crate::feed::update_feed_status(ctx, req.chat_id, &ids, None).await;
     }
     debug!("chat add chatters done");
     Ok((0, vec![]))
+}
+
+/// Bot 被加入群聊事件
+async fn trigger_bot_added_event(ctx: &AppContext, chat_id: i64, added_ids: &[i64]) -> Result<()> {
+    let bots = crate::message::find_bot_users(ctx, added_ids).await?;
+    if bots.is_empty() {
+        return Ok(());
+    }
+    let hub = match common::BizHub::get() {
+        Ok(h) => h,
+        Err(_) => return Ok(()),
+    };
+    for (_bot_user_id, app_db_id, app_id_str) in bots {
+        let payload = serde_json::json!({
+            "chat_id": chat_id,
+        });
+        let payload_str = serde_json::to_string(&payload).unwrap_or_default();
+        let _ = hub.openapp.dispatch_event(
+            ctx, app_db_id, &app_id_str, "im.group.added_bot", &payload_str,
+        ).await;
+    }
+    Ok(())
 }
 
 pub(crate) async fn chat_delete_chatters(
@@ -322,11 +356,45 @@ pub(crate) async fn chat_delete_chatters(
         Some(EntityStatus::DeletePending as i32),
     )
     .await;
+    // Bot 事件触发：检查移除的成员中是否有 Bot
+    let removed_ids = req.ids.clone();
+    if !removed_ids.is_empty() {
+        let ctx_clone = ctx.clone();
+        let chat_id = req.chat_id;
+        tokio::spawn(async move {
+            if let Err(e) = trigger_bot_removed_event(&ctx_clone, chat_id, &removed_ids).await {
+                tracing::debug!("trigger bot removed event error: {e}");
+            }
+        });
+    }
+
     if let Some(ids) = user_ids {
         let _ = crate::feed::update_feed_status(ctx, req.chat_id, &ids, None).await;
     }
     debug!("chat delete chatters done");
     Ok((0, vec![]))
+}
+
+/// Bot 被移出群聊事件
+async fn trigger_bot_removed_event(ctx: &AppContext, chat_id: i64, removed_ids: &[i64]) -> Result<()> {
+    let bots = crate::message::find_bot_users(ctx, removed_ids).await?;
+    if bots.is_empty() {
+        return Ok(());
+    }
+    let hub = match common::BizHub::get() {
+        Ok(h) => h,
+        Err(_) => return Ok(()),
+    };
+    for (_bot_user_id, app_db_id, app_id_str) in bots {
+        let payload = serde_json::json!({
+            "chat_id": chat_id,
+        });
+        let payload_str = serde_json::to_string(&payload).unwrap_or_default();
+        let _ = hub.openapp.dispatch_event(
+            ctx, app_db_id, &app_id_str, "im.group.removed_bot", &payload_str,
+        ).await;
+    }
+    Ok(())
 }
 
 pub(crate) async fn chat_update(

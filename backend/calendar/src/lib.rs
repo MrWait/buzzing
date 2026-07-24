@@ -97,4 +97,65 @@ impl BizCalendar for AppCalendar {
         calendar::create_user_default(ctx, user_id, tenant_id, user_name).await?;
         Ok(())
     }
+
+    async fn list_calendars(
+        &self,
+        ctx: &AppContext,
+        brief: &UserBrief,
+        _tenant_id: i64,
+    ) -> Result<Vec<entity::Calendar>> {
+        use crate::models::calendars::CalendarModel;
+        let mut list = CalendarModel::get_by_user_id(&ctx.db, brief.id).await?;
+        Ok(list.drain(..).map(|c| CalendarModel(c).into()).collect())
+    }
+
+    async fn list_events(
+        &self,
+        ctx: &AppContext,
+        _brief: &UserBrief,
+        calendar_id: i64,
+        start: i64,
+        end: i64,
+    ) -> Result<Vec<entity::Schedule>> {
+        use crate::models::schedules::ScheduleModel;
+        let mut list =
+            ScheduleModel::find_by_calendar_ids(&ctx.db, vec![calendar_id], start, end).await?;
+        Ok(list.drain(..).map(|s| ScheduleModel(s).into()).collect())
+    }
+
+    async fn create_event(
+        &self,
+        ctx: &AppContext,
+        brief: &UserBrief,
+        calendar_id: i64,
+        title: &str,
+        start_time: i64,
+        end_time: i64,
+        attendees: &[i64],
+    ) -> Result<i64> {
+        use crate::models::schedules::ScheduleModel;
+        use common::id_gen;
+        use common::time::current_ms;
+
+        let id = id_gen(None);
+        let now = current_ms() as i64;
+        let mut member_ids = attendees.to_vec();
+        if !member_ids.contains(&brief.id) {
+            member_ids.push(brief.id);
+        }
+        let schedule = entity::Schedule {
+            id,
+            calendar_id,
+            title: title.to_owned(),
+            start_time,
+            end_time,
+            owner: brief.id,
+            tenant_id: brief.tenant_id,
+            version: now,
+            member_ids,
+            ..Default::default()
+        };
+        ScheduleModel::create(&ctx.db, &[schedule]).await?;
+        Ok(id)
+    }
 }

@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 use crate::error::OpenAppError;
 use crate::middleware::AppBrief;
 use crate::services::auth;
+use crate::services::rate_limiter::TOKEN_RATE_LIMITER;
 
 #[derive(Deserialize)]
 pub struct TenantAccessTokenReq {
@@ -19,6 +20,11 @@ pub async fn tenant_access_token(
     State(ctx): State<AppContext>,
     Json(req): Json<TenantAccessTokenReq>,
 ) -> Result<Json<Value>> {
+    // Rate limit check
+    if !TOKEN_RATE_LIMITER.check(&req.app_id) {
+        return Ok(Json(json!({"code": 429, "message": "rate limit exceeded", "data": null})));
+    }
+
     let db = &ctx.db;
 
     let app = base::models::_entities::open_apps::Entity::find()

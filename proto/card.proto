@@ -1,0 +1,63 @@
+syntax = "proto3";
+package card;
+option go_package = "./proto";
+
+message CardHeader {
+  string title = 1;
+  string color = 2;
+}
+
+message CardText {
+  string content = 1;
+  bool markdown = 2;
+}
+
+message CardButton {
+  string text = 1;
+  string value = 2;
+  string style = 3;
+  string url = 4;
+}
+
+message CardImage {
+  string image_key = 1;
+  string alt = 2;
+  string title = 3;
+}
+
+message CardDivider {}
+
+message CardElement {
+  oneof element {
+    CardText text = 1;
+    CardButton button = 2;
+    CardImage image = 3;
+    CardDivider divider = 4;
+  }
+}
+
+message InteractiveCard {
+  CardHeader header = 1;
+  repeated CardElement elements = 2;
+  string template_id = 3;
+}
+
+message CardActionRequest {
+  int64 message_id = 1;
+  string action_value = 2;
+  int64 chat_id = 3;
+}
+
+message CardActionResponse {
+  bool success = 1;
+}
+
+message CardActionCallback {
+  string app_id = 1;
+  string action_value = 2;
+  int64 message_id = 3;
+  int64 user_id = 4;
+  int64 chat_id = 5;
+  string user_name = 6;
+  string message_content = 7;
+}

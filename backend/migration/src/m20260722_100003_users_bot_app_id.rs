@@ -11,7 +11,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(Users::Table)
-                    .add_column(big_integer(Users::BotAppId).null())
+                    .add_column(big_integer_null(Users::BotAppId))
                     .to_owned(),
             )
             .await?;

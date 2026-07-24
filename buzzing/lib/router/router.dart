@@ -11,6 +11,7 @@ import 'package:buzzing/page/chat/join_requests_page.dart';
 import 'package:buzzing/page/chat/invite_links_page.dart';
 import 'package:buzzing/page/office/office_view.dart';
 import 'package:buzzing/page/search/search_view.dart';
+import 'package:buzzing/page/openapp/openapp_list_page.dart';
 import 'package:buzzing/page/setting/settings_page.dart';
 import 'package:buzzing/page/splash/splash_view.dart';
 import 'package:buzzing/routes/app_routes.dart';
@@ -111,6 +112,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           ctx,
           state,
           JoinRequestsPage(chatId: Int64(int.parse(state.pathParameters['chatId']!))),
+        ),
+      ),
+      GoRoute(
+        path: AppRoute.OPEN_PLATFORM,
+        pageBuilder: (ctx, state) => _noTransitionPage(
+          ctx,
+          state,
+          OpenAppListPage(),
         ),
       ),
       GoRoute(

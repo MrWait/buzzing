@@ -17,6 +17,7 @@ pub struct Model {
     pub app_id: String,
     pub app_secret: String,
     pub scopes: Vec<String>,
+    pub redirect_uris: Vec<String>,
     pub owner_id: i64,
     pub status: i16,
     pub deleted_at: Option<DateTimeWithTimeZone>,

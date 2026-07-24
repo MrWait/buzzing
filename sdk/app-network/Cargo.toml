@@ -20,6 +20,7 @@ serde = { workspace = true }
 tungstenite = { workspace = true }
 tokio-tungstenite = { workspace = true }
 async-trait = { workspace = true }
+rustls = { workspace = true }
 
 base-db = { workspace = true }
 base-log = { workspace = true }

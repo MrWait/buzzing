@@ -161,4 +161,9 @@ enum Command {
     MEETING_SET_ROLE = 1807;
     MEETING_INVITE = 1808;
     MEETING_PUSH_UPDATE = 1809;
+
+    // Open Platform — Interactive Card (2001-2003)
+    CMD_CARD_ACTION  = 2001;
+    CMD_CARD_UPDATE  = 2002;
+    CMD_CARD_TEMPLATE = 2003;
 }
