@@ -352,6 +352,19 @@ pub(crate) async fn message_send(
             .await?;
     }
 
+    // Bot 事件触发：检查 chat 中是否有 Bot 用户
+    let msg_chat_id = message.chat_id;
+    let msg_id = message.id;
+    let msg_from_id = message.from_id;
+    let msg_content = message.content.clone();
+    let msg_type = message.tpy;
+    let ctx_clone = ctx.clone();
+    tokio::spawn(async move {
+        if let Err(e) = trigger_bot_message_event(&ctx_clone, msg_chat_id, msg_id, msg_from_id, msg_content, msg_type).await {
+            debug!("trigger bot event error: {e}");
+        }
+    });
+
     Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
 }
 
@@ -780,4 +793,86 @@ pub(crate) async fn message_delete(
 
     debug!("delete message done");
     Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+}
+
+// ─── Bot 事件触发 ─────────────────────────────────────────────
+
+/// 消息发送后，检查 chat 中是否有 Bot 用户，触发 im.message.receive 事件
+pub(crate) async fn trigger_bot_message_event(
+    ctx: &AppContext,
+    chat_id: i64,
+    message_id: i64,
+    from_id: i64,
+    content: Vec<u8>,
+    msg_type: i32,
+) -> Result<()> {
+    let member_ids = super::chat::chat_get_all_user_ids(ctx, chat_id).await?;
+    if member_ids.is_empty() {
+        return Ok(());
+    }
+
+    // 查询在线 Bot 用户
+    let bots = find_bot_users(ctx, &member_ids).await?;
+    if bots.is_empty() {
+        return Ok(());
+    }
+
+    let hub = match BizHub::get() {
+        Ok(h) => h,
+        Err(_) => return Ok(()),
+    };
+
+    for (bot_user_id, app_db_id, app_id_str) in bots {
+        let payload = serde_json::json!({
+            "message_id": message_id,
+            "chat_id": chat_id,
+            "chat_type": 2,
+            "sender": {
+                "user_id": from_id,
+            },
+            "msg_type": msg_type,
+            "content": serde_json::Value::Null,
+        });
+        let payload_str = serde_json::to_string(&payload).unwrap_or_default();
+        let _ = hub.openapp.dispatch_event(
+            ctx, app_db_id, &app_id_str, "im.message.receive", &payload_str,
+        ).await;
+    }
+
+    Ok(())
+}
+
+/// 查询成员列表中哪些是 Bot 用户
+pub(crate) async fn find_bot_users(
+    ctx: &AppContext,
+    member_ids: &[i64],
+) -> Result<Vec<(i64, i64, String)>> {
+    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+    use base::models::_entities::users;
+
+    let bots = users::Entity::find()
+        .filter(
+            sea_orm::Condition::all()
+                .add(users::Column::Id.is_in(member_ids.iter().copied()))
+                .add(users::Column::Type.eq(proto::idl::entity::UserType::Bot as i16))
+                .add(users::Column::Status.eq(common::EntityStatus::Normal as i16)),
+        )
+        .all(&ctx.db)
+        .await?;
+
+    let mut result = Vec::new();
+    for bot in bots {
+        let app_db_id = bot.bot_app_id.unwrap_or(0);
+        if app_db_id == 0 {
+            continue;
+        }
+        // 查询 app_id 字符串
+        if let Ok(Some(app)) = base::models::_entities::open_apps::Entity::find_by_id(app_db_id)
+            .one(&ctx.db)
+            .await
+        {
+            result.push((bot.id, app_db_id, app.app_id));
+        }
+    }
+    Ok(result)
 }

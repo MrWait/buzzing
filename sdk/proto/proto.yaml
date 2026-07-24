@@ -2,6 +2,7 @@
 includes: [../../proto]
 files: [
 ../../proto/calendar.proto,
+../../proto/card.proto,
 ../../proto/chat.proto,
 ../../proto/command.proto,
 ../../proto/dept.proto,

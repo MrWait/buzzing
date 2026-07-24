@@ -2,6 +2,7 @@
 includes: [../../proto/]
 files: [
 ../../proto/calendar.proto,
+../../proto/card.proto,
 ../../proto/chat.proto,
 ../../proto/command.proto,
 ../../proto/dept.proto,
@@ -70,6 +71,54 @@ messages:
       - derive(serde::Serialize, serde::Deserialize)
       - serde(default)
   - paths: [meeting.MeetingSettings]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.Chat]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.Entity]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.Calendar]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.CalendarSubscribers]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.Schedule]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.Message]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.Feed]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.CycleRule]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.ReadState]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.MessageReference]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.FileInfo]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
+  - paths: [entity.ScheduleCycleRule]
     attrs:
       - derive(serde::Serialize, serde::Deserialize)
       - serde(default)

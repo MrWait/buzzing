@@ -8,8 +8,6 @@ const PING_INTERVAL_MS = 15000
 export type PushHandler = (cmd: number, payload: Uint8Array) => void
 
 export class ImWsClient {
-  private host: string
-  private port: number
   private ws: WebSocket | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private reconnectAttempt = 0
@@ -24,9 +22,6 @@ export class ImWsClient {
   private destroyed = false
 
   constructor() {
-    const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
-    this.host = hostname
-    this.port = 8889
   }
 
   setOnPush(handler: PushHandler) {
@@ -47,7 +42,8 @@ export class ImWsClient {
     }
     // 浏览器 WebSocket 无法设置自定义 header，通过 query param 传递 token
     // 后端需在 gateway WebSocket 握手时同时支持 header 和 query param 两种鉴权方式
-    const url = `wss://${this.host}:${this.port}/ws?token=${encodeURIComponent(auth.token)}`
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const url = `${wsProtocol}//${window.location.host}/ws?token=${encodeURIComponent(auth.token)}`
     console.log('[im-ws] connecting...', url.replace(/token=.*/, 'token=***'))
     try {
       this.ws = new WebSocket(url)

@@ -17,6 +17,16 @@
         <div class="card-name">任务</div>
         <div class="card-desc">任务管理</div>
       </div>
+      <div class="module-card" @click="goIm">
+        <div class="card-icon" style="background:#f3e5f5; color:#7b1fa2">💬</div>
+        <div class="card-name">即时通讯</div>
+        <div class="card-desc">聊天与消息推送</div>
+      </div>
+      <div class="module-card" @click="goOpenapp">
+        <div class="card-icon" style="background:#e0f7fa; color:#00695c">🔌</div>
+        <div class="card-name">开放平台</div>
+        <div class="card-desc">应用管理与集成</div>
+      </div>
       <div class="module-card" @click="goMeeting">
         <div class="card-icon" style="background:#fce4ec; color:#c62828">📹</div>
         <div class="card-name">视频会议</div>
@@ -45,6 +55,14 @@ function goTodo() {
 
 function goMeeting() {
   router.push({ name: 'MeetingHome' })
+}
+
+function goIm() {
+  router.push({ name: 'ImFeed' })
+}
+
+function goOpenapp() {
+  router.push({ name: 'AppList' })
 }
 </script>
 

@@ -23,7 +23,7 @@ pub use translate::{Language, StubTranslation, TranslateResult, TranslationServi
 pub use presence::PRESENCE_SUBSCRIBERS;
 use proto::idl::entity::{self, EntityId};
 pub use service::{AppHub, BizHub};
-pub use service::{BizCalendar, BizGateway, BizOffice, BizSetting, BizStore, BizUser, ExternApp};
+pub use service::{BizCalendar, BizGateway, BizIm, BizOffice, BizOpenApp, BizSetting, BizStore, BizUser, ExternApp};
 pub use text_image::{extra_name, extra};
 pub use time::*;
 pub use vecbool::VecBool;

@@ -73,4 +73,45 @@ impl BizUser for AppUser {
         let mut users = UserModel::find_by_ids(&ctx.db, &user_ids).await?;
         Ok(users.drain(..).map(|user| UserModel(user).into()).collect())
     }
+
+    async fn list_depts(&self, ctx: &AppContext, _brief: &UserBrief, tenant_id: i64) -> Result<Vec<entity::Department>> {
+        use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+        use base::models::_entities::depts;
+        let mut depts = depts::Entity::find()
+            .filter(depts::Column::TenantId.eq(tenant_id))
+            .all(&ctx.db)
+            .await?;
+        Ok(depts.drain(..).map(|d| entity::Department {
+            id: d.id,
+            name: d.name,
+            parent_id: d.parent_id,
+            tenant_id: d.tenant_id,
+            ..Default::default()
+        }).collect())
+    }
+
+    async fn get_dept(&self, ctx: &AppContext, _brief: &UserBrief, dept_id: i64) -> Result<entity::Department> {
+        use base::models::_entities::depts;
+        use sea_orm::EntityTrait;
+        let dept = depts::Entity::find_by_id(dept_id)
+            .one(&ctx.db)
+            .await?
+            .ok_or(Error::NotFound)?;
+        Ok(entity::Department {
+            id: dept.id,
+            name: dept.name,
+            parent_id: dept.parent_id,
+            tenant_id: dept.tenant_id,
+            ..Default::default()
+        })
+    }
+
+    async fn list_dept_members(&self, ctx: &AppContext, _brief: &UserBrief, dept_id: i64, _page: i32, _page_size: i32) -> Result<Vec<entity::User>> {
+        use models::users::UserModel;
+        let users = UserModel::find_by_dept_id(&ctx.db, dept_id).await?;
+        Ok(users.into_iter().map(|u| {
+            let um: entity::User = u.into();
+            um
+        }).collect())
+    }
 }

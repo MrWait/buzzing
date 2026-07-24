@@ -16,9 +16,9 @@ impl MigrationTrait for Migration {
                     .col(big_integer(OpenAppBots::BotUserId).not_null())
                     .col(string(OpenAppBots::WebhookUrl).not_null().default(""))
                     .col(string(OpenAppBots::WebhookSecret).not_null().default(""))
-                    .col(array(OpenAppBots::EventTypes, ColumnType::Text).not_null().default(SimpleExpr::from("'{}'")))
+                    .col(array(OpenAppBots::EventTypes, ColumnType::Text).not_null().default(Expr::cust("ARRAY[]::text[]")))
                     .col(small_integer(OpenAppBots::Status).not_null().default(1))
-                    .col(timestamp(OpenAppBots::CreatedAt).not_null().default(SimpleExpr::from("NOW()")))
+                    .col(timestamp_with_time_zone(OpenAppBots::CreatedAt).not_null().default(SimpleExpr::from("NOW()")))
                     .to_owned(),
             )
             .await?;

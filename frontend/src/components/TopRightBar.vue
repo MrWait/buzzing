@@ -41,6 +41,10 @@
             <span class="trb-hub-icon">📹</span>
             <span class="trb-hub-label">视频会议</span>
           </div>
+          <div class="trb-hub-item" @click="goOpenapp">
+            <span class="trb-hub-icon">🔌</span>
+            <span class="trb-hub-label">开放平台</span>
+          </div>
         </div>
       </Transition>
     </div>
@@ -75,6 +79,7 @@ function goOffice() { hubOpen.value = false; router.push({ name: 'OfficeHome' })
 function goCalendar() { hubOpen.value = false }
 function goTodo() { hubOpen.value = false }
 function goMeeting() { hubOpen.value = false; router.push({ name: 'MeetingHome' }) }
+function goOpenapp() { hubOpen.value = false; router.push({ name: 'AppList' }) }
 
 function logout() {
   auth.clear()

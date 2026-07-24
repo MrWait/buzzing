@@ -13,6 +13,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   final _generalKey = GlobalKey();
   int _selectedCategory = 0;
 
+  void _openOpenPlatform() {
+    context.push('/open-platform');
+  }
+
   static const _headerHeight = 44.0;
 
   void _scrollToCategory(int index) {
@@ -72,6 +76,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                               label: '通用',
                               selected: _selectedCategory == 0,
                               onTap: () => _scrollToCategory(0),
+                            ),
+                            const SizedBox(height: 8),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                              child: Text('开发', style: TextStyle(
+                                fontSize: 11,
+                                color: Theme.of(context).colorScheme.outline,
+                              )),
+                            ),
+                            _CategoryItem(
+                              icon: Icons.apps,
+                              label: '开发者控制台',
+                              selected: false,
+                              onTap: _openOpenPlatform,
                             ),
                           ],
                         ),
