@@ -55,6 +55,9 @@ tokio = { version = "1.33.0", default-features = false, features = ["process"] }
 tokio-stream = "0.1"
 tokio-util = { version = "0.7.10", features = ["full"] }
 tokio-tungstenite = { version = "0.26.0" }
+tokio-rustls = "0.26"
+rustls = { version = "0.23", features = ["ring"] }
+rustls-pemfile = "2"
 tower-http = "*"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "json"] }
 tracing = "0.1.40"

@@ -48,7 +48,8 @@ const replies = computed(() => {
   return msgs.filter((m) => m.refMessageId === props.rootMessageId && m.id !== props.rootMessageId)
 })
 
-function getUserName(userId: number): string {
+function getUserName(userId: number | undefined): string {
+  if (userId == null) return '未知'
   return im.users.get(userId)?.name || `用户${userId}`
 }
 

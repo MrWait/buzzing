@@ -18,6 +18,7 @@ use std::path::Path;
 use crate::workers::downloader::DownloadWorker;
 use crate::{controllers, initializers, models::_entities::users, tasks};
 use common::AppHub;
+use rustls::crypto::ring;
 
 pub struct App;
 #[async_trait]
@@ -110,6 +111,10 @@ impl Hooks for App {
         ctx: &AppContext,
         _server_params: &ServeParams,
     ) -> Result<()> {
+        rustls::crypto::ring::default_provider()
+            .install_default()
+            .expect("install ring CryptoProvider");
+
         if let Ok(hub) = AppHub::get() {
             let apps = hub.get_all();
             for ext_app in apps.iter() {

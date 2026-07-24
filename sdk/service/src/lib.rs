@@ -160,7 +160,7 @@ impl Default for UnionClientConfig {
             union_id: 1024,
             gateway: "http://www.buzzing-im.com".to_string(),
             gateway_port: 5150,
-            ws: "ws://www.buzzing-im.com".to_string(),
+            ws: "wss://www.buzzing-im.com".to_string(),
             ws_port: 8889,
             upload_file_path: "/storage/file/upload".to_string(),
             upload_avatar_path: "/storage/avatar/upload".to_string(),

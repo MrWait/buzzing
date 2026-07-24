@@ -13,10 +13,15 @@ moka = { workspace = true }
 prost = { workspace = true }
 scopeguard = { workspace = true }
 sea-orm = { workspace = true }
+serde_json = { workspace = true }
 tokio = { workspace = true }
+tokio-rustls = { workspace = true }
 tokio-tungstenite = { workspace = true }
 tracing = { workspace = true }
 tungstenite = { workspace = true }
+
+rustls = { workspace = true }
+rustls-pemfile = { workspace = true }
 
 proto = { workspace = true }
 common = { workspace = true }

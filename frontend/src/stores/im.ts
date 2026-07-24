@@ -234,7 +234,7 @@ export const useImStore = defineStore('im', () => {
     const clientId = Date.now()
     addOptimisticMessage(chatId, content, 1, summary, refMessageId, clientId)
     try {
-      const resp = await imApi.sendMessage(chatId, 1, content, summary, clientId, refMessageId)
+      const resp = await imApi.sendMessage(chatId, 1, content, clientId, summary, refMessageId)
       mergeEntity(resp.entity)
       removeOptimisticMessage(chatId, clientId)
       return resp
@@ -244,7 +244,7 @@ export const useImStore = defineStore('im', () => {
     }
   }
 
-  async function sendImageMessage(chatId: number, fileId: number, url: string, name: string, mimeType: string, size: number, thumbnailUrl?: string) {
+  async function sendImageMessage(chatId: number, _fileId: number, url: string, name: string, _mimeType: string, _size: number, thumbnailUrl?: string) {
     const msgType = lookup('entity.MessageImage')
     const content = msgType.encode(msgType.create({
       url,
@@ -257,7 +257,7 @@ export const useImStore = defineStore('im', () => {
     const clientId = Date.now()
     addOptimisticMessage(chatId, content, 2, summary, undefined, clientId)
     try {
-      const resp = await imApi.sendMessage(chatId, 2, content, summary, clientId)
+      const resp = await imApi.sendMessage(chatId, 2, content, clientId, summary)
       mergeEntity(resp.entity)
       removeOptimisticMessage(chatId, clientId)
       return resp
@@ -267,7 +267,7 @@ export const useImStore = defineStore('im', () => {
     }
   }
 
-  async function sendFileMessage(chatId: number, fileId: number, url: string, name: string, mimeType: string, size: number) {
+  async function sendFileMessage(chatId: number, _fileId: number, url: string, name: string, mimeType: string, size: number) {
     const msgType = lookup('entity.MessageFile')
     const content = msgType.encode(msgType.create({
       name,
@@ -279,7 +279,7 @@ export const useImStore = defineStore('im', () => {
     const clientId = Date.now()
     addOptimisticMessage(chatId, content, 3, summary, undefined, clientId)
     try {
-      const resp = await imApi.sendMessage(chatId, 3, content, summary, clientId)
+      const resp = await imApi.sendMessage(chatId, 3, content, clientId, summary)
       mergeEntity(resp.entity)
       removeOptimisticMessage(chatId, clientId)
       return resp
@@ -467,7 +467,7 @@ export const useImStore = defineStore('im', () => {
       // Remove the old failed message and re-add as sending
       removeOptimisticMessage(chatId, msg.clientId)
       addOptimisticMessage(chatId, msg.content, msg.tpy, msg.summary, msg.refMessageId || undefined, clientId)
-      const resp = await imApi.sendMessage(chatId, msg.tpy, msg.content, msg.summary, clientId, msg.refMessageId || undefined)
+      const resp = await imApi.sendMessage(chatId, msg.tpy, msg.content, clientId, msg.summary, msg.refMessageId || undefined)
       mergeEntity(resp.entity)
       removeOptimisticMessage(chatId, clientId)
     } catch (e) {
