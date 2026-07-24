@@ -3,7 +3,7 @@
   "union_id": 1024,
   "gateway": "https://www.buzzing-im.com",
   "gateway_port": 5150,
-  "ws": "ws://www.buzzing-im.com",
+  "ws": "wss://www.buzzing-im.com",
   "ws_port": 8889,
   "rtc": "wss://www.buzzing-im.com",
   "rtc_port": 8086,
