@@ -90,6 +90,18 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
+    path: '/open',
+    component: () => import('@/layouts/ModuleLayout.vue'),
+    beforeEnter: tenantGuard,
+    children: [
+      { path: '', name: 'AppList', component: () => import('@/views/openapp/AppList.vue') },
+      { path: 'create', name: 'AppCreate', component: () => import('@/views/openapp/AppCreate.vue') },
+      { path: ':id', name: 'AppDetail', component: () => import('@/views/openapp/AppDetail.vue') },
+      { path: ':id/bot', name: 'AppBotConfig', component: () => import('@/views/openapp/AppBotConfig.vue') },
+      { path: 'stats', name: 'ApiStats', component: () => import('@/views/openapp/ApiStats.vue') },
+    ],
+  },
+  {
     path: '/share/:token',
     name: 'OfficeShare',
     component: () => import('@/views/office/ShareView.vue'),

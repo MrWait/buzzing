@@ -15,10 +15,14 @@ serde_json = { workspace = true }
 sea-orm = { workspace = true }
 chrono = { workspace = true }
 rand = { workspace = true }
+moka = { workspace = true }
 uuid = { workspace = true }
 prost = { workspace = true }
 sha2 = "0.10"
 hex = "0.4"
+hmac = "0.12"
+reqwest = { workspace = true }
+tokio-cron-scheduler = "0.11"
 
 common = { workspace = true }
 base = { workspace = true }

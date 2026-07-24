@@ -42,6 +42,10 @@ pub fn init_sdk(param: &[u8], tpy: FfiType) -> i32 {
     }
     INIT.store(true, Ordering::Relaxed);
 
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("install ring CryptoProvider");
+
     FFI_TYPE.get_or_init(move || tpy);
     base_runtime::init();
 

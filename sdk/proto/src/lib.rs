@@ -71,8 +71,12 @@ pub mod idl {
     }
     pub mod translate {
         include!("idl/translate.rs");
+    }
     pub mod openapp {
         include!("idl/openapp.rs");
+    }
+    pub mod card {
+        include!("idl/card.rs");
     }
 }
 

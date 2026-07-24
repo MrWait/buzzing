@@ -21,6 +21,7 @@ prost = { workspace = true }
 dashmap = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+rustls = { workspace = true }
 
 base-db = { workspace = true }
 base-log = { workspace = true }

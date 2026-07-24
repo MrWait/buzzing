@@ -18,6 +18,7 @@ mod voice;
 
 use loco_rs::{Error, Result, app::AppContext};
 use models::{chats::ChatModel, feeds::FeedModel};
+use prost::Message;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::runtime::Handle;
@@ -25,7 +26,7 @@ use tracing::debug;
 
 use crate::models::{Cmv, chats, feeds};
 use common::{EntityIds, ExternApp, UserBrief, UserEntity, VecBool};
-use proto::idl::{command::Command, entity};
+use proto::idl::{self, command::Command, entity, error::ErrorCode};
 
 pub(crate) struct ChatContext {
     chat: chats::Model,
@@ -186,35 +187,59 @@ impl ExternApp for AppIm {
             Command::FavoriteGetList => setting::favorite_get(ctx, brief, packet, ws).await?,
 
             // M2: announcement
-            Command::ChatSetAnnouncement => chat::chat_set_announcement(ctx, brief, packet, ws).await?,
-            Command::ChatDeleteAnnouncement => chat::chat_delete_announcement(ctx, brief, packet, ws).await?,
+            Command::ChatSetAnnouncement => {
+                chat::chat_set_announcement(ctx, brief, packet, ws).await?
+            }
+            Command::ChatDeleteAnnouncement => {
+                chat::chat_delete_announcement(ctx, brief, packet, ws).await?
+            }
             // M2: mute
             Command::ChatMuteMember => mute::mute_member(ctx, brief, packet, ws).await?,
             Command::ChatGlobalMute => mute::global_mute(ctx, brief, packet, ws).await?,
             // M2: invite
-            Command::ChatInviteLinkCreate => invite::invite_link_create(ctx, brief, packet, ws).await?,
+            Command::ChatInviteLinkCreate => {
+                invite::invite_link_create(ctx, brief, packet, ws).await?
+            }
             Command::ChatInviteLinkJoin => invite::invite_link_join(ctx, brief, packet, ws).await?,
-            Command::ChatInviteLinkRevoke => invite::invite_link_revoke(ctx, brief, packet, ws).await?,
+            Command::ChatInviteLinkRevoke => {
+                invite::invite_link_revoke(ctx, brief, packet, ws).await?
+            }
             // M2: join request
-            Command::ChatJoinRequestCreate => join_request::join_request_create(ctx, brief, packet, ws).await?,
-            Command::ChatJoinRequestApprove => join_request::join_request_approve(ctx, brief, packet, ws).await?,
-            Command::ChatJoinRequestReject => join_request::join_request_reject(ctx, brief, packet, ws).await?,
-            Command::ChatJoinRequestList => join_request::join_request_list(ctx, brief, packet, ws).await?,
+            Command::ChatJoinRequestCreate => {
+                join_request::join_request_create(ctx, brief, packet, ws).await?
+            }
+            Command::ChatJoinRequestApprove => {
+                join_request::join_request_approve(ctx, brief, packet, ws).await?
+            }
+            Command::ChatJoinRequestReject => {
+                join_request::join_request_reject(ctx, brief, packet, ws).await?
+            }
+            Command::ChatJoinRequestList => {
+                join_request::join_request_list(ctx, brief, packet, ws).await?
+            }
             // M2: members
             Command::ChatGetMembers => chat::get_members(ctx, brief, packet, ws).await?,
             // M3: pin
             Command::ChatPinMessage => pin::pin_message(ctx, brief, packet, ws).await?,
             Command::ChatUnpinMessage => pin::unpin_message(ctx, brief, packet, ws).await?,
-            Command::ChatGetPinnedMessages => pin::get_pinned_messages(ctx, brief, packet, ws).await?,
+            Command::ChatGetPinnedMessages => {
+                pin::get_pinned_messages(ctx, brief, packet, ws).await?
+            }
             // M3: thread
             Command::MessageGetThread => thread::get_thread(ctx, brief, packet, ws).await?,
             // M3: read members
-            Command::MessageGetReadMembers => message::message_get_read_members(ctx, brief, packet, ws).await?,
+            Command::MessageGetReadMembers => {
+                message::message_get_read_members(ctx, brief, packet, ws).await?
+            }
             // M3: typing
             Command::Typing => typing::handle_typing(ctx, brief, packet, ws).await?,
             // M3: presence
-            Command::UserPresenceUpdate => presence::handle_presence_update(ctx, brief, packet, ws).await?,
-            Command::UserPresenceSubscribe => presence::handle_presence_subscribe(ctx, brief, packet, ws).await?,
+            Command::UserPresenceUpdate => {
+                presence::handle_presence_update(ctx, brief, packet, ws).await?
+            }
+            Command::UserPresenceSubscribe => {
+                presence::handle_presence_subscribe(ctx, brief, packet, ws).await?
+            }
             // M3: delete
             Command::MessageDelete => message::message_delete(ctx, brief, packet, ws).await?,
             // M4: search
@@ -228,10 +253,16 @@ impl ExternApp for AppIm {
             // M5: schedule
             Command::ScheduleMessage => scheduler::schedule_message(ctx, brief, packet, ws).await?,
             Command::CancelSchedule => scheduler::cancel_schedule(ctx, brief, packet, ws).await?,
-            Command::GetScheduledMessages => scheduler::get_scheduled_messages(ctx, brief, packet, ws).await?,
+            Command::GetScheduledMessages => {
+                scheduler::get_scheduled_messages(ctx, brief, packet, ws).await?
+            }
             // M5: translate
-            Command::TranslateMessage => translate::translate_message(ctx, brief, packet, ws).await?,
-            Command::GetTranslationLanguages => translate::get_translation_languages(ctx, brief, packet, ws).await?,
+            Command::TranslateMessage => {
+                translate::translate_message(ctx, brief, packet, ws).await?
+            }
+            Command::GetTranslationLanguages => {
+                translate::get_translation_languages(ctx, brief, packet, ws).await?
+            }
 
             _ => return Err(Error::NotFound),
         };
@@ -243,6 +274,190 @@ impl ExternApp for AppIm {
 pub(crate) struct UserFeedContext {
     feeds: HashMap<i64, Arc<entity::Feed>>,
     feed_sort: Vec<(i64, Arc<entity::Feed>)>,
+}
+
+// ─── BizIm 实现 ──────────────────────────────────────────────
+#[async_trait::async_trait]
+impl common::BizIm for AppIm {
+    async fn get_chat(
+        &self,
+        ctx: &AppContext,
+        _brief: &UserBrief,
+        chat_id: i64,
+    ) -> Result<entity::Chat> {
+        let context = chat::chat_cache_get(ctx, chat_id)
+            .await
+            .map_err(|_| Error::NotFound)?;
+        let c = context.read().await;
+        Ok(c.get_entity())
+    }
+
+    async fn list_chat_members(
+        &self,
+        ctx: &AppContext,
+        _brief: &UserBrief,
+        chat_id: i64,
+        _page: i32,
+        _page_size: i32,
+    ) -> Result<Vec<i64>> {
+        let ids = chat::chat_get_all_user_ids(ctx, chat_id).await?;
+        Ok(ids)
+    }
+
+    async fn list_messages(
+        &self,
+        _ctx: &AppContext,
+        _brief: &UserBrief,
+        _chat_id: i64,
+        _page: i32,
+        _page_size: i32,
+        _before_id: Option<i64>,
+    ) -> Result<entity::Entity> {
+        // TODO: implement paginated message history query
+        Err(Error::NotFound)
+    }
+
+    async fn create_bot_chat(
+        &self,
+        _ctx: &AppContext,
+        _brief: &UserBrief,
+        _name: &str,
+        _desc: &str,
+        _member_ids: &[i64],
+    ) -> Result<i64> {
+        // TODO: implement via chat::chat_create
+        Err(Error::NotFound)
+    }
+
+    async fn add_chat_members(
+        &self,
+        _ctx: &AppContext,
+        _brief: &UserBrief,
+        _chat_id: i64,
+        _member_ids: &[i64],
+    ) -> Result<()> {
+        // TODO: implement via chat::chat_add_chatters
+        Err(Error::NotFound)
+    }
+
+    async fn remove_chat_members(
+        &self,
+        _ctx: &AppContext,
+        _brief: &UserBrief,
+        _chat_id: i64,
+        _member_ids: &[i64],
+    ) -> Result<()> {
+        Err(Error::NotFound)
+    }
+
+    async fn set_chat_announcement(
+        &self,
+        _ctx: &AppContext,
+        _brief: &UserBrief,
+        _chat_id: i64,
+        _announcement: &str,
+    ) -> Result<()> {
+        Err(Error::NotFound)
+    }
+
+    async fn add_message_reaction(
+        &self,
+        _ctx: &AppContext,
+        _brief: &UserBrief,
+        _message_id: i64,
+        _reaction: &str,
+    ) -> Result<()> {
+        Err(Error::NotFound)
+    }
+
+    async fn remove_message_reaction(
+        &self,
+        _ctx: &AppContext,
+        _brief: &UserBrief,
+        _message_id: i64,
+        _reaction: &str,
+    ) -> Result<()> {
+        Err(Error::NotFound)
+    }
+    async fn send_message(
+        &self,
+        ctx: &AppContext,
+        brief: &UserBrief,
+        from_id: i64,
+        chat_id: i64,
+        msg_type: i32,
+        content: Vec<u8>,
+        summary: String,
+    ) -> Result<i64> {
+        let now_ms = common::current_ms() as i64;
+        let msg = entity::Message {
+            id: 0,
+            from_id,
+            chat_id,
+            tpy: msg_type as i32,
+            content,
+            summary,
+            create_time_ms: now_ms,
+            ..Default::default()
+        };
+        let req = idl::message::SendMessageRequest {
+            client_id: 0,
+            message: Some(msg),
+        };
+        let body = req.encode_to_vec();
+        let packet = entity::Packet {
+            cmd: Command::MessageSend as i32,
+            payload: body,
+            ..Default::default()
+        };
+        let (code, data) = message::message_send(ctx, brief, &packet, false)
+            .await
+            .map_err(|_| Error::InternalServerError)?;
+        if code != ErrorCode::Ok as i32 {
+            return Err(Error::InternalServerError);
+        }
+        let resp = idl::message::SendMessageResponse::decode(data.as_slice())
+            .map_err(|_| Error::InternalServerError)?;
+        Ok(resp.id)
+    }
+
+    async fn edit_message(
+        &self,
+        ctx: &AppContext,
+        brief: &UserBrief,
+        message_id: i64,
+        content: Vec<u8>,
+        summary: String,
+    ) -> Result<()> {
+        // 编辑消息：构建 EditMessageRequest 调用现有逻辑
+        // 目前 IM 模块没有单独的消息编辑命令，使用 MessageSend 的追加逻辑
+        // 实际应当调用消息更新方法，暂用 message_recall + message_send 替代
+        // TODO: 后续实现独立的消息编辑 API
+        let _ = (ctx, brief, message_id, content, summary);
+        Err(Error::NotFound)
+    }
+
+    async fn recall_message(
+        &self,
+        ctx: &AppContext,
+        brief: &UserBrief,
+        message_id: i64,
+    ) -> Result<()> {
+        let req = idl::message::RecallMessageRequest { id: message_id };
+        let body = req.encode_to_vec();
+        let packet = entity::Packet {
+            cmd: Command::MessageRecall as i32,
+            payload: body,
+            ..Default::default()
+        };
+        let (code, _) = message::message_recall(ctx, brief, &packet, false)
+            .await
+            .map_err(|_| Error::InternalServerError)?;
+        if code != ErrorCode::Ok as i32 {
+            return Err(Error::InternalServerError);
+        }
+        Ok(())
+    }
 }
 
 pub(crate) async fn fill_entity(

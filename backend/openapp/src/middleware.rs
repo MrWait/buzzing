@@ -18,6 +18,23 @@ impl AppBrief {
     pub fn has_scope(&self, scope: &str) -> bool {
         self.scopes.iter().any(|s| s == scope)
     }
+
+    pub fn require_scope(&self, scope: &str) -> Result<()> {
+        if self.has_scope(scope) {
+            Ok(())
+        } else {
+            Err(OpenAppError::ScopeDenied(format!("missing required scope: {scope}")))
+        }
+    }
+
+    pub fn to_user_brief(&self) -> common::UserBrief {
+        common::UserBrief {
+            id: self.app_db_id,
+            pid: self.app_id.clone(),
+            aid: self.app_db_id,
+            tenant_id: self.tenant_id,
+        }
+    }
 }
 
 pub struct AppAuth(pub AppBrief);

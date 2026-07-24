@@ -14,6 +14,10 @@ pub enum OpenAppError {
     Unauthorized(String),
     Forbidden(String),
     Internal(String),
+    ScopeDenied(String),
+    RateLimit(String),
+    TokenExpired(String),
+    AppDisabled(String),
 }
 
 impl fmt::Display for OpenAppError {
@@ -24,6 +28,10 @@ impl fmt::Display for OpenAppError {
             OpenAppError::Unauthorized(msg) => write!(f, "Unauthorized: {msg}"),
             OpenAppError::Forbidden(msg) => write!(f, "Forbidden: {msg}"),
             OpenAppError::Internal(msg) => write!(f, "Internal: {msg}"),
+            OpenAppError::ScopeDenied(msg) => write!(f, "ScopeDenied: {msg}"),
+            OpenAppError::RateLimit(msg) => write!(f, "RateLimit: {msg}"),
+            OpenAppError::TokenExpired(msg) => write!(f, "TokenExpired: {msg}"),
+            OpenAppError::AppDisabled(msg) => write!(f, "AppDisabled: {msg}"),
         }
     }
 }
@@ -36,6 +44,10 @@ impl IntoResponse for OpenAppError {
             OpenAppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, 401, msg),
             OpenAppError::Forbidden(msg) => (StatusCode::FORBIDDEN, 403, msg),
             OpenAppError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, 500, msg),
+            OpenAppError::ScopeDenied(msg) => (StatusCode::FORBIDDEN, 21001, msg),
+            OpenAppError::RateLimit(msg) => (StatusCode::TOO_MANY_REQUESTS, 21002, msg),
+            OpenAppError::TokenExpired(msg) => (StatusCode::UNAUTHORIZED, 21003, msg),
+            OpenAppError::AppDisabled(msg) => (StatusCode::FORBIDDEN, 21005, msg),
         };
         let body = Json(json!({
             "code": code,

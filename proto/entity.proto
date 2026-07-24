@@ -125,6 +125,7 @@ enum MessageType {
     FORWARD = 14;
     SYSTEM = 15;
     ANNOUNCEMENT = 16;
+    INTERACTIVE_CARD = 17;
 }
 
 enum Direct {

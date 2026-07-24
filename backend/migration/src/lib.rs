@@ -44,6 +44,16 @@ mod m20260730_100001_office_m8;
 mod m20260722_100001_open_apps;
 mod m20260722_100002_open_app_bots;
 mod m20260722_100003_users_bot_app_id;
+mod m20260728_100001_open_app_stats;
+mod m20260728_100002_open_apps_redirect_uris;
+mod m20260728_100003_open_app_authorizations;
+mod m20260728_100004_open_app_user_tokens;
+mod m20260728_100005_open_app_outgoing_webhooks;
+mod m20260728_100006_open_app_scheduled_tasks;
+mod m20260728_100007_open_app_versions;
+mod m20260728_100008_open_app_market_info;
+mod m20260728_100009_open_app_installations;
+mod m20260728_100010_open_app_reviews;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -93,6 +103,16 @@ impl MigratorTrait for Migrator {
             Box::new(m20260722_100001_open_apps::Migration),
             Box::new(m20260722_100002_open_app_bots::Migration),
             Box::new(m20260722_100003_users_bot_app_id::Migration),
+            Box::new(m20260728_100001_open_app_stats::Migration),
+            Box::new(m20260728_100002_open_apps_redirect_uris::Migration),
+            Box::new(m20260728_100003_open_app_authorizations::Migration),
+            Box::new(m20260728_100004_open_app_user_tokens::Migration),
+            Box::new(m20260728_100005_open_app_outgoing_webhooks::Migration),
+            Box::new(m20260728_100006_open_app_scheduled_tasks::Migration),
+            Box::new(m20260728_100007_open_app_versions::Migration),
+            Box::new(m20260728_100008_open_app_market_info::Migration),
+            Box::new(m20260728_100009_open_app_installations::Migration),
+            Box::new(m20260728_100010_open_app_reviews::Migration),
         ]
     }
 }

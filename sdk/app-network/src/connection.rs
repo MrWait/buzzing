@@ -6,8 +6,9 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use tokio_tungstenite::connect_async;
+use tokio_tungstenite::connect_async_tls_with_config;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+use tokio_tungstenite::Connector;
 use tracing::{debug, instrument, warn};
 use tungstenite::protocol::Message;
 
@@ -34,6 +35,64 @@ pub enum Command {
 
 const RECONNECT_INTERVAL: [u64; 7] = [0, 1000, 1500, 2000, 3000, 5000, 8000];
 const HEART_BEAT_INTERVAL: u64 = 30;
+
+fn insecure_connector() -> Connector {
+    use rustls::ClientConfig;
+    let provider = rustls::crypto::ring::default_provider();
+    let config = ClientConfig::builder_with_provider(Arc::new(provider.clone()))
+        .with_protocol_versions(&[&rustls::version::TLS13])
+        .expect("valid protocol version")
+        .dangerous()
+        .with_custom_certificate_verifier(Arc::new(AcceptAllVerifier {
+            supported_algs: provider.signature_verification_algorithms,
+        }))
+        .with_no_client_auth();
+    Connector::Rustls(Arc::new(config))
+}
+
+#[derive(Debug)]
+struct AcceptAllVerifier {
+    supported_algs: rustls::crypto::WebPkiSupportedAlgorithms,
+}
+
+impl rustls::client::danger::ServerCertVerifier for AcceptAllVerifier {
+    fn verify_server_cert(
+        &self,
+        _end_entity: &rustls::pki_types::CertificateDer<'_>,
+        _intermediates: &[rustls::pki_types::CertificateDer<'_>],
+        _server_name: &rustls::pki_types::ServerName<'_>,
+        _ocsp_response: &[u8],
+        _now: rustls::pki_types::UnixTime,
+    ) -> Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
+        Ok(rustls::client::danger::ServerCertVerified::assertion())
+    }
+
+    fn verify_tls12_signature(
+        &self,
+        message: &[u8],
+        cert: &rustls::pki_types::CertificateDer<'_>,
+        dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        rustls::crypto::verify_tls12_signature(message, cert, dss, &self.supported_algs)
+    }
+
+    fn verify_tls13_signature(
+        &self,
+        message: &[u8],
+        cert: &rustls::pki_types::CertificateDer<'_>,
+        dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        rustls::crypto::verify_tls13_signature(message, cert, dss, &self.supported_algs)
+    }
+
+    fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
+        self.supported_algs
+            .mapping
+            .iter()
+            .map(|(scheme, _)| *scheme)
+            .collect()
+    }
+}
 
 #[instrument(skip_all, fields(sid=gen_i32(), tid=thread_id()))]
 pub(crate) async fn ws_task(
@@ -72,7 +131,7 @@ pub(crate) async fn ws_task(
                         .headers_mut()
                         .insert("x-buzzing-deviceid", device_info.device_id.parse().unwrap());
 
-                    match connect_async(request).await {
+                    match connect_async_tls_with_config(request, None, false, Some(insecure_connector())).await {
                         Ok(result) => {
                             debug!("connect response: {:?}", result.1);
                             ws_stream = Some(result.0);

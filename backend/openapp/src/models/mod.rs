@@ -1,2 +1,11 @@
 pub mod app;
 pub mod bot;
+pub mod api_stat;
+pub mod authorization;
+pub mod installation;
+pub mod market_info;
+pub mod outgoing_webhook;
+pub mod review;
+pub mod scheduled_task;
+pub mod user_token;
+pub mod version;

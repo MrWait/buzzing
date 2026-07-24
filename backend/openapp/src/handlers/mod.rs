@@ -1,3 +1,9 @@
+pub mod admin;
 pub mod app;
 pub mod auth;
 pub mod bot;
+pub mod card;
+pub mod dashboard;
+pub mod market;
+pub mod oauth;
+pub mod open_api;
