@@ -35,7 +35,7 @@ impl AppAccount {
 
         debug!("user get by ids, resp: {resp:?}");
 
-        Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
     }
 
     pub async fn user_pull_by_ids(&self, ids: Vec<i64>, push: bool) -> Result<Vec<entity::User>> {

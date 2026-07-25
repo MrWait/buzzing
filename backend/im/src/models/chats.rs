@@ -123,6 +123,7 @@ impl ChatModel {
             last_message_badge: ActiveValue::set(0),
             admin_ids: ActiveValue::set(vec![]),
             version: ActiveValue::set(0),
+            extra: ActiveValue::set(vec![]),
             ..Default::default()
         };
 
@@ -140,7 +141,7 @@ impl ChatModel {
             id: ActiveValue::set(chat.id),
             last_message_id: ActiveValue::set(chat.last_message_id),
             last_message_badge: ActiveValue::set(chat.last_message_badge),
-            last_message_pos: ActiveValue::set(chat.last_message_pos),
+            last_message_pos: ActiveValue::set(msg.pos),
             ..Default::default()
         };
         Entity::update(entity).exec(&txn).await?;

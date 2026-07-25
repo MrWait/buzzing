@@ -4,7 +4,7 @@ use tracing::debug;
 
 use crate::models::users;
 use common::{model::UserBrief, pb_decode};
-use proto::idl::{entity, user};
+use proto::idl::{entity, user, error::ErrorCode};
 
 pub async fn get_by_ids(
     ctx: &AppContext,
@@ -17,7 +17,7 @@ pub async fn get_by_ids(
     let mut resp = user::GetUserByIdsResponse::default();
 
     if req.ids.is_empty() {
-        return Ok((0, resp.encode_to_vec()));
+        return Ok((ErrorCode::Success as i32, resp.encode_to_vec()));
     }
 
     resp.users = users::UserModel::find_by_ids(&ctx.db, &req.ids)
@@ -28,5 +28,5 @@ pub async fn get_by_ids(
 
     debug!("user get by ids, resp: {resp:?}");
 
-    Ok((0, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }

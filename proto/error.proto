@@ -3,9 +3,7 @@ package error;
 option go_package = "./proto";
 
 enum ErrorCode {
-    ERROR_UNKNOWN = 0;
-    // HTTP
-    OK = 200;
+    SUCCESS = 0;
 
     ERROR_SDK_ERROR = 1000;
     ERROR_SERVER_ERROR = 1001;
@@ -15,4 +13,6 @@ enum ErrorCode {
     ERROR_NO_PERMISION = 1005;
     ERROR_PARAM_INVALID = 1006;
     ERROR_INVALID_DATA = 1007;
+    ERROR_UNSUPPORT_CMD = 1008;
+    ERROR_COMMON = 1009;
 }

@@ -35,7 +35,7 @@ pub(crate) async fn join_request_create(
     {
         let c = context.read().await;
         if c.cmv.contains_key(brief.id) {
-            return Ok((ErrorCode::Ok as i32, resp.encode_to_vec()));
+            return Ok((ErrorCode::Success as i32, resp.encode_to_vec()));
         }
     }
 

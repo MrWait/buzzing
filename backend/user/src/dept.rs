@@ -3,7 +3,7 @@ use prost::Message;
 
 use crate::models::{depts, tenants, users};
 use common::{model::UserBrief, pb_decode};
-use proto::idl::{dept, entity};
+use proto::idl::{dept, entity, error::ErrorCode};
 
 #[allow(unused_variables)]
 pub async fn get_dept(
@@ -35,5 +35,5 @@ pub async fn get_dept(
         .map(|user| (user.0.id, user.into()))
         .collect();
     tracing::debug!("get dept, resp: {resp:?}");
-    Ok((0, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }

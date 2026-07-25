@@ -159,7 +159,7 @@ pub(crate) async fn search_messages(
     }
 
     debug!("search messages done, total={}, returned={}", total, resp.results.len());
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 // ── search_chats ──
@@ -252,7 +252,7 @@ pub(crate) async fn search_chats(
     }
 
     debug!("search chats done, total={}, returned={}", total, resp.results.len());
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 // ── search_users ──
@@ -319,7 +319,7 @@ pub(crate) async fn search_users(
     }
 
     debug!("search users done, total={}, returned={}", total, resp.results.len());
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 // ── search_files ──
@@ -387,7 +387,7 @@ pub(crate) async fn search_files(
     }
 
     debug!("search files done, total={}, returned={}", total, resp.results.len());
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 // ── global_search ──
@@ -510,5 +510,5 @@ pub(crate) async fn global_search(
 
     debug!("global search done: {} msgs, {} chats, {} users, {} files",
         resp.messages.len(), resp.chats.len(), resp.users.len(), resp.files.len());
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }

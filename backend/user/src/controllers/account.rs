@@ -236,7 +236,37 @@ async fn login(State(ctx): State<AppContext>, Json(params): Json<LoginParams>) -
         }
     }
     debug!("login account: {:?}", account);
-    format::json(account)
+
+    // Serialize IDs as strings to avoid JavaScript BigInt precision loss
+    let resp = serde_json::json!({
+        "id": account.id.to_string(),
+        "name": account.name,
+        "version": account.version,
+        "users": account.users.iter().map(|u| {
+            serde_json::json!({
+                "user": u.user.as_ref().map(|user| serde_json::json!({
+                    "id": user.id.to_string(),
+                    "name": user.name,
+                    "tenant_id": user.tenant_id.to_string(),
+                    "avatar": user.avatar,
+                    "status": user.status,
+                    "version": user.version,
+                    "dept_id": user.dept_id.to_string(),
+                })),
+                "token": u.token,
+                "tenant": u.tenant.as_ref().map(|t| serde_json::json!({
+                    "id": t.id.to_string(),
+                    "name": t.name,
+                    "root_department_id": t.root_department_id.to_string(),
+                    "owner_id": t.owner_id.to_string(),
+                    "version": t.version,
+                    "avatar": t.avatar,
+                })),
+                "token_expire": u.token_expire,
+            })
+        }).collect::<Vec<_>>(),
+    });
+    format::json(resp)
 }
 
 pub fn routes() -> Routes {

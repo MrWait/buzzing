@@ -143,5 +143,5 @@ pub(crate) async fn top_list_get(
     resp.ids = pb_decode::<entity::IdList>(&setting.data)?.ids;
 
     debug!("get top list, resp: {resp:?}");
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }

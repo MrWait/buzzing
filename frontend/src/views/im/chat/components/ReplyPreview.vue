@@ -15,7 +15,7 @@ import { useImStore } from '@/stores/im'
 const im = useImStore()
 const replyTarget = im.replyTarget
 
-function getUserName(userId: number): string {
+function getUserName(userId: string): string {
   return im.users.get(userId)?.name || `用户${userId}`
 }
 

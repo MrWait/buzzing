@@ -8,16 +8,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useImStore } from '@/stores/im'
 
-const props = defineProps<{ chatId: number }>()
+const props = defineProps<{ chatId: string }>()
 const im = useImStore()
+
+const now = ref(Date.now())
+let tick: ReturnType<typeof setInterval>
+onMounted(() => {
+  tick = setInterval(() => { now.value = Date.now() }, 1000)
+})
+onUnmounted(() => {
+  clearInterval(tick)
+})
 
 const typingInfo = computed(() => {
   const list = im.typingUsers.get(props.chatId) || []
-  const now = Date.now()
-  return list.filter((t) => t.expireAt > now)
+  return list.filter((t) => t.expireAt > now.value)
 })
 </script>
 
