@@ -77,7 +77,7 @@ pub(crate) async fn handle_presence_update(
 
     update_presence_internal(ctx, brief.id, req.status, &req.status_text).await?;
 
-    Ok((ErrorCode::Ok as i32, presence::PresenceUpdateResponse::default().encode_to_vec()))
+    Ok((ErrorCode::Success as i32, presence::PresenceUpdateResponse::default().encode_to_vec()))
 }
 
 pub(crate) async fn handle_presence_subscribe(
@@ -102,5 +102,5 @@ pub(crate) async fn handle_presence_subscribe(
         }
     }
 
-    Ok((ErrorCode::Ok as i32, presence::PresenceSubscribeResponse::default().encode_to_vec()))
+    Ok((ErrorCode::Success as i32, presence::PresenceSubscribeResponse::default().encode_to_vec()))
 }

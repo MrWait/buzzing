@@ -18,6 +18,6 @@ impl AppAccount {
         )
         .await?;
         debug!("dept get by ids, resp: {ack:?}");
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 }

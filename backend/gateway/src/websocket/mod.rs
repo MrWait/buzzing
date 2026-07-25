@@ -98,6 +98,24 @@ impl<'a> tungstenite::handshake::server::Callback for TokenVerify<'a> {
                 .unwrap_or_default()
                 .to_string();
 
+            let token = if token.is_empty() {
+                // 浏览器 WebSocket 无法设置自定义 header，通过 query param 传递 token
+                request.uri().query()
+                    .and_then(|q| {
+                        q.split('&')
+                            .find_map(|pair| {
+                                let mut parts = pair.splitn(2, '=');
+                                match (parts.next(), parts.next()) {
+                                    (Some(k), Some(v)) if k == "token" => Some(v.to_string()),
+                                    _ => None,
+                                }
+                            })
+                    })
+                    .unwrap_or_default()
+            } else {
+                token
+            };
+
             if token == "buzzing_bench" {
                 let id: i64 = request
                     .headers()

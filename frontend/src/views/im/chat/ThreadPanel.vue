@@ -33,7 +33,7 @@
 import { ref, computed } from 'vue'
 import { useImStore } from '@/stores/im'
 
-const props = defineProps<{ chatId: number; rootMessageId: number }>()
+const props = defineProps<{ chatId: string; rootMessageId: string }>()
 const emit = defineEmits<{ (e: 'close'): void }>()
 const im = useImStore()
 const inputText = ref('')
@@ -48,7 +48,7 @@ const replies = computed(() => {
   return msgs.filter((m) => m.refMessageId === props.rootMessageId && m.id !== props.rootMessageId)
 })
 
-function getUserName(userId: number | undefined): string {
+function getUserName(userId: string | undefined): string {
   if (userId == null) return '未知'
   return im.users.get(userId)?.name || `用户${userId}`
 }

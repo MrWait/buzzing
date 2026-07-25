@@ -186,7 +186,7 @@ pub(crate) async fn feed_get_list(
         }
     }
 
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 pub(crate) async fn feed_remove(
@@ -225,7 +225,7 @@ pub(crate) async fn feed_remove(
         }
     }
     debug!("feed remove: {resp:?}");
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 pub(crate) async fn feed_active(
@@ -261,7 +261,7 @@ pub(crate) async fn feed_active(
             let _ = push_feed_to_user_impl(ctx, brief.id, feeds).await;
         }
     }
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 pub(crate) async fn feed_set_top(
@@ -309,7 +309,7 @@ pub(crate) async fn feed_set_top(
     }
 
     debug!("feed set top: {resp:?}");
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 pub(crate) async fn feed_set_mute(
@@ -338,5 +338,5 @@ pub(crate) async fn feed_set_mute(
         }
     }
     debug!("feed set mute: {resp:?}");
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }

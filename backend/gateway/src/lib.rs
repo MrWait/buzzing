@@ -131,7 +131,10 @@ pub(crate) async fn handle_gateway(
             .to_vec();
         let (code, data) = handle_client_packet(0, cmd, &ctx, &claim, &packet, false)
             .await
-            .map_err(|_| Error::BadRequest("handle error".to_string()))?;
+            .map_err(|e| {
+                tracing::error!("handle client packet error: {:?}", e);
+                Error::BadRequest("handle error".to_string())
+            })?;
 
         let res_packet = entity::Packet {
             rid,

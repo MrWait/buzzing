@@ -16,6 +16,6 @@ impl AppChat {
             None,
         )
         .await?;
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 }

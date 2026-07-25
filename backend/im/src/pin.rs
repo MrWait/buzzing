@@ -54,7 +54,7 @@ pub(crate) async fn pin_message(
     let _ = crate::feed::push_entity(ctx, &member_ids, resp.entities.clone().unwrap_or_default()).await;
 
     debug!("pin message done");
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 pub(crate) async fn unpin_message(
@@ -95,7 +95,7 @@ pub(crate) async fn unpin_message(
     let _ = crate::feed::push_entity(ctx, &member_ids, resp.entities.clone().unwrap_or_default()).await;
 
     debug!("unpin message done");
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 pub(crate) async fn get_pinned_messages(
@@ -142,5 +142,5 @@ pub(crate) async fn get_pinned_messages(
     }
 
     debug!("get pinned messages done, count: {}", resp.messages.len());
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }

@@ -1,13 +1,53 @@
 <template>
   <div class="chat-panel">
     <div class="chat-header">
-      <button class="back-btn" @click="goBack">←</button>
-      <div class="chat-header-info" @click="goProfile">
-        <span class="chat-name">{{ im.currentChat?.name || '...' }}</span>
-        <span v-if="im.currentChat?.chatType === 2" class="chat-meta">
-          {{ im.currentChat?.memberIds.length || 0 }} 人
-        </span>
+      <button class="back-btn" @click="goBack">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="chat-header-left" @click="goProfile">
+        <div class="chat-avatar">
+          <span>{{ chatNameFirstChar }}</span>
+          <span v-if="isP2p" :class="['presence-dot', { online: presenceStatus === 1 }]" />
+        </div>
+        <div class="chat-header-info">
+          <div class="chat-name">{{ im.currentChat?.name || '...' }}</div>
+          <div class="chat-subtitle">{{ headerSubtitle }}</div>
+        </div>
       </div>
+      <div class="chat-header-actions">
+        <button class="header-btn" title="搜索" @click="toggleChatSearch">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <button v-if="isGroup" class="header-btn" title="群设置" @click="goProfile">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 群公告横幅 -->
+    <div v-if="announcement" class="banner announcement-banner" @click="showAnnouncement">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="banner-text">{{ announcement.text }}</span>
+    </div>
+
+    <!-- 置顶消息横幅 -->
+    <div v-if="pinnedMessages.length > 0" class="banner pinned-banner" @click="showPinned">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
+      <span class="banner-text">{{ pinnedMessages[0]?.summary || '置顶消息' }}</span>
+    </div>
+
+    <!-- 聊天内搜索 -->
+    <div v-if="chatSearchVisible" class="chat-search-bar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input
+        v-model="chatSearchQuery"
+        class="chat-search-input"
+        placeholder="搜索聊天记录..."
+        @keydown.enter="doChatSearch"
+      />
+      <button class="header-btn" @click="chatSearchVisible = false">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
 
     <div class="chat-messages" ref="msgListRef" @scroll="onScroll">
@@ -17,28 +57,43 @@
         <div v-for="(msg, idx) in im.currentMessages" :key="msg.id">
           <div v-if="showDateSeparator(msg, idx)" class="date-separator">{{ formatDate(msg.createTimeMs) }}</div>
           <div
-            class="msg-item"
-            :class="{ self: msg.fromId === myId }"
+            v-if="msg.tpy === 15 || msg.tpy === 16"
+            class="msg-item msg-system"
             @click.right.prevent="showMsgMenu($event, msg)"
           >
-            <div v-if="msg.refMessageId" class="reply-preview" @click="scrollToMessage(msg.refMessageId)">
-              {{ msg.summary ? '回复: ' + msg.summary : '回复了一条消息' }}
+            <SystemMessage :content="msg.content" :summary="msg.summary" />
+          </div>
+          <div
+            v-else
+            class="msg-item"
+            :class="{ 'same-sender': !showSenderInfo(msg, idx) }"
+            @click.right.prevent="showMsgMenu($event, msg)"
+          >
+            <div class="msg-avatar">
+              <span v-if="showSenderInfo(msg, idx)">{{ getSenderFirstChar(msg.fromId) }}</span>
             </div>
-            <div class="msg-bubble" :class="'tpy-' + msg.tpy">
-              <TextMessage v-if="msg.tpy === 1" :content="msg.content" />
-              <ImageMessage v-else-if="msg.tpy === 2" :content="msg.content" />
-              <FileMessage v-else-if="msg.tpy === 3" :content="msg.content" />
-              <MarkdownMessage v-else-if="msg.tpy === 13" :content="msg.content" :summary="msg.summary" />
-              <ForwardMessage v-else-if="msg.tpy === 14" :content="msg.content" :summary="msg.summary" />
-              <SystemMessage v-else-if="msg.tpy === 15 || msg.tpy === 16" :content="msg.content" :summary="msg.summary" />
-              <span v-else>{{ msg.summary || `[类型 ${msg.tpy}]` }}</span>
-            </div>
-            <ReactionBar :message-id="msg.id" :reactions="msg.reactions" />
-            <div class="msg-foot">
-              <span v-if="msg.sendStatus === 'sending'" class="msg-status sending">发送中...</span>
-              <span v-if="msg.sendStatus === 'failed'" class="msg-status failed" @click.stop="retry(msg)">发送失败，点击重试</span>
-              <span v-if="msg.sendStatus === 'sent' && msg.fromId === myId" class="msg-read-status">已读</span>
-              <span class="msg-time">{{ formatTime(msg.createTimeMs) }}</span>
+            <div class="msg-body">
+              <div v-if="showSenderInfo(msg, idx)" class="msg-meta">
+                <span class="msg-name">{{ getSenderName(msg.fromId) }}</span>
+                <span class="msg-time">{{ formatTime(msg.createTimeMs) }}</span>
+              </div>
+              <div v-if="msg.refMessageId !== '0'" class="reply-preview" @click="scrollToMessage(msg.refMessageId)">
+                {{ msg.summary ? '回复: ' + msg.summary : '回复了一条消息' }}
+              </div>
+              <div class="msg-bubble" :class="'tpy-' + msg.tpy">
+                <TextMessage v-if="msg.tpy === 1" :content="msg.content" />
+                <ImageMessage v-else-if="msg.tpy === 2" :content="msg.content" />
+                <FileMessage v-else-if="msg.tpy === 3" :content="msg.content" />
+                <MarkdownMessage v-else-if="msg.tpy === 13" :content="msg.content" :summary="msg.summary" />
+                <ForwardMessage v-else-if="msg.tpy === 14" :content="msg.content" :summary="msg.summary" />
+                <span v-else>{{ msg.summary || `[类型 ${msg.tpy}]` }}</span>
+              </div>
+              <ReactionBar :message-id="msg.id" :reactions="msg.reactions" />
+              <div class="msg-foot">
+                <span v-if="msg.sendStatus === 'sending'" class="msg-status sending">发送中...</span>
+                <span v-if="msg.sendStatus === 'failed'" class="msg-status failed" @click.stop="retry(msg)">发送失败，点击重试</span>
+                <span v-if="msg.sendStatus === 'sent' && msg.fromId === myId" class="msg-read-status">已读</span>
+              </div>
             </div>
           </div>
         </div>
@@ -47,7 +102,7 @@
 
     <!-- 回复预览 -->
     <ReplyPreview />
-    <TypingIndicator :chat-id="chatId" />
+    <TypingIndicator :chat-id="chatId!" />
 
     <div class="chat-actions">
       <input
@@ -78,7 +133,7 @@
       />
       <MentionPicker
         ref="mentionPickerRef"
-        :chat-id="chatId"
+        :chat-id="chatId!"
         :show="mention.show"
         :query="mention.query"
         :top="mention.top"
@@ -109,15 +164,24 @@
       @close="forwardPicker.show = false"
     />
 
-    <!-- 话题面板 -->
-    <Transition name="slide">
-      <ThreadPanel
-        v-if="threadMsgId"
-        :chat-id="chatId"
-        :root-message-id="threadMsgId"
-        @close="threadMsgId = null"
-      />
-    </Transition>
+    <div class="slide-overlay">
+      <Transition name="slide">
+        <GroupProfile
+          v-if="showGroupProfile"
+          :chat-id="chatId!"
+          @close="showGroupProfile = false"
+        />
+      </Transition>
+
+      <Transition name="slide">
+        <ThreadPanel
+          v-if="threadMsgId"
+          :chat-id="chatId!"
+          :root-message-id="threadMsgId!"
+          @close="threadMsgId = null"
+        />
+      </Transition>
+    </div>
   </div>
 </template>
 
@@ -138,6 +202,7 @@ import ReactionBar from './components/ReactionBar.vue'
 import ForwardPicker from './components/ForwardPicker.vue'
 import TypingIndicator from './components/TypingIndicator.vue'
 import ThreadPanel from './ThreadPanel.vue'
+import GroupProfile from './GroupProfile.vue'
 import MentionPicker from './components/MentionPicker.vue'
 import api from '@/services/api'
 
@@ -151,27 +216,91 @@ const fileInput = ref<HTMLInputElement>()
 const docInput = ref<HTMLInputElement>()
 const textInputRef = ref<HTMLInputElement>()
 const mentionPickerRef = ref<InstanceType<typeof MentionPicker>>()
-const myId = ref(Number(auth.user?.id) || 0)
+const myId = ref(String(auth.user?.id ?? ''))
 const autoScroll = ref(true)
 
+const _now = ref(Date.now())
+let _tick: ReturnType<typeof setInterval>
+
 const mention = ref({ show: false, query: '', top: 0, left: 0, startPos: -1 })
+
+const chatSearchVisible = ref(false)
+const chatSearchQuery = ref('')
+
+const isP2p = computed(() => im.currentChat?.chatType === 1)
+const isGroup = computed(() => im.currentChat?.chatType === 2)
+const chatNameFirstChar = computed(() => (im.currentChat?.name || '?')[0])
+
+const presenceStatus = computed(() => {
+  return 0
+})
+
+const headerSubtitle = computed(() => {
+  if (!im.currentChat || !chatId.value) return ''
+  const cid = chatId.value
+  if (isGroup.value) {
+    return `${im.currentChat.memberIds?.length || 0} 人`
+  }
+  const list = im.typingUsers.get(cid)
+  if (list && list.some((t) => t.expireAt > _now.value)) {
+    return '正在输入...'
+  }
+  const presence = presenceStatus.value
+  if (presence === 1) return '在线'
+  return '离线'
+})
+
+const announcement = computed(() => {
+  if (!isGroup.value || !im.currentChat) return null
+  return (im.currentChat as any).announcement ?? null
+})
+
+const pinnedMessages = computed(() => {
+  const cid = chatId.value
+  if (!cid) return []
+  const chat = im.chats.get(cid)
+  return (chat as any)?.pinnedMessages ?? []
+})
 
 const msgMenu = ref<{ show: boolean; x: number; y: number; msg: MessageItem | null }>({
   show: false, x: 0, y: 0, msg: null,
 })
-const forwardPicker = ref<{ show: boolean; sourceChatId: number; messageIds: number[] }>({
-  show: false, sourceChatId: 0, messageIds: [],
+const forwardPicker = ref<{ show: boolean; sourceChatId: string; messageIds: string[] }>({
+  show: false, sourceChatId: '', messageIds: [],
 })
-const threadMsgId = ref<number | null>(null)
+const showGroupProfile = ref(false)
+const threadMsgId = ref<string | null>(null)
 const typingTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 
 function onInputChanged() {
+  const cid = chatId.value
+  if (!cid) return
   checkMention()
   if (typingTimer.value) return
   typingTimer.value = setTimeout(() => {
-    im.sendTyping(chatId.value)
+    im.sendTyping(cid)
     typingTimer.value = null
   }, 1000)
+}
+
+function toggleChatSearch() {
+  chatSearchVisible.value = !chatSearchVisible.value
+  if (!chatSearchVisible.value) chatSearchQuery.value = ''
+}
+
+function doChatSearch() {
+  console.log('chat search:', chatSearchQuery.value)
+  // TODO: implement chat-local search
+}
+
+function showAnnouncement() {
+  console.log('show announcement')
+  // TODO: show announcement detail dialog
+}
+
+function showPinned() {
+  console.log('show pinned messages')
+  // TODO: show pinned messages list
 }
 
 function checkMention() {
@@ -228,7 +357,7 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
-function onMentionSelect(user: { id: number; name: string }) {
+function onMentionSelect(user: { id: string; name: string }) {
   const text = inputText.value
   const start = mention.value.startPos
   if (start < 0) return
@@ -241,7 +370,10 @@ function onMentionSelect(user: { id: number; name: string }) {
   })
 }
 
-const chatId = computed(() => Number(route.params.chatId))
+const chatId = computed<string | null>(() => {
+  const p = route.params.chatId
+  return Array.isArray(p) ? (p[0] ?? null) : (p ?? null)
+})
 const isAdmin = computed(() => {
   const chat = im.currentChat
   return chat ? chat.adminIds.includes(myId.value) || chat.ownerId === myId.value : false
@@ -257,14 +389,17 @@ watch(chatId, (id) => {
 
 onMounted(() => {
   document.addEventListener('click', closeMsgMenu)
-  if (chatId.value) {
-    im.selectChat(chatId.value)
-    im.loadMessages(chatId.value)
+  _tick = setInterval(() => { _now.value = Date.now() }, 1000)
+  const cid = chatId.value
+  if (cid) {
+    im.selectChat(cid)
+    im.loadMessages(cid)
   }
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', closeMsgMenu)
+  clearInterval(_tick)
 })
 
 function goBack() {
@@ -274,17 +409,19 @@ function goBack() {
 
 function goProfile() {
   if (im.currentChat?.chatType === 2) {
-    router.push({ name: 'ImGroupProfile', params: { chatId: chatId.value } })
+    showGroupProfile.value = true
   }
 }
 
 async function send() {
+  const cid = chatId.value
+  if (!cid) return
   const text = inputText.value.trim()
   if (!text) return
   try {
     const refMsg = im.replyTarget
-    const refId = refMsg?.id || 0
-    await im.sendTextMessage(chatId.value, text, refId)
+    const refId = refMsg?.id || ''
+    await im.sendTextMessage(cid, text, refId)
     im.setReplyTarget(null)
     inputText.value = ''
     autoScroll.value = true
@@ -295,6 +432,8 @@ async function send() {
 }
 
 async function uploadAndSend(file: File, tpy: number) {
+  const cid = chatId.value
+  if (!cid) return
   const formData = new FormData()
   formData.append('file', file)
   try {
@@ -304,9 +443,9 @@ async function uploadAndSend(file: File, tpy: number) {
     const data = res.data
     if (tpy === 2) {
       const thumbUrl = data.thumbnail_url || data.url
-      await im.sendImageMessage(chatId.value, data.id, data.url, file.name, file.type, file.size, thumbUrl)
+      await im.sendImageMessage(cid, data.id, data.url, file.name, file.type, file.size, thumbUrl)
     } else {
-      await im.sendFileMessage(chatId.value, data.id, data.url, file.name, file.type, file.size)
+      await im.sendFileMessage(cid, data.id, data.url, file.name, file.type, file.size)
     }
     im.setReplyTarget(null)
   } catch (e) {
@@ -315,8 +454,10 @@ async function uploadAndSend(file: File, tpy: number) {
 }
 
 async function retry(msg: MessageItem) {
+  const cid = chatId.value
+  if (!cid) return
   try {
-    await im.retrySendMessage(chatId.value, msg)
+    await im.retrySendMessage(cid, msg)
   } catch (e) {
     console.error('retry error:', e)
   }
@@ -346,11 +487,11 @@ function scrollToBottom() {
 
 function onScroll() {
   const el = msgListRef.value
-  if (!el) return
+  const cid = chatId.value
+  if (!el || !cid) return
   autoScroll.value = el.scrollHeight - el.scrollTop - el.clientHeight < 100
-  // 滚动到顶部加载更多
   if (el.scrollTop < 50 && im.hasMoreMessages && !im.loadingMessages) {
-    im.loadMoreMessages(chatId.value)
+    im.loadMoreMessages(cid)
   }
 }
 
@@ -380,7 +521,23 @@ function formatTime(ms: number): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
-function scrollToMessage(msgId: number) {
+function showSenderInfo(msg: MessageItem, idx: number): boolean {
+  if (idx === 0) return true
+  const prev = im.currentMessages[idx - 1]
+  return !prev || prev.fromId !== msg.fromId
+}
+
+function getSenderFirstChar(fromId: string): string {
+  const user = im.users.get(fromId)
+  return (user?.name || '?')[0]
+}
+
+function getSenderName(fromId: string): string {
+  const user = im.users.get(fromId)
+  return user?.name || '未知用户'
+}
+
+function scrollToMessage(msgId: string) {
   const el = document.getElementById('msg-' + msgId)
   el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
@@ -425,7 +582,7 @@ async function del(msg: MessageItem) {
 function forwardMsg(msg: MessageItem) {
   forwardPicker.value = {
     show: true,
-    sourceChatId: chatId.value,
+    sourceChatId: chatId.value || '',
     messageIds: [msg.id],
   }
   closeMsgMenu()
@@ -442,37 +599,145 @@ function openThread(msg: MessageItem) {
   display: flex;
   flex-direction: column;
   height: 100%;
+  position: relative;
+}
+.slide-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+.slide-overlay > * {
+  pointer-events: auto;
 }
 .chat-header {
   display: flex;
   align-items: center;
-  padding: 10px 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid #e0e0e0;
   background: #fff;
   flex-shrink: 0;
+  height: 52px;
 }
 .back-btn {
   background: none;
   border: none;
   font-size: 18px;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 4px 8px 4px 0;
   margin-right: 8px;
   color: #666;
+  display: flex;
+  align-items: center;
 }
 .back-btn:hover { color: #333; }
+.chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.chat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: #1976d2;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  flex-shrink: 0;
+  position: relative;
+}
+.presence-dot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: #ccc;
+}
+.presence-dot.online { background: #4caf50; }
 .chat-header-info {
+  min-width: 0;
+}
+.chat-name {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.chat-subtitle {
+  font-size: 11px;
+  color: #999;
+  line-height: 1.3;
+}
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+.header-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+}
+.header-btn:hover { background: #f0f0f0; color: #333; }
+.banner {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-.chat-name {
-  font-size: 15px;
-  font-weight: 500;
-}
-.chat-meta {
+  padding: 8px 16px;
   font-size: 12px;
-  color: #999;
+  cursor: pointer;
+  flex-shrink: 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.announcement-banner {
+  background: #fffbe6;
+  color: #b8860b;
+}
+.announcement-banner:hover { background: #fff3cc; }
+.pinned-banner {
+  background: #f5f5ff;
+  color: #666;
+}
+.pinned-banner:hover { background: #ebebff; }
+.banner-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #fafafa;
+  flex-shrink: 0;
+}
+.chat-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
 }
 .chat-messages {
   flex: 1;
@@ -492,12 +757,51 @@ function openThread(msg: MessageItem) {
   padding: 12px 0 8px;
 }
 .msg-item {
-  margin-bottom: 8px;
-}
-.msg-item.self {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-left: 0;
+}
+.msg-item.msg-system {
+  display: block;
+  text-align: center;
+  padding: 4px 0;
+}
+.msg-avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: #1976d2;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+.same-sender .msg-avatar {
+  visibility: hidden;
+}
+.msg-body {
+  flex: 1;
+  min-width: 0;
+}
+.msg-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+  line-height: 1.4;
+}
+.same-sender .msg-meta {
+  display: none;
+}
+.msg-name {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
 }
 .reply-preview {
   font-size: 12px;
@@ -523,13 +827,6 @@ function openThread(msg: MessageItem) {
   word-break: break-word;
   text-align: left;
 }
-.msg-item.self .msg-bubble {
-  background: #1976d2;
-  color: #fff;
-}
-.msg-item.self .msg-bubble :deep(a) {
-  color: #bbdefb;
-}
 .msg-foot {
   display: flex;
   align-items: center;
@@ -552,8 +849,8 @@ function openThread(msg: MessageItem) {
   color: #1976d2;
 }
 .msg-time {
-  font-size: 10px;
-  color: #aaa;
+  font-size: 11px;
+  color: #bbb;
 }
 @keyframes pulse {
   0%, 100% { opacity: 0.5; }

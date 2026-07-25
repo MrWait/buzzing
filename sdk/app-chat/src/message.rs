@@ -61,7 +61,7 @@ impl AppChat {
         let mut req = message::CreateMessageDraftRequest::decode(params)?;
         let mut resp = message::CreateMessageDraftResponse::default();
         if req.chat_id == 0 || req.message.is_none() {
-            return Ok((ErrorCode::Ok as i32, vec![]));
+            return Ok((ErrorCode::Success as i32, vec![]));
         }
         debug!("create draft: req: {:?}", req);
         let client_id = id_gen();
@@ -97,19 +97,19 @@ impl AppChat {
             debug!("create draft error, feed not exists");
         }
         debug!("create draft finish, resp: {:?}", resp);
-        Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
     }
 
     pub(crate) fn message_get_all_drafts(&self, _params: &[u8]) -> Result<(i32, Vec<u8>)> {
-        Ok((ErrorCode::Ok as i32, vec![]))
+        Ok((ErrorCode::Success as i32, vec![]))
     }
 
     pub(crate) async fn message_recall(&self, _params: &[u8]) -> Result<(i32, Vec<u8>)> {
-        Ok((ErrorCode::Ok as i32, vec![]))
+        Ok((ErrorCode::Success as i32, vec![]))
     }
 
     pub(crate) async fn message_get_by_ids(&self, _params: &[u8]) -> Result<(i32, Vec<u8>)> {
-        Ok((ErrorCode::Ok as i32, vec![]))
+        Ok((ErrorCode::Success as i32, vec![]))
     }
 
     pub(crate) async fn message_get_by_chat(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
@@ -117,7 +117,7 @@ impl AppChat {
         debug!("message get by chat, req: {req:?}");
         let mut resp = message::GetMessageByRangeResponse::default();
         if req.chat_id == 0 || req.count == 0 {
-            return Ok((ErrorCode::Ok as i32, vec![]));
+            return Ok((ErrorCode::Success as i32, vec![]));
         }
         let direct = entity::Direct::try_from(req.direct)
             .ok()
@@ -137,13 +137,13 @@ impl AppChat {
         // entity_ids.feed_ids.insert(req.chat_id);
         let _ = self.fill_entity(&mut entity_ids, entity);
         debug!("get chat message, resp: {:?}", resp);
-        Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
     }
 
     pub(crate) async fn message_send(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
         let mut req = message::SendMessageRequest::decode(params)?;
         if req.client_id == 0 {
-            return Ok((ErrorCode::Ok as i32, vec![]));
+            return Ok((ErrorCode::Success as i32, vec![]));
         }
 
         {
@@ -164,7 +164,7 @@ impl AppChat {
         let ack = crate::api::message_send(&req).await?;
         debug!("send message ok: {:?}", ack);
 
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 
     pub(crate) fn fill_message(
@@ -264,14 +264,14 @@ impl AppChat {
             None,
         )
         .await?;
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 
     pub(crate) async fn message_forward(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
         let req = message::ForwardMessageRequest::decode(params)?;
         debug!("forward message: {:?}", req);
         let ack = crate::api::forward_message(&req).await?;
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 
     pub(crate) fn handle_push_messages(&self, params: &[u8]) -> Result<()> {

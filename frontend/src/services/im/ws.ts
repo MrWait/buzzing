@@ -3,7 +3,6 @@ import { lookup, encode, nextRid } from './proto'
 
 const RECONNECT_BASE_MS = 1000
 const RECONNECT_MAX_MS = 16000
-const PING_INTERVAL_MS = 15000
 
 export type PushHandler = (cmd: number, payload: Uint8Array) => void
 
@@ -11,7 +10,6 @@ export class ImWsClient {
   private ws: WebSocket | null = null
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
   private reconnectAttempt = 0
-  private pingTimer: ReturnType<typeof setInterval> | null = null
   private pendingRequests = new Map<string, {
     resolve: (value: Uint8Array) => void
     reject: (reason: any) => void
@@ -57,7 +55,6 @@ export class ImWsClient {
       console.log('[im-ws] connected')
       this.reconnectAttempt = 0
       this.onStatusChange?.(true)
-      this.startPing()
     }
     this.ws.onmessage = (e) => {
       const data = new Uint8Array(e.data)
@@ -66,7 +63,6 @@ export class ImWsClient {
     this.ws.onclose = (e) => {
       console.log('[im-ws] closed:', e.code, e.reason)
       this.onStatusChange?.(false)
-      this.stopPing()
       this.ws = null
       if (!this.destroyed) this.scheduleReconnect()
     }
@@ -77,7 +73,6 @@ export class ImWsClient {
 
   disconnect() {
     this.destroyed = true
-    this.stopPing()
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null
@@ -102,7 +97,7 @@ export class ImWsClient {
     const payload = encode(reqMsg, reqData)
     const rid = nextRid()
     const packet = packetType.create({ rid, cmd, payload })
-    const bytes = packetType.encode(packet).finish() as Uint8Array
+      const bytes = packetType.encode(packet).finish() as Uint8Array
 
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -116,7 +111,7 @@ export class ImWsClient {
         reject,
         timer,
       })
-      this.ws?.send(bytes.buffer as ArrayBuffer)
+      this.ws?.send(bytes.slice().buffer as ArrayBuffer)
     })
   }
 
@@ -147,35 +142,13 @@ export class ImWsClient {
         }
         return
       }
-      // 收到 Ping → 回复 Pong（WebSocket Ping/Pong 由框架自动处理）
-      if (cmd === 2) {
-        // ECHO — 不做特殊处理
-        return
-      }
       // 推送给 handler
+      const sid = packet.rid?.toString() || ''
+      const time = new Date().toISOString()
+      console.log(`[im-ws] push: sid=${sid} cmd=${cmd} time=${time}`)
       this.onPush?.(cmd, packet.payload)
     } catch (e) {
       console.error('[im-ws] handle message error:', e)
-    }
-  }
-
-  private startPing() {
-    this.stopPing()
-    this.pingTimer = setInterval(() => {
-      if (this.ws?.readyState === WebSocket.OPEN) {
-        // 发送空 Packet 作为心跳
-        const packetType = lookup('entity.Packet')
-        const packet = packetType.create({ cmd: 2, payload: new Uint8Array(0) })
-        const bytes = packetType.encode(packet).finish() as Uint8Array
-        this.ws.send(bytes.buffer as ArrayBuffer)
-      }
-    }, PING_INTERVAL_MS)
-  }
-
-  private stopPing() {
-    if (this.pingTimer) {
-      clearInterval(this.pingTimer)
-      this.pingTimer = null
     }
   }
 

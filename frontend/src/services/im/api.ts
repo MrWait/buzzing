@@ -42,15 +42,18 @@ export async function protoRequest(
     throw new Error(`proto request failed: cmd=${cmd} code=${code}`)
   }
   const packet = packetType.decode(data) as unknown as { payload: Uint8Array }
-  return respType.decode(packet.payload)
+  const decoded = respType.decode(packet.payload)
+  return respType.toObject(decoded, { longs: String, enums: String, defaults: true })
 }
 
 // ─── Command enum ─────────────────────────────────────────────────
 
 export const CMD = {
   FEED_GET_LIST: 1100,
+  CHAT_CREATE: 1101,
   CHAT_ENTER: 1102,
-  CHAT_QUIT: 1103,
+  CHAT_QUIT: 1119,
+  CHAT_DISMISS: 1110,
   CHAT_GET_BY_IDS: 1109,
   MESSAGE_SEND: 1203,
   MESSAGE_GET_BY_RANGE: 1213,
@@ -73,28 +76,28 @@ export const CMD = {
 
 // ─── Feed API ─────────────────────────────────────────────────────
 
-export async function pullFeedList(cursor: number = 0, count: number = 20) {
+export async function pullFeedList(cursor: string = '0', count: number = 20) {
   return protoRequest(
     CMD.FEED_GET_LIST,
     'feed.PullFeedListRequest',
-    { cursor, count },
+    { cursor, count, prev_cursor: 0 },
     'feed.PullFeedListResponse',
   )
 }
 
-export async function setFeedTop(feedId: number, top: boolean) {
+export async function setFeedTop(feedId: string, top: boolean) {
   return protoRequest(CMD.FEED_SET_TOP, 'feed.SetFeedTopRequest', { id: feedId, top }, 'feed.SetFeedTopResponse')
 }
 
-export async function setFeedMute(feedId: number, mute: boolean) {
+export async function setFeedMute(feedId: string, mute: boolean) {
   return protoRequest(CMD.FEED_SET_MUTE, 'feed.SetFeedMuteRequest', { id: feedId, mute }, 'feed.SetFeedMuteResponse')
 }
 
-export async function removeFeed(feedId: number) {
+export async function removeFeed(feedId: string) {
   return protoRequest(CMD.FEED_REMOVE, 'feed.RemoveFeedRequest', { id: feedId }, 'feed.RemoveFeedResponse')
 }
 
-export async function activeFeed(feedId: number) {
+export async function activeFeed(feedId: string) {
   return protoRequest(CMD.FEED_ACTIVE, 'feed.ActiveFeedRequest', { id: feedId }, 'feed.ActiveFeedResponse')
 }
 
@@ -104,7 +107,16 @@ export async function getFeedTopList() {
 
 // ─── Chat API ─────────────────────────────────────────────────────
 
-export async function enterChat(chatId: number) {
+export async function createChat(chat: Record<string, any>) {
+  return protoRequest(
+    CMD.CHAT_CREATE,
+    'chat.CreateChatRequest',
+    { chat },
+    'chat.CreateChatResponse',
+  )
+}
+
+export async function enterChat(chatId: string) {
   return protoRequest(
     CMD.CHAT_ENTER,
     'chat.EnterChatRequest',
@@ -113,7 +125,7 @@ export async function enterChat(chatId: number) {
   )
 }
 
-export async function getChatByIds(ids: number[]) {
+export async function getChatByIds(ids: string[]) {
   return protoRequest(
     CMD.CHAT_GET_BY_IDS,
     'chat.GetChatByIdsRequest',
@@ -122,15 +134,33 @@ export async function getChatByIds(ids: number[]) {
   )
 }
 
+export async function quitChat(chatId: string) {
+  return protoRequest(
+    CMD.CHAT_QUIT,
+    'chat.QuitChatRequest',
+    { chat_id: chatId },
+    'chat.QuitChatResponse',
+  )
+}
+
+export async function dismissChat(chatId: string) {
+  return protoRequest(
+    CMD.CHAT_DISMISS,
+    'chat.DismissChatRequest',
+    { chat_id: chatId },
+    'chat.DismissChatResponse',
+  )
+}
+
 // ─── Message API ────────────────────────────────────────────────
 
 export async function sendMessage(
-  chatId: number,
+  chatId: string,
   tpy: number,
   content: Uint8Array,
   clientId?: number,
   summary?: string,
-  refMessageId?: number,
+  refMessageId?: string,
   refData?: Record<string, any>,
 ) {
   const msg: Record<string, any> = {
@@ -151,7 +181,7 @@ export async function sendMessage(
 }
 
 export async function getMessagesByRange(
-  chatId: number,
+  chatId: string,
   pos: number,
   count: number,
   direct: number = 2,
@@ -164,7 +194,7 @@ export async function getMessagesByRange(
   )
 }
 
-export async function recallMessage(id: number) {
+export async function recallMessage(id: string) {
   return protoRequest(
     CMD.MESSAGE_REVOKE,
     'message.RecallMessageRequest',
@@ -173,7 +203,7 @@ export async function recallMessage(id: number) {
   )
 }
 
-export async function deleteMessage(messageId: number, mode: number = 0) {
+export async function deleteMessage(messageId: string, mode: number = 0) {
   return protoRequest(
     CMD.MESSAGE_DELETE,
     'message.DeleteMessageRequest',
@@ -183,9 +213,9 @@ export async function deleteMessage(messageId: number, mode: number = 0) {
 }
 
 export async function forwardMessage(
-  chatId: number,
-  sourceChatId: number,
-  messageIds: number[],
+  chatId: string,
+  sourceChatId: string,
+  messageIds: string[],
   forwardType: number = 0,
 ) {
   return protoRequest(
@@ -196,7 +226,7 @@ export async function forwardMessage(
   )
 }
 
-export async function setReaction(messageId: number, reaction: number, set: boolean) {
+export async function setReaction(messageId: string, reaction: number, set: boolean) {
   return protoRequest(
     CMD.REACTION_SET,
     'message.SetMessageReactionRequest',
@@ -207,13 +237,13 @@ export async function setReaction(messageId: number, reaction: number, set: bool
 
 // ─── Typing API ────────────────────────────────────────────────────
 
-export async function sendTyping(chatId: number) {
+export async function sendTyping(chatId: string) {
   return protoRequest(CMD.TYPING, 'typing.TypingRequest', { chat_id: chatId }, 'typing.TypingResponse')
 }
 
 // ─── User API ────────────────────────────────────────────────────
 
-export async function getUserByIds(ids: number[]) {
+export async function getUserByIds(ids: string[]) {
   return protoRequest(
     CMD.USER_GET_BY_IDS,
     'user.GetUserByIdsRequest',

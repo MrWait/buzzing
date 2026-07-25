@@ -36,5 +36,5 @@ pub(crate) async fn get_thread(
     }
 
     debug!("get thread done, total: {}", resp.total);
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }

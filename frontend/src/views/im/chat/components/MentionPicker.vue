@@ -31,19 +31,19 @@ import { ref, computed, watch } from 'vue'
 import { useImStore } from '@/stores/im'
 
 const props = defineProps<{
-  chatId: number
+  chatId: string
   show: boolean
   query: string
   top: number
   left: number
 }>()
 const emit = defineEmits<{
-  (e: 'select', user: { id: number; name: string }): void
+  (e: 'select', user: { id: string; name: string }): void
   (e: 'close'): void
 }>()
 
 const im = useImStore()
-const highlightedId = ref(0)
+const highlightedId = ref('')
 
 const members = computed(() => {
   const chat = im.chats.get(props.chatId)
@@ -61,11 +61,11 @@ const filtered = computed(() => {
 
 watch(() => props.show, (v) => {
   if (v && filtered.value.length > 0) {
-    highlightedId.value = filtered.value[0].id
+    highlightedId.value = String(filtered.value[0].id)
   }
 })
 
-function select(user: { id: number; name: string }) {
+function select(user: { id: string; name: string }) {
   emit('select', user)
   emit('close')
 }
@@ -80,14 +80,14 @@ function onKeydown(e: KeyboardEvent): boolean {
     e.preventDefault()
     const idx = filtered.value.findIndex((u) => u.id === highlightedId.value)
     const next = (idx + 1) % filtered.value.length
-    highlightedId.value = filtered.value[next]?.id || 0
+    highlightedId.value = filtered.value[next]?.id || ''
     return true
   }
   if (e.key === 'ArrowUp') {
     e.preventDefault()
     const idx = filtered.value.findIndex((u) => u.id === highlightedId.value)
     const prev = (idx - 1 + filtered.value.length) % filtered.value.length
-    highlightedId.value = filtered.value[prev]?.id || 0
+    highlightedId.value = filtered.value[prev]?.id || ''
     return true
   }
   if (e.key === 'Enter' || e.key === 'Tab') {

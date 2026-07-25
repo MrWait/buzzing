@@ -16,7 +16,7 @@
 import { computed } from 'vue'
 import { useImStore } from '@/stores/im'
 
-const props = defineProps<{ messageId: number; reactions: Record<number, { total: number; me: boolean }> }>()
+const props = defineProps<{ messageId: string; reactions: Record<number, { total: number; me: boolean }> }>()
 const im = useImStore()
 
 const localReactions = computed(() => props.reactions || {})

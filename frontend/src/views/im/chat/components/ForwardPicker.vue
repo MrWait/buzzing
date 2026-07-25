@@ -37,13 +37,13 @@ import { useImStore } from '@/stores/im'
 
 const props = defineProps<{
   show: boolean
-  sourceChatId?: number
-  messageIds?: number[]
+  sourceChatId?: string
+  messageIds?: string[]
 }>()
 const emit = defineEmits<{ (e: 'close'): void }>()
 const im = useImStore()
 const searchText = ref('')
-const selectedId = ref<number | null>(null)
+const selectedId = ref<string | null>(null)
 
 const filteredFeeds = computed(() => {
   const list = im.feedList

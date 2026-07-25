@@ -14,7 +14,7 @@ impl AppChat {
 
         let ack = crate::api::chat_create(&req).await?;
         debug!("create chat ok: {:?}", ack);
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 
     pub(crate) async fn chat_add_chatters(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
@@ -27,7 +27,7 @@ impl AppChat {
             None,
         )
         .await?;
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 
     pub(crate) async fn chat_delete_chatters(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
@@ -39,11 +39,11 @@ impl AppChat {
             None,
         )
         .await?;
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 
     pub(crate) async fn chat_get_by_ids(&self, _params: &[u8]) -> Result<(i32, Vec<u8>)> {
-        Ok((ErrorCode::Ok as i32, vec![]))
+        Ok((ErrorCode::Success as i32, vec![]))
     }
 
     pub(crate) fn chat_fill(&self, ids: &mut EntityIds, entity: &mut entity::Entity) -> Result<()> {
@@ -67,7 +67,7 @@ impl AppChat {
             None,
         )
         .await?;
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 
     pub async fn chat_quit(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
@@ -79,7 +79,7 @@ impl AppChat {
             None,
         )
         .await?;
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 
     pub async fn chat_dismiss(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
@@ -91,7 +91,7 @@ impl AppChat {
             None,
         )
         .await?;
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 
     pub fn chat_set_draft(&self, _params: &[u8]) -> Result<(i32, Vec<u8>)> {
@@ -113,7 +113,7 @@ impl AppChat {
             None,
         )
         .await?;
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 
     pub(crate) async fn chat_delete_announcement(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
@@ -125,7 +125,7 @@ impl AppChat {
             None,
         )
         .await?;
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 
     // ─── M2: Members ────────────────────────────────────────────────────
@@ -139,6 +139,6 @@ impl AppChat {
             None,
         )
         .await?;
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 }

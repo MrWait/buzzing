@@ -4,9 +4,6 @@
       <h3>消息</h3>
       <div class="ws-status" :class="{ connected: im.connected }" :title="im.connected ? '已连接' : '未连接'" />
     </div>
-    <div class="feed-search">
-      <input v-model="searchText" class="search-input" placeholder="搜索会话" @input="onSearch" />
-    </div>
     <div v-if="im.loadingFeeds && filteredList.length === 0" class="feed-loading">加载中...</div>
     <div v-else-if="filteredList.length === 0" class="feed-empty">暂无会话</div>
     <div v-else class="feed-list">
@@ -14,7 +11,7 @@
         v-for="feed in filteredList"
         :key="feed.id"
         class="feed-item"
-        :class="{ active: feed.chatId === im.currentChatId }"
+        :class="{ active: feed.id === im.currentFeedId }"
         @click="selectFeed(feed)"
         @contextmenu.prevent="showContextMenu($event, feed)"
       >
@@ -58,7 +55,6 @@ import type { FeedItem } from '@/stores/im'
 
 const router = useRouter()
 const im = useImStore()
-const searchText = ref('')
 
 const contextMenu = ref<{ show: boolean; x: number; y: number; feed: FeedItem | null }>({
   show: false,
@@ -67,11 +63,7 @@ const contextMenu = ref<{ show: boolean; x: number; y: number; feed: FeedItem | 
   feed: null,
 })
 
-const filteredList = computed(() => {
-  const q = searchText.value.trim().toLowerCase()
-  if (!q) return im.feedList
-  return im.feedList.filter((f) => f.name.toLowerCase().includes(q))
-})
+const filteredList = computed(() => im.feedList)
 
 onMounted(() => {
   document.addEventListener('click', closeContextMenu)
@@ -82,9 +74,10 @@ onUnmounted(() => {
 })
 
 function selectFeed(feed: FeedItem) {
+  im.currentFeedId = feed.id
   im.selectChat(feed.chatId)
   closeContextMenu()
-  router.push({ name: 'ImChat', params: { chatId: feed.chatId } })
+  router.push(`/im/chat/${feed.chatId}`)
 }
 
 function showContextMenu(e: MouseEvent, feed: FeedItem) {
@@ -115,10 +108,6 @@ function remove(feed: FeedItem) {
   closeContextMenu()
 }
 
-function onSearch() {
-  // 搜索逻辑由 computed filteredList 自动处理
-}
-
 function formatTime(ms: number): string {
   if (!ms) return ''
   const d = new Date(ms)
@@ -139,6 +128,9 @@ function formatTime(ms: number): string {
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 300px;
+  min-width: 300px;
+  border-right: 1px solid #e0e0e0;
 }
 .feed-header {
   display: flex;
@@ -160,22 +152,6 @@ function formatTime(ms: number): string {
 }
 .ws-status.connected {
   background: #4caf50;
-}
-.feed-search {
-  padding: 0 12px 8px;
-}
-.search-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 13px;
-  outline: none;
-  box-sizing: border-box;
-  background: #fff;
-}
-.search-input:focus {
-  border-color: #1976d2;
 }
 .feed-loading,
 .feed-empty {
