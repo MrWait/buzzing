@@ -281,6 +281,10 @@ class ImController extends ChangeNotifier {
     var msgIds = <Int64>[];
     feedList.clear();
     entity.feeds.forEach((k, v) {
+      // Skip dissolved/deleted feeds (status >= DISMISS_PENDING)
+      if (v.status >= EntityStatus.DISMISS_PENDING.value) {
+        return;
+      }
       msgIds.add(v.referId);
       var feed = parseFeed(entity, v.id);
       if (feed != null) {

@@ -16,7 +16,7 @@ impl AppChat {
             None,
         )
         .await?;
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 
     pub(crate) async fn join_request_approve(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
@@ -28,7 +28,7 @@ impl AppChat {
             None,
         )
         .await?;
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 
     pub(crate) async fn join_request_reject(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
@@ -40,7 +40,7 @@ impl AppChat {
             None,
         )
         .await?;
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 
     pub(crate) async fn join_request_list(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
@@ -52,6 +52,6 @@ impl AppChat {
             None,
         )
         .await?;
-        Ok((ErrorCode::Ok as i32, ack.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 }

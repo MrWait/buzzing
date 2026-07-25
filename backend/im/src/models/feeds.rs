@@ -251,6 +251,7 @@ impl FeedModel {
             .filter(
                 model::query::condition()
                     .eq(Column::UserId, user_id)
+                    .lt(Column::Status, EntityStatus::DismissPending as i32)
                     .between(Column::UpdateMs, min, max)
                     .build(),
             )

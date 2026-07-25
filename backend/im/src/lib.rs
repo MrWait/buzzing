@@ -413,7 +413,7 @@ impl common::BizIm for AppIm {
         let (code, data) = message::message_send(ctx, brief, &packet, false)
             .await
             .map_err(|_| Error::InternalServerError)?;
-        if code != ErrorCode::Ok as i32 {
+        if code != ErrorCode::Success as i32 {
             return Err(Error::InternalServerError);
         }
         let resp = idl::message::SendMessageResponse::decode(data.as_slice())
@@ -453,7 +453,7 @@ impl common::BizIm for AppIm {
         let (code, _) = message::message_recall(ctx, brief, &packet, false)
             .await
             .map_err(|_| Error::InternalServerError)?;
-        if code != ErrorCode::Ok as i32 {
+        if code != ErrorCode::Success as i32 {
             return Err(Error::InternalServerError);
         }
         Ok(())

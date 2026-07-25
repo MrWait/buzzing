@@ -196,7 +196,7 @@ pub(crate) async fn chat_create(
                     .chats
                     .insert(chat.id as i64, ChatModel(chat).into_entity(vec![]));
 
-                return Ok((ErrorCode::Ok as i32, resp.encode_to_vec()));
+                return Ok((ErrorCode::Success as i32, resp.encode_to_vec()));
             }
             ChatModel::create_p2p_chat(&ctx.db, brief.id, peer_id).await
         }
@@ -236,7 +236,7 @@ pub(crate) async fn chat_create(
             let _ = crate::feed::push_feed_by_ids(&ctx_clone, vec![chat_id]).await;
         });
 
-        return Ok((ErrorCode::Ok as i32, resp.encode_to_vec()));
+        return Ok((ErrorCode::Success as i32, resp.encode_to_vec()));
     } else {
         debug!("create chat error: {:?}", chat);
         return Err(common_error("create chat error"));

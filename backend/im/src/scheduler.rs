@@ -48,7 +48,7 @@ pub(crate) async fn schedule_message(
         schedule_id,
         schedule_at_ms: req.send_at_ms,
     };
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 /// Cancel a scheduled message (M5-E.8)
@@ -75,7 +75,7 @@ pub(crate) async fn cancel_schedule(
     }
 
     let resp = timer::CancelScheduleResponse {};
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 /// Get user's scheduled messages with pagination (M5-E.9)
@@ -137,7 +137,7 @@ pub(crate) async fn get_scheduled_messages(
         });
     }
 
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 /// Shared scheduler state

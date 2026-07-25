@@ -166,7 +166,7 @@ impl AppChat {
         let mut entity_ids = EntityIds::default();
         let _ = self.fill_entity(&mut entity_ids, &mut resp.entity.get_or_insert_default());
         debug!("get feed list, resp: {:?}", resp);
-        Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+        Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
     }
 
     pub async fn feed_remove(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {

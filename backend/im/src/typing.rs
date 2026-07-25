@@ -16,7 +16,7 @@ pub(crate) async fn handle_typing(
 
     let member_ids = super::chat::chat_get_all_user_ids(ctx, req.chat_id).await?;
     if member_ids.is_empty() {
-        return Ok((ErrorCode::Ok as i32, vec![]));
+        return Ok((ErrorCode::Success as i32, vec![]));
     }
 
     let user_name = if let Ok(hub) = BizHub::get() {
@@ -34,7 +34,7 @@ pub(crate) async fn handle_typing(
 
     let target_ids: Vec<i64> = member_ids.into_iter().filter(|id| *id != brief.id).collect();
     if target_ids.is_empty() {
-        return Ok((ErrorCode::Ok as i32, vec![]));
+        return Ok((ErrorCode::Success as i32, vec![]));
     }
 
     if let Ok(hub) = BizHub::get() {
@@ -51,5 +51,5 @@ pub(crate) async fn handle_typing(
     }
 
     debug!("typing push done");
-    Ok((ErrorCode::Ok as i32, vec![]))
+    Ok((ErrorCode::Success as i32, vec![]))
 }

@@ -244,6 +244,7 @@ pub(crate) async fn message_send(
 
     let mut message = req.message.take().ok_or(Error::string("bad request"))?;
     message.id = id;
+    message.from_id = brief.id;
 
     // ─── Step 2: @Mention parsing + @all validation ─────────────────
     if !message.content.is_empty() {
@@ -365,7 +366,7 @@ pub(crate) async fn message_send(
         }
     });
 
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 pub(crate) async fn message_read(
@@ -423,7 +424,7 @@ pub(crate) async fn message_read(
         }
     }
     debug!("message read, resp: {:?}", resp);
-    Ok((ErrorCode::Ok as i32, vec![]))
+    Ok((ErrorCode::Success as i32, vec![]))
 }
 
 pub(crate) async fn message_forward(
@@ -560,7 +561,7 @@ pub(crate) async fn message_forward(
         .extend(result_msgs.into_iter().map(|m| (m.id, m)));
 
     debug!("message forward, resp count: {}", resp.count);
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 pub(crate) async fn message_recall(
@@ -593,7 +594,7 @@ pub(crate) async fn message_recall(
     }
     debug!("message recall, resp: {resp:?}");
 
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 pub(crate) async fn message_get_by_ids(
@@ -611,7 +612,7 @@ pub(crate) async fn message_get_by_ids(
     let _ = fill_messages_impl(ctx, messages, req.with_full, &mut map).await;
     resp.entity = map.remove(&brief.id).map(|ue| ue.entity);
     debug!("message get by ids, resp: {resp:?}");
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 pub(crate) async fn message_get_by_pos(
@@ -631,7 +632,7 @@ pub(crate) async fn message_get_by_pos(
     let _ = fill_messages_impl(ctx, messages, false, &mut map).await;
     resp.entity = map.remove(&brief.id).map(|ue| ue.entity);
     debug!("get message by pos, resp: {:?}", resp);
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 pub(crate) async fn message_get_by_range(
@@ -657,7 +658,7 @@ pub(crate) async fn message_get_by_range(
     let _ = fill_messages_impl(ctx, messages, false, &mut map).await;
     resp.entity = map.remove(&brief.id).map(|ue| ue.entity);
     debug!("get message by range, resp: {:?}", resp);
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 pub(crate) async fn reaction_set(
@@ -694,7 +695,7 @@ pub(crate) async fn reaction_set(
     }
 
     debug!("reaction set, resp: {resp:?}");
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 // ─── Step 5: GetReadMembers ──────────────────────────────────────────
@@ -741,7 +742,7 @@ pub(crate) async fn message_get_read_members(
     }
 
     debug!("get read members done, count: {}", resp.members.len());
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 // ─── Step 8: DeleteMessage ───────────────────────────────────────────
@@ -758,7 +759,7 @@ pub(crate) async fn message_delete(
 
     if req.mode == 0 {
         // local delete — nothing to do server-side
-        return Ok((ErrorCode::Ok as i32, resp.encode_to_vec()));
+        return Ok((ErrorCode::Success as i32, resp.encode_to_vec()));
     }
 
     // global delete — verify permission
@@ -792,7 +793,7 @@ pub(crate) async fn message_delete(
     }
 
     debug!("delete message done");
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 // ─── Bot 事件触发 ─────────────────────────────────────────────

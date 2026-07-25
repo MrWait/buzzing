@@ -5,6 +5,8 @@ import chatProto from '../../../../proto/chat.proto?raw'
 import messageProto from '../../../../proto/message.proto?raw'
 import feedProto from '../../../../proto/feed.proto?raw'
 import gatewayProto from '../../../../proto/gateway.proto?raw'
+import deptProto from '../../../../proto/dept.proto?raw'
+import userProto from '../../../../proto/user.proto?raw'
 import presenceProto from '../../../../proto/presence.proto?raw'
 import typingProto from '../../../../proto/typing.proto?raw'
 import threadProto from '../../../../proto/thread.proto?raw'
@@ -21,6 +23,8 @@ export function getProto(): protobuf.Root {
     { name: 'message.proto', content: messageProto },
     { name: 'feed.proto', content: feedProto },
     { name: 'gateway.proto', content: gatewayProto },
+    { name: 'dept.proto', content: deptProto },
+    { name: 'user.proto', content: userProto },
     { name: 'presence.proto', content: presenceProto },
     { name: 'typing.proto', content: typingProto },
     { name: 'thread.proto', content: threadProto },

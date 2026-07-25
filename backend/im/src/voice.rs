@@ -56,5 +56,5 @@ pub(crate) async fn transcribe_voice(
 
     resp.message_id = req.message_id;
     resp.transcription = text;
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }

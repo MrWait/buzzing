@@ -5,9 +5,10 @@ import * as imApi from '@/services/im/api'
 import { lookup } from '@/services/im/proto'
 
 export interface FeedItem {
-  id: number
-  chatId: number
+  id: string
+  chatId: string
   type: number
+  status: number
   badge: number
   updateTimeMs: number
   lastMsg?: string
@@ -21,44 +22,44 @@ export interface FeedItem {
 export type SendStatus = 'sending' | 'sent' | 'failed'
 
 export interface MessageItem {
-  id: number
-  chatId: number
-  fromId: number
+  id: string
+  chatId: string
+  fromId: string
   tpy: number
   content: Uint8Array
   summary: string
   pos: number
-  clientId: number
+  clientId: string
   createTimeMs: number
   status: number
-  refMessageId: number
-  reactions: Record<number, { total: number; me: boolean }>
+  refMessageId: string
+  reactions: Record<string, { total: number; me: boolean }>
   sendStatus?: SendStatus
   readCount?: number
 }
 
 export interface ChatItem {
-  id: number
+  id: string
   chatType: number
   name: string
   avatar: string
-  ownerId: number
-  adminIds: number[]
-  memberIds: number[]
+  ownerId: string
+  adminIds: string[]
+  memberIds: string[]
   description: string
   joinMode: number
   globalMuteUntil: number
 }
 
 export interface UserItem {
-  id: number
+  id: string
   name: string
   avatar: string
   status: number
 }
 
 export interface TypingUser {
-  userId: number
+  userId: string
   userName: string
   expireAt: number
 }
@@ -70,14 +71,19 @@ export const useImStore = defineStore('im', () => {
   const wsClient = ref<ImWsClient | null>(null)
 
   // ─── Data ────────────────────────────────────────────────────────
-  const feeds = ref<Map<number, FeedItem>>(new Map())
-  const chats = ref<Map<number, ChatItem>>(new Map())
-  const messages = ref<Map<number, MessageItem[]>>(new Map())
-  const users = ref<Map<number, UserItem>>(new Map())
-  const typingUsers = ref<Map<number, TypingUser[]>>(new Map())
+  const feeds = ref<Map<string, FeedItem>>(new Map())
+  const chats = ref<Map<string, ChatItem>>(new Map())
+  const messages = ref<Map<string, MessageItem[]>>(new Map())
+  const users = ref<Map<string, UserItem>>(new Map())
+  const typingUsers = ref<Map<string, TypingUser[]>>(new Map())
+
+  // ─── Reactive clock ───────────────────────────────────────────────
+  const _now = ref(Date.now())
+  setInterval(() => { _now.value = Date.now() }, 1000)
 
   // ─── Current session ─────────────────────────────────────────────
-  const currentChatId = ref<number | null>(null)
+  const currentChatId = ref<string | null>(null)
+  const currentFeedId = ref<string | null>(null)
   const currentChat = computed(() => (currentChatId.value ? chats.value.get(currentChatId.value) : undefined))
 
   // ─── Local message ID counter for optimistic messages ────────────
@@ -92,6 +98,7 @@ export const useImStore = defineStore('im', () => {
   // ─── Feed list (sorted) ──────────────────────────────────────────
   const feedList = computed(() => {
     const list = Array.from(feeds.value.values())
+      .filter(f => f.status < 4)
     list.sort((a, b) => {
       if (a.isTop !== b.isTop) return a.isTop ? -1 : 1
       return b.updateTimeMs - a.updateTimeMs
@@ -133,7 +140,7 @@ export const useImStore = defineStore('im', () => {
 
   // ─── Feed loading ────────────────────────────────────────────────
 
-  async function loadFeeds(cursor: number = 0) {
+  async function loadFeeds(cursor: string = String(Date.now())) {
     loadingFeeds.value = true
     try {
       const resp = await imApi.pullFeedList(cursor)
@@ -149,14 +156,14 @@ export const useImStore = defineStore('im', () => {
 
   // ─── Message loading ─────────────────────────────────────────────
 
-  async function loadMessages(chatId: number, pos: number = 0, count: number = 20) {
+  async function loadMessages(chatId: string, pos: number = 0, count: number = 20) {
     loadingMessages.value = true
     try {
       const resp = await imApi.getMessagesByRange(chatId, pos, count, 1)
       mergeEntity(resp.entity)
       if (resp.entity?.messages) {
-        const msgIds = Object.keys(resp.entity.messages).map(Number)
-        if (msgIds.length < count) {
+        const msgKeys = Object.keys(resp.entity.messages)
+        if (msgKeys.length < count) {
           hasMoreMessages.value = false
         }
       }
@@ -169,7 +176,7 @@ export const useImStore = defineStore('im', () => {
     }
   }
 
-  async function loadMoreMessages(chatId: number) {
+  async function loadMoreMessages(chatId: string) {
     const msgs = messages.value.get(chatId) || []
     if (msgs.length === 0) return
     const minPos = Math.min(...msgs.map((m) => m.pos))
@@ -178,20 +185,20 @@ export const useImStore = defineStore('im', () => {
 
   // ─── Send message ────────────────────────────────────────────────
 
-  function addOptimisticMessage(chatId: number, content: Uint8Array, tpy: number, summary: string, refMessageId?: number, clientId?: number): MessageItem {
+  function addOptimisticMessage(chatId: string, content: Uint8Array, tpy: number, summary: string, refMessageId?: string, clientId?: string): MessageItem {
     const now = Date.now()
     const item: MessageItem = {
-      id: nextLocalId(),
+      id: String(nextLocalId()),
       chatId,
-      fromId: 0,
+      fromId: '0',
       tpy,
       content,
       summary,
       pos: now,
-      clientId: clientId || now,
+      clientId: clientId || String(now),
       createTimeMs: now,
       status: 0,
-      refMessageId: refMessageId || 0,
+      refMessageId: refMessageId || '0',
       reactions: {},
       sendStatus: 'sending',
     }
@@ -201,40 +208,39 @@ export const useImStore = defineStore('im', () => {
     return item
   }
 
-  function removeOptimisticMessage(chatId: number, clientId: number) {
+  function removeOptimisticMessage(chatId: string, clientId: string) {
     const msgs = messages.value.get(chatId)
     if (!msgs) return
-    const idx = msgs.findIndex((m) => m.clientId === clientId && m.id < 0)
+    const idx = msgs.findIndex((m) => m.clientId === clientId && Number(m.id) < 0)
     if (idx >= 0) {
       msgs.splice(idx, 1)
       messages.value.set(chatId, [...msgs])
     }
   }
 
-  function markLocalMessageFailed(chatId: number, clientId: number) {
+  function markLocalMessageFailed(chatId: string, clientId: string) {
     const msgs = messages.value.get(chatId)
     if (!msgs) return
-    if (clientId < 0) {
-      // Mark all local messages in this chat as failed
-      const updated = msgs.map((m) => m.id < 0 ? { ...m, sendStatus: 'failed' as const } : m)
+    if (Number(clientId) < 0) {
+      const updated = msgs.map((m) => Number(m.id) < 0 ? { ...m, sendStatus: 'failed' as const } : m)
       messages.value.set(chatId, updated)
       return
     }
-    const idx = msgs.findIndex((m) => m.clientId === clientId && m.id < 0)
+    const idx = msgs.findIndex((m) => m.clientId === clientId && Number(m.id) < 0)
     if (idx >= 0) {
       msgs[idx] = { ...msgs[idx], sendStatus: 'failed' }
       messages.value.set(chatId, [...msgs])
     }
   }
 
-  async function sendTextMessage(chatId: number, text: string, refMessageId?: number) {
+  async function sendTextMessage(chatId: string, text: string, refMessageId?: string) {
     const msgType = lookup('entity.MessageText')
     const content = msgType.encode(msgType.create({ text })).finish() as Uint8Array
     const summary = text
-    const clientId = Date.now()
+    const clientId = String(Date.now())
     addOptimisticMessage(chatId, content, 1, summary, refMessageId, clientId)
     try {
-      const resp = await imApi.sendMessage(chatId, 1, content, clientId, summary, refMessageId)
+      const resp = await imApi.sendMessage(chatId, 1, content, Number(clientId), summary, refMessageId)
       mergeEntity(resp.entity)
       removeOptimisticMessage(chatId, clientId)
       return resp
@@ -244,7 +250,7 @@ export const useImStore = defineStore('im', () => {
     }
   }
 
-  async function sendImageMessage(chatId: number, _fileId: number, url: string, name: string, _mimeType: string, _size: number, thumbnailUrl?: string) {
+  async function sendImageMessage(chatId: string, _fileId: string, url: string, name: string, _mimeType: string, _size: number, thumbnailUrl?: string) {
     const msgType = lookup('entity.MessageImage')
     const content = msgType.encode(msgType.create({
       url,
@@ -254,10 +260,10 @@ export const useImStore = defineStore('im', () => {
       alt_text: name,
     })).finish() as Uint8Array
     const summary = `[图片] ${name}`
-    const clientId = Date.now()
+    const clientId = String(Date.now())
     addOptimisticMessage(chatId, content, 2, summary, undefined, clientId)
     try {
-      const resp = await imApi.sendMessage(chatId, 2, content, clientId, summary)
+      const resp = await imApi.sendMessage(chatId, 2, content, Number(clientId), summary)
       mergeEntity(resp.entity)
       removeOptimisticMessage(chatId, clientId)
       return resp
@@ -267,7 +273,7 @@ export const useImStore = defineStore('im', () => {
     }
   }
 
-  async function sendFileMessage(chatId: number, _fileId: number, url: string, name: string, mimeType: string, size: number) {
+  async function sendFileMessage(chatId: string, _fileId: string, url: string, name: string, mimeType: string, size: number) {
     const msgType = lookup('entity.MessageFile')
     const content = msgType.encode(msgType.create({
       name,
@@ -276,10 +282,10 @@ export const useImStore = defineStore('im', () => {
       url,
     })).finish() as Uint8Array
     const summary = `[文件] ${name}`
-    const clientId = Date.now()
+    const clientId = String(Date.now())
     addOptimisticMessage(chatId, content, 3, summary, undefined, clientId)
     try {
-      const resp = await imApi.sendMessage(chatId, 3, content, clientId, summary)
+      const resp = await imApi.sendMessage(chatId, 3, content, Number(clientId), summary)
       mergeEntity(resp.entity)
       removeOptimisticMessage(chatId, clientId)
       return resp
@@ -296,16 +302,16 @@ export const useImStore = defineStore('im', () => {
 
     // Merge chats
     if (entity.chats) {
-      for (const [id, chat] of Object.entries(entity.chats) as [string, any][]) {
-        const nid = Number(id)
+      for (const chat of Object.values(entity.chats) as any[]) {
+        const nid = chat.id || '0'
         chats.value.set(nid, {
           id: nid,
           chatType: chat.chat_type || 0,
           name: chat.name || '',
           avatar: chat.avatar || '',
-          ownerId: Number(chat.owner_id || 0),
-          adminIds: (chat.admin_ids || []).map(Number),
-          memberIds: (chat.member_ids || []).map(Number),
+          ownerId: chat.owner_id || '0',
+          adminIds: (chat.admin_ids || []).map(String),
+          memberIds: (chat.member_ids || []).map(String),
           description: chat.description || '',
           joinMode: chat.join_mode || 0,
           globalMuteUntil: Number(chat.global_mute_until || 0),
@@ -315,14 +321,20 @@ export const useImStore = defineStore('im', () => {
 
     // Merge feeds
     if (entity.feeds) {
-      for (const [id, feed] of Object.entries(entity.feeds) as [string, any][]) {
-        const nid = Number(id)
-        const chatId = Number(feed.refer_id || 0)
-        const chat = chats.value.get(chatId)
+      for (const feed of Object.values(entity.feeds) as any[]) {
+        const nid = feed.id || '0'
+        const chat = chats.value.get(nid)
+        const status = Number(feed.status || 0)
+        // Skip dissolved/deleted feeds
+        if (status >= 4) {
+          feeds.value.delete(nid)
+          continue
+        }
         feeds.value.set(nid, {
           id: nid,
-          chatId,
+          chatId: nid,
           type: feed.type || 0,
+          status,
           badge: feed.badge || 0,
           updateTimeMs: Number(feed.update_time_ms || 0),
           lastMsg: feed.last_msg || '',
@@ -337,26 +349,26 @@ export const useImStore = defineStore('im', () => {
 
     // Merge messages
     if (entity.messages) {
-      for (const [id, msg] of Object.entries(entity.messages) as [string, any][]) {
-        const nid = Number(id)
-        const chatId = Number(msg.chat_id || 0)
+      for (const msg of Object.values(entity.messages) as any[]) {
+        const nid = msg.id || '0'
+        const chatId = msg.chat_id || '0'
         const item: MessageItem = {
           id: nid,
           chatId,
-          fromId: Number(msg.from_id || 0),
+          fromId: msg.from_id || '0',
           tpy: msg.tpy || 0,
           content: msg.content || new Uint8Array(0),
           summary: msg.summary || '',
           pos: msg.pos || 0,
-          clientId: Number(msg.client_id || 0),
+          clientId: msg.client_id || '0',
           createTimeMs: Number(msg.create_time_ms || 0),
           status: msg.status || 0,
-          refMessageId: Number(msg.ref_message_id || 0),
+          refMessageId: msg.ref_message_id || '0',
           reactions: {},
         }
         if (msg.reactions) {
           for (const [k, v] of Object.entries(msg.reactions) as [string, any][]) {
-            item.reactions[Number(k)] = {
+            item.reactions[k] = {
               total: v.total || 0,
               me: v.me || false,
             }
@@ -376,8 +388,8 @@ export const useImStore = defineStore('im', () => {
 
     // Merge users
     if (entity.users) {
-      for (const [id, user] of Object.entries(entity.users) as [string, any][]) {
-        const nid = Number(id)
+      for (const user of Object.values(entity.users) as any[]) {
+        const nid = user.id || '0'
         users.value.set(nid, {
           id: nid,
           name: user.name || '',
@@ -386,48 +398,90 @@ export const useImStore = defineStore('im', () => {
         })
       }
     }
+
+    // Auto-fetch missing sender info for messages
+    if (entity.messages) {
+      const fromIds: string[] = []
+      for (const msg of Object.values(entity.messages) as any[]) {
+        const fid = String(msg.from_id || '0')
+        if (fid && fid !== '0' && !users.value.has(fid)) {
+          fromIds.push(fid)
+        }
+      }
+      if (fromIds.length > 0) {
+        const unique = [...new Set(fromIds)]
+        ensureUsers(unique)
+      }
+    }
+  }
+
+  async function ensureUsers(ids: string[]) {
+    const missing = ids.filter((id) => id && !users.value.has(id))
+    if (missing.length === 0) return
+    try {
+      const resp = await imApi.getUserByIds(missing)
+      if (resp?.users) {
+        for (const user of resp.users) {
+          const nid = user.id || '0'
+          users.value.set(nid, {
+            id: nid,
+            name: user.name || '',
+            avatar: user.avatar || '',
+            status: user.status || 0,
+          })
+        }
+      }
+    } catch (e) {
+      // ignore errors
+    }
   }
 
   // ─── Push handling ───────────────────────────────────────────────
+
+  function decodeAsPlain(typeName: string, payload: Uint8Array): any {
+    const type = lookup(typeName)
+    const decoded = type.decode(payload)
+    return type.toObject(decoded, { longs: String, enums: String, defaults: true })
+  }
 
   function handlePush(cmd: number, payload: Uint8Array) {
     try {
       switch (cmd) {
         case 1211: // PUSH_MESSAGES
-          const pushMsg = lookup('message.PushMessages').decode(payload) as any
+          const pushMsg = decodeAsPlain('message.PushMessages', payload)
           mergeEntity(pushMsg.entity)
           break
         case 1111: // PUSH_FEED_LIST
-          const pushFeed = lookup('feed.PushFeedList').decode(payload) as any
+          const pushFeed = decodeAsPlain('feed.PushFeedList', payload)
           mergeEntity(pushFeed.entity)
           break
         case 1215: // PUSH_REACTIONS
-          const pushReaction = lookup('message.PushMessageReactionRequest').decode(payload) as any
+          const pushReaction = decodeAsPlain('message.PushMessageReactionRequest', payload)
           mergeEntity(pushReaction.entity)
           break
         case 1352: // PUSH_PRESENCE
-          const presence = lookup('presence.PushPresence').decode(payload) as any
-          const uid = Number(presence.user_id)
+          const presence = decodeAsPlain('presence.PushPresence', payload)
+          const uid = presence.user_id || '0'
           const existing = users.value.get(uid)
           if (existing) {
             users.value.set(uid, { ...existing, status: presence.status || 0 })
           }
           break
         case 1404: // PUSH_TYPING
-          const typing = lookup('typing.PushTyping').decode(payload) as any
-          const chatId = Number(typing.chat_id)
+          const typing = decodeAsPlain('typing.PushTyping', payload)
+          const chatId = typing.chat_id || '0'
           const now = Date.now()
           const list = typingUsers.value.get(chatId) || []
-          const filtered = list.filter((t) => t.expireAt > now && t.userId !== Number(typing.user_id))
+          const filtered = list.filter((t) => t.expireAt > now && t.userId !== (typing.user_id || '0'))
           filtered.push({
-            userId: Number(typing.user_id),
+            userId: typing.user_id || '0',
             userName: typing.user_name || '',
             expireAt: Number(typing.expire_at_ms || now + 5000),
           })
           typingUsers.value.set(chatId, filtered)
           break
         case 1057: // PUSH_ENTITY_CHANGE
-          const change = lookup('entity.EntityChange').decode(payload) as any
+          const change = decodeAsPlain('entity.EntityChange', payload)
           console.log('[im] entity change:', change)
           break
         default:
@@ -446,28 +500,27 @@ export const useImStore = defineStore('im', () => {
     replyTarget.value = msg
   }
 
-  async function recallMessage(msgId: number) {
+  async function recallMessage(msgId: string) {
     try {
       await imApi.recallMessage(msgId)
-      const msgs = messages.value.get(currentChatId.value || 0) || []
+      const msgs = messages.value.get(currentChatId.value || '0') || []
       const idx = msgs.findIndex((m) => m.id === msgId)
       if (idx >= 0) {
         msgs[idx] = { ...msgs[idx], status: 6 }
-        messages.value.set(currentChatId.value || 0, [...msgs])
+        messages.value.set(currentChatId.value || '0', [...msgs])
       }
     } catch (e) {
       console.error('[im] recall error:', e)
     }
   }
 
-  async function retrySendMessage(chatId: number, msg: MessageItem) {
+  async function retrySendMessage(chatId: string, msg: MessageItem) {
     if (!msg.content) return
-    const clientId = Date.now()
+    const clientId = String(Date.now())
     try {
-      // Remove the old failed message and re-add as sending
       removeOptimisticMessage(chatId, msg.clientId)
       addOptimisticMessage(chatId, msg.content, msg.tpy, msg.summary, msg.refMessageId || undefined, clientId)
-      const resp = await imApi.sendMessage(chatId, msg.tpy, msg.content, clientId, msg.summary, msg.refMessageId || undefined)
+      const resp = await imApi.sendMessage(chatId, msg.tpy, msg.content, Number(clientId), msg.summary, msg.refMessageId || undefined)
       mergeEntity(resp.entity)
       removeOptimisticMessage(chatId, clientId)
     } catch (e) {
@@ -476,7 +529,7 @@ export const useImStore = defineStore('im', () => {
     }
   }
 
-  async function setReaction(messageId: number, reaction: number, set: boolean) {
+  async function setReaction(messageId: string, reaction: number, set: boolean) {
     try {
       await imApi.setReaction(messageId, reaction, set)
     } catch (e) {
@@ -484,7 +537,7 @@ export const useImStore = defineStore('im', () => {
     }
   }
 
-  async function sendTyping(chatId: number) {
+  async function sendTyping(chatId: string) {
     try {
       await imApi.sendTyping(chatId)
     } catch (e) {
@@ -492,7 +545,7 @@ export const useImStore = defineStore('im', () => {
     }
   }
 
-  async function forwardMessages(toChatId: number, sourceChatId: number, messageIds: number[], forwardType: number = 0) {
+  async function forwardMessages(toChatId: string, sourceChatId: string, messageIds: string[], forwardType: number = 0) {
     try {
       const resp = await imApi.forwardMessage(toChatId, sourceChatId, messageIds, forwardType)
       mergeEntity(resp.entity)
@@ -501,7 +554,7 @@ export const useImStore = defineStore('im', () => {
     }
   }
 
-  async function deleteMessage(msgId: number) {
+  async function deleteMessage(msgId: string) {
     try {
       await imApi.deleteMessage(msgId)
       const cid = currentChatId.value
@@ -516,7 +569,7 @@ export const useImStore = defineStore('im', () => {
 
   // ─── Feed actions ──────────────────────────────────────────────
 
-  async function setFeedTop(feedId: number, top: boolean) {
+  async function setFeedTop(feedId: string, top: boolean) {
     try {
       await imApi.setFeedTop(feedId, top)
       const feed = feeds.value.get(feedId)
@@ -528,7 +581,7 @@ export const useImStore = defineStore('im', () => {
     }
   }
 
-  async function setFeedMute(feedId: number, mute: boolean) {
+  async function setFeedMute(feedId: string, mute: boolean) {
     try {
       await imApi.setFeedMute(feedId, mute)
       const feed = feeds.value.get(feedId)
@@ -540,7 +593,7 @@ export const useImStore = defineStore('im', () => {
     }
   }
 
-  async function removeFeed(feedId: number) {
+  async function removeFeed(feedId: string) {
     try {
       await imApi.removeFeed(feedId)
       feeds.value.delete(feedId)
@@ -549,7 +602,7 @@ export const useImStore = defineStore('im', () => {
     }
   }
 
-  async function activeFeed(feedId: number) {
+  async function activeFeed(feedId: string) {
     try {
       await imApi.activeFeed(feedId)
     } catch (e) {
@@ -559,11 +612,73 @@ export const useImStore = defineStore('im', () => {
 
   // ─── Session management ──────────────────────────────────────────
 
-  function selectChat(chatId: number | null) {
+  function selectChat(chatId: string | null) {
     currentChatId.value = chatId
     hasMoreMessages.value = true
     if (chatId && !messages.value.has(chatId)) {
       messages.value.set(chatId, [])
+    }
+  }
+
+  // ─── Create Chat ─────────────────────────────────────────────────
+
+  async function createP2pChat(myUserId: string, peerUserId: string) {
+    try {
+      const resp = await imApi.createChat({
+        chat_type: 1,
+        peer_a_id: myUserId,
+        peer_b_id: peerUserId,
+      })
+      const chatId = String(resp.chat_id)
+      if (resp.entities) {
+        mergeEntity(resp.entities)
+      }
+      selectChat(chatId)
+      return chatId
+    } catch (e) {
+      console.error('[im] create p2p chat error:', e)
+      return null
+    }
+  }
+
+  async function createGroupChat(myUserId: string, name: string, memberIds: string[]) {
+    try {
+      const allIds = [myUserId, ...memberIds.filter(id => id !== myUserId)]
+      const resp = await imApi.createChat({
+        chat_type: 2,
+        owner_id: myUserId,
+        name,
+        member_ids: allIds,
+      })
+      const chatId = String(resp.chat_id)
+      if (resp.entities) {
+        mergeEntity(resp.entities)
+      }
+      selectChat(chatId)
+      return chatId
+    } catch (e) {
+      console.error('[im] create group chat error:', e)
+      return null
+    }
+  }
+
+  async function quitChat(chatId: string) {
+    try {
+      await imApi.quitChat(chatId)
+      await loadFeeds()
+      selectChat(null)
+    } catch (e) {
+      console.error('[im] quit chat error:', e)
+    }
+  }
+
+  async function dismissChat(chatId: string) {
+    try {
+      await imApi.dismissChat(chatId)
+      await loadFeeds()
+      selectChat(null)
+    } catch (e) {
+      console.error('[im] dismiss chat error:', e)
     }
   }
 
@@ -585,12 +700,14 @@ export const useImStore = defineStore('im', () => {
     // state
     connected, connecting, wsClient,
     feeds, chats, messages, users, typingUsers,
-    currentChatId, currentChat,
+    currentChatId, currentFeedId, currentChat,
     loadingFeeds, loadingMessages, hasMoreMessages,
     // computed
     feedList, currentMessages,
     // state
     replyTarget,
+    // reactive clock
+    now: _now,
     // actions
     connectWs, disconnectWs,
     loadFeeds, loadMessages, loadMoreMessages,
@@ -599,8 +716,10 @@ export const useImStore = defineStore('im', () => {
     setReaction, forwardMessages, sendTyping,
     retrySendMessage,
     setFeedTop, setFeedMute, removeFeed, activeFeed,
-    mergeEntity,
+    mergeEntity, ensureUsers,
     selectChat,
+    createP2pChat, createGroupChat,
+    quitChat, dismissChat,
     reset,
   }
 })

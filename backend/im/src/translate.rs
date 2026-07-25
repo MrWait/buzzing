@@ -69,7 +69,7 @@ pub(crate) async fn translate_message(
         target_lang: req.target_lang,
         source_lang: result.source_lang,
     };
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
 /// Handle get_translation_languages command (M5-F.8)
@@ -90,5 +90,5 @@ pub(crate) async fn get_translation_languages(
             })
             .collect(),
     };
-    Ok((ErrorCode::Ok as i32, resp.encode_to_vec()))
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }

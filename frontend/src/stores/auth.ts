@@ -20,21 +20,29 @@ export const useAuthStore = defineStore('auth', () => {
 
   const currentTenant = computed<TenantInfo | null>(() => {
     const raw = localStorage.getItem('currentTenant')
-    if (!raw) return null
+    if (!raw) {
+      console.log('[auth] no currentTenant in localStorage')
+      return null
+    }
     try {
-      return JSON.parse(raw) as TenantInfo
+      const parsed = JSON.parse(raw) as TenantInfo
+      console.log('[auth] currentTenant from localStorage:', JSON.stringify(parsed))
+      return parsed
     } catch {
+      console.warn('[auth] failed to parse currentTenant:', raw)
       return null
     }
   })
 
   async function login(phone: string, password: string) {
     const res = await authApi.login({ phone, password })
+    console.log('[auth] login response:', JSON.stringify(res, null, 2))
     accountName.value = res.name
     loginUsers.value = res.users
   }
 
   function selectIdentity(lu: LoginUser) {
+    console.log('[auth] selectIdentity:', JSON.stringify(lu, null, 2))
     token.value = lu.token
     user.value = lu.user
     localStorage.setItem('token', lu.token)
