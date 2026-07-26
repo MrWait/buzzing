@@ -1,99 +1,158 @@
+# Windows: cmd.exe for both normal and [script] recipes.
+# macOS/Linux: change to:
+#   set shell := ["sh", "-c"]
+#   set script-interpreter := ["sh", "-c"]
+set shell := ["cmd.exe", "/c"]
+set script-interpreter := ["cmd.exe", "/c"]
+
 # 服务端 DB 重置
+[working-directory: 'backend/base']
 dr:
-    cd backend/base && cargo loco db reset
+    cargo loco db reset
 
 # 服务端 DB 迁移
+[working-directory: 'backend/base']
 dm:
-    cd backend/base && cargo loco db migrate
+    cargo loco db migrate
 
 # 服务端通过 DB 生成 entities 代码
+[working-directory: 'backend/base']
 de:
-    cd backend/base && cargo loco db entities
+    cargo loco db entities
 
 # 服务端启动（开发模式，读取 frontend/dist 文件系统，修改前端后无需重编）
+[working-directory: 'backend']
 sd:
-    cd backend && cargo run -p app --no-default-features
+    cargo run -p app --no-default-features
 
 # 服务端启动（生产模式，embed 前端资源到二进制）
+[working-directory: 'backend/base']
 ss:
-    cd backend/base && cargo loco start
+    cargo loco start
 
 # 服务端构建 release（embed 前端资源到二进制）
+[working-directory: 'backend']
 sr:
-    cd backend && cargo build --release -p app --features base/embed
+    cargo build --release -p app --features base/embed
 
 # 客户端在 macos 平台启动
+[macos]
+[working-directory: 'buzzing']
 csm:
-    cd buzzing && flutter run -d macos
+    flutter run -d macos
 
 # 客户端在 windows 平台启动
+[working-directory: 'buzzing']
 csw:
-    cd buzzing && flutter run -d windows
+    flutter run -d windows
 
 # 客户端在 macos 平台构建
+[macos]
+[working-directory: 'buzzing']
 cbm:
-    cd buzzing && flutter build macos
+    flutter build macos
 
 # 客户端生成 protobuf 的 idl
+[script]
+[working-directory: 'buzzing']
 cidl:
-    cd buzzing && python3 util.py -c idl -t dart -s ../proto -o ./lib/models/idl/
+    python3 util.py -c idl -t dart -s ../proto -o ./lib/models/idl/ || python util.py -c idl -t dart -s ../proto -o ./lib/models/idl/
 
 # 客户端生成 debug 模式 SDK
+[script]
+[working-directory: 'buzzing']
 clib:
-    cd buzzing && python3 util.py -c lib -t debug -i ../sdk
+    python3 util.py -c lib -t debug -i ../sdk || python util.py -c lib -t debug -i ../sdk
 
 # 客户端生成 release 模式 SDK
+[script]
+[working-directory: 'buzzing']
 cdeploy:
-    cd buzzing && python3 util.py -c lib -t release -i ../sdk
+    python3 util.py -c lib -t release -i ../sdk || python util.py -c lib -t release -i ../sdk
 
 # 客户端构建。不建议使用
+[script]
+[working-directory: 'buzzing']
 cbuild:
-    cd buzzing && python3 util.py -c build
+    python3 util.py -c build || python util.py -c build
 
 # 未知
+[working-directory: 'buzzing']
 cjson:
-    cd buzzing && flutter packages pub run build_runner build
+    dart run build_runner build
 
 # 初始化用户数据（账户、租户、部门）。默认 init.json，可用 -s 指定文件
+[windows]
+[script]
+[working-directory: 'utils']
 init_data:
-    cd utils && NODE_TLS_REJECT_UNAUTHORIZED=0 node init.js
+    set NODE_TLS_REJECT_UNAUTHORIZED=0
+    node init.js
+
+[unix]
+[script]
+[working-directory: 'utils']
+init_data:
+    NODE_TLS_REJECT_UNAUTHORIZED=0 node init.js
 
 # 使用测试租户数据初始化
+[windows]
+[script]
+[working-directory: 'utils']
 init_data_test:
-    cd utils && NODE_TLS_REJECT_UNAUTHORIZED=0 node init.js -s ./init_test.json
+    set NODE_TLS_REJECT_UNAUTHORIZED=0
+    node init.js -s ./init_test.json
+
+[unix]
+[script]
+[working-directory: 'utils']
+init_data_test:
+    NODE_TLS_REJECT_UNAUTHORIZED=0 node init.js -s ./init_test.json
 
 # 修复 macos 端 pod 版本问题
+[macos]
+[script]
+[working-directory: 'buzzing/macos']
 client_macos_fix_pod:
-    cd buzzing/macos && export LANG=en_US.UTF-8 && export LC_ALL=en_US.UTF-8 && pod install --repo-update
+    export LANG=en_US.UTF-8
+    export LC_ALL=en_US.UTF-8
+    pod install --repo-update
 
 # 客户端生成多语言代码
+[working-directory: 'buzzing']
 client_gen_slang:
-    cd buzzing && dart run slang
+    dart run slang
 
 # SDK 集成测试 (编译 Rust 库 + 运行 dart 测试)
+[working-directory: 'buzzing/sdk_test']
 sdk_test:
-    cd buzzing/sdk_test && bash run.sh
+    bash run.sh
 
 # 后端业务测试 (需要服务端运行中)
+[working-directory: 'backend_test']
 backend_test:
-    cd backend_test && npm run test:business
+    npm run test:business
 
 # 后端 smoke 测试 (连通性 + 登录流程)
+[working-directory: 'backend_test']
 backend_test_smoke:
-    cd backend_test && npm run test:smoke
+    npm run test:smoke
 
 # install protoc-gen-dart
 install_protoc_dart:
     dart pub global activate protoc_plugin
 
 # Web 前端开发服务器 (http://localhost:5173)
+[working-directory: 'frontend']
 fw:
-    cd frontend && pnpm dev
+    pnpm dev
 
 # Web 前端构建
+[working-directory: 'frontend']
 fb:
-    cd frontend && pnpm build
+    pnpm build
 
 # Web 前端安装依赖
+[working-directory: 'frontend']
 fi:
-    cd frontend && pnpm install
+    pnpm install
