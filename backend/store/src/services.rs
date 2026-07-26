@@ -24,6 +24,8 @@ static STORE: LazyLock<Result<Box<dyn ObjectStore>, object_store::Error>> =
         let path =
             std::env::var("BUZZING_STORAGE_DIR").unwrap_or_else(|_| "storage".to_string());
         debug!("initializing object_store with prefix: {path}");
+        std::fs::create_dir_all(&path)
+            .unwrap_or_else(|e| panic!("failed to create storage directory '{path}': {e}"));
         object_store::local::LocalFileSystem::new_with_prefix(&path)
             .map(|fs| Box::new(fs) as Box<dyn ObjectStore>)
     });
