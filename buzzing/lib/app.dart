@@ -1,5 +1,6 @@
 import 'package:buzzing/provider/app_state_provider.dart';
 import 'package:buzzing/res/theme.dart';
+import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/widget/app_view.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
@@ -22,21 +23,23 @@ class _BuzzingAppState extends ConsumerState<BuzzingApp> with WindowListener {
   @override
   void initState() {
     super.initState();
-    // 监听主窗口原生关闭事件（如 macOS 红点、Cmd+Q），以便销毁常驻子窗口
-    windowManager.addListener(this);
-    // 拦截原生关闭：onWindowClose 中先销毁常驻子窗口再真正退出
-    windowManager.setPreventClose(true);
+    if (isDesktop) {
+      windowManager.addListener(this);
+      windowManager.setPreventClose(true);
+    }
   }
 
   @override
   void dispose() {
-    windowManager.removeListener(this);
+    if (isDesktop) {
+      windowManager.removeListener(this);
+    }
     super.dispose();
   }
 
   @override
   void onWindowClose() async {
-    // 主窗口关闭前，通知所有常驻子窗口销毁 engine，避免内存泄漏
+    if (!isDesktop) return;
     final app = ref.read(appControllerProvider);
     await app.destroyAllSubWindows();
     await windowManager.setPreventClose(false);
@@ -53,16 +56,18 @@ class _BuzzingAppState extends ConsumerState<BuzzingApp> with WindowListener {
       2 => ThemeMode.dark,
       _ => ThemeMode.system,
     };
-    widget.channel.setMethodCallHandler((call) async {
-      switch (call.method) {
-        case 'meeting_end':
-          break;
-        case 'meeting_incomming':
-          break;
-        case 'webview_end':
-          break;
-      }
-    });
+    if (isDesktop) {
+      widget.channel.setMethodCallHandler((call) async {
+        switch (call.method) {
+          case 'meeting_end':
+            break;
+          case 'meeting_incomming':
+            break;
+          case 'webview_end':
+            break;
+        }
+      });
+    }
 
     return AppView(
       builder: ((locale, builder) => MaterialApp.router(

@@ -4,9 +4,12 @@ import 'package:buzzing/models/idl/calendar.pb.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/model.dart';
 import 'package:buzzing/page/calendar/events_view_bar.dart';
-import 'package:buzzing/page/meeting/meeting_home_logic.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/res/theme.dart';
+import 'package:buzzing/provider/im_provider.dart';
+import 'package:buzzing/routes/app_routes.dart';
+import 'package:buzzing/utils/common_utils.dart';
+import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/widget/calendar_creator.dart';
 import 'package:buzzing/widget/color_picker.dart';
 import 'package:buzzing/widget/header_bar.dart';
@@ -14,10 +17,15 @@ import 'package:buzzing/widget/navigate_bar.dart';
 import 'package:buzzing/widget/schedule_creator.dart';
 import 'package:buzzing/widget/schedule_detail_page.dart';
 import 'package:buzzing/utils/logger_util.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:infinite_calendar_view/infinite_calendar_view.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_calendar_carousel/classes/event.dart' as carousel_event;
+import 'package:flutter_calendar_carousel/flutter_calendar_carousel.dart'
+    show CalendarCarousel;
 
 import 'calendar_logic.dart';
 import 'events_planner_draggable_events_view.dart';
@@ -26,6 +34,19 @@ import "events_months_view.dart";
 import "calendar_navigator.dart";
 
 class CalendarPage extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (isMobile) {
+      return const _CalendarMobile();
+    }
+    return const _CalendarDesktop();
+  }
+}
+
+/// Desktop: original 3-column layout (NaviBar + CalendarDeck + event view)
+class _CalendarDesktop extends ConsumerWidget {
+  const _CalendarDesktop();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
@@ -180,6 +201,520 @@ class CalendarPage extends ConsumerWidget {
   }
 }
 
+/// Mobile: full-screen calendar with title bar + endDrawer settings
+class _CalendarMobile extends ConsumerWidget {
+  const _CalendarMobile();
+
+  Widget _buildLeftDrawer(BuildContext context, WidgetRef ref, ColorScheme cs, TextTheme tt,
+      String avatarUrl, String userName) {
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => context.push(AppRoute.PERSONAL),
+                    child: CircleAvatar(
+                      radius: 28,
+                      backgroundImage: avatarUrl.isNotEmpty
+                          ? CachedNetworkImageProvider(avatarUrl)
+                          : null,
+                      child: avatarUrl.isEmpty
+                          ? Text(userName[0], style: tt.titleMedium)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(userName, style: tt.titleMedium),
+                        const SizedBox(height: 2),
+                        Text(
+                          ref.watch(imProvider).loginUser.tenant.name,
+                          style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: const Text('个人名片'),
+              onTap: () {
+                Navigator.of(context).pop();
+                context.push(AppRoute.PERSONAL);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.devices_outlined),
+              title: const Text('登录设备'),
+              onTap: () {
+                Navigator.of(context).pop();
+                context.push(AppRoute.DEVICES);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_outlined),
+              title: const Text('设置'),
+              onTap: () {
+                Navigator.of(context).pop();
+                context.push(AppRoute.SETTINGS);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMiniCalendar(BuildContext context, CalendarLogic ctl) {
+    final cs = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setInnerState) {
+            return Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        const Spacer(),
+                        Text(ctl.currentMonth,
+                            style: Theme.of(context).textTheme.titleMedium),
+                        IconButton(
+                          icon: const Icon(Icons.chevron_left, size: 20),
+                          onPressed: () => ctl.previousMonth(),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.chevron_right, size: 20),
+                          onPressed: () => ctl.nextMonth(),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(
+                    height: 280,
+                    child: CalendarCarousel<carousel_event.Event>(
+                      todayBorderColor: Theme.of(context).extension<BuzzingTheme>()!.success,
+                      onDayPressed: (date, events) {
+                        ctl.goToDate(date);
+                        Navigator.of(ctx).pop();
+                      },
+                      daysHaveCircularBorder: true,
+                      showOnlyCurrentMonthDate: false,
+                      weekendTextStyle: const TextStyle(color: Colors.red),
+                      thisMonthDayBorderColor: cs.onSurfaceVariant,
+                      weekFormat: false,
+                      showHeader: false,
+                      selectedDateTime: ctl.currentDate,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final ctl = ref.watch(calendarLogicProvider);
+    final im = ref.watch(imProvider);
+    final user = im.loginUser.user;
+    final avatarUrl = CommonUtils.fixResourceUrl(user.avatar);
+    final userName = user.name.isNotEmpty ? user.name : "?";
+
+    ref.listen<CalendarLogic>(calendarLogicProvider, (prev, next) {
+      final reminder = next.latestReminder;
+      if (reminder != null) {
+        next.clearReminder();
+        final isMeeting = reminder.type == 1 && reminder.hasRoomId() && reminder.roomId.toInt() > 0;
+        if (isMeeting) {
+          final meetingHome = ref.read(meetingHomeLogicProvider);
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(
+                content: Text(reminder.title.isNotEmpty
+                    ? "${t.scheduleReminder}: ${reminder.title}"
+                    : t.scheduleReminder),
+                action: SnackBarAction(
+                  label: t.joinMeeting,
+                  onPressed: () async {
+                    var ok = await meetingHome.joinMeeting(
+                      reminder.roomId.toInt().toString(),
+                    );
+                    if (ok && context.mounted) {
+                      context.go('/meeting');
+                    }
+                  },
+                ),
+                duration: const Duration(seconds: 10),
+              ));
+        } else {
+          final sched = Schedule.create()
+            ..id = reminder.scheduleId
+            ..title = reminder.title
+            ..startTime = reminder.startTime
+            ..endTime = reminder.endTime
+            ..location = reminder.location;
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(
+                content: Text(reminder.title.isNotEmpty
+                    ? "${t.scheduleReminder}: ${reminder.title}"
+                    : t.scheduleReminder),
+                action: SnackBarAction(
+                  label: t.view,
+                  onPressed: () {
+                    showDialog<bool>(
+                      context: context,
+                      builder: (_) => ScheduleDetailPage(schedule: sched),
+                    );
+                  },
+                ),
+                duration: const Duration(seconds: 5),
+              ));
+        }
+      }
+    });
+
+    final dateText = DateFormat.yMMMd().format(ctl.currentDate);
+    final leftDrawer = _buildLeftDrawer(context, ref, cs, tt, avatarUrl, userName);
+    final rightDrawer = _CalendarDrawer(ctl: ctl, cs: cs, tt: tt, context: context);
+
+    return Scaffold(
+      drawer: leftDrawer,
+      endDrawer: rightDrawer,
+      floatingActionButton: FloatingActionButton(
+        mini: true,
+        onPressed: () {
+          showDialog<bool>(
+              context: context,
+              builder: (context) {
+                return const ScheduleCreator(startTime: null);
+              });
+        },
+        child: const Icon(Icons.add),
+      ),
+      body: Builder(
+        builder: (ctx) => SafeArea(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: cs.outlineVariant, width: 0.5),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Scaffold.of(ctx).openDrawer(),
+                      child: CircleAvatar(
+                        radius: 16,
+                        backgroundImage: avatarUrl.isNotEmpty
+                            ? CachedNetworkImageProvider(avatarUrl)
+                            : null,
+                        child: avatarUrl.isEmpty
+                            ? Text(userName[0], style: tt.bodySmall)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => _showMiniCalendar(context, ctl),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(dateText, style: tt.titleSmall),
+                          Icon(Icons.arrow_drop_down, size: 20, color: cs.onSurfaceVariant),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.gps_fixed, size: 18),
+                      onPressed: () => ctl.goToToday(),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size(36, 36),
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.search, size: 20),
+                      onPressed: () => context.push(AppRoute.SEARCH),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size(36, 36),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.calendar_month_outlined, size: 20),
+                      onPressed: () => Scaffold.of(ctx).openEndDrawer(),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size(36, 36),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListenableBuilder(
+                  listenable: ctl,
+                  builder: (ctx, _) => eventView(ctx, ctl, ctl.calendarMode),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget eventView(BuildContext context, CalendarLogic ctl, CalendarView mode) {
+    switch (mode) {
+      case CalendarView.day7:
+        return EventsPlannerDraggableEventsView(
+          eventsPlannerKey: ctl.eventsPlannerKey,
+          controller: ctl.eventController,
+          daysShowed: 7,
+          isDarkMode: false,
+          dayOnSlotDoubleTap: (int index, DateTime exactTime, DateTime roundTime) {
+            L.d("day slot double tap, $index, $exactTime, $roundTime");
+            showDialog<bool>(
+                context: context,
+                builder: (context) {
+                  return ScheduleCreator(startTime: roundTime);
+                });
+          },
+          onEventTap: (Event event) {
+            final s = event.data;
+            if (s is Schedule) {
+              showDialog<bool>(
+                  context: context,
+                  builder: (_) => ScheduleDetailPage(schedule: s));
+            }
+          },
+          onDayChange: (DateTime offset) {
+            ctl.updateViewRange(
+              offset,
+              offset.add(const Duration(days: 7)),
+            );
+          },
+        );
+      case CalendarView.month:
+        return EventsMonthsView(
+          controller: ctl.eventController,
+          onMonthChange: (monthFirstDay) {
+            ctl.updateViewRange(
+              monthFirstDay,
+              DateTime(monthFirstDay.year, monthFirstDay.month + 1),
+            );
+          },
+        );
+      default:
+        return EventsPlannerOneDayView(
+          controller: ctl.eventController,
+          isDarkMode: false,
+        );
+    }
+  }
+}
+
+/// Calendar settings drawer (EndDrawer on mobile)
+class _CalendarDrawer extends StatelessWidget {
+  final CalendarLogic ctl;
+  final ColorScheme cs;
+  final TextTheme tt;
+  final BuildContext context;
+
+  const _CalendarDrawer({
+    required this.ctl,
+    required this.cs,
+    required this.tt,
+    required this.context,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // View switcher
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _ViewSwitcherButton(
+                    icon: Icons.calendar_view_day,
+                    label: t.day,
+                    selected: ctl.calendarMode == CalendarView.day,
+                    onTap: () {
+                      ctl.calendarMode = CalendarView.day;
+                      ctl.notifyListeners();
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                  _ViewSwitcherButton(
+                    icon: Icons.calendar_view_week,
+                    label: t.week,
+                    selected: ctl.calendarMode == CalendarView.day7,
+                    onTap: () {
+                      ctl.calendarMode = CalendarView.day7;
+                      ctl.notifyListeners();
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                  _ViewSwitcherButton(
+                    icon: Icons.calendar_month,
+                    label: t.month,
+                    selected: ctl.calendarMode == CalendarView.month,
+                    onTap: () {
+                      ctl.calendarMode = CalendarView.month;
+                      ctl.notifyListeners();
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // Add calendar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(t.newCalendar),
+                  onPressed: () => _showAddCalendarSheet(context),
+                ),
+              ),
+            ),
+            const Divider(height: 1),
+            // Calendar list
+            Expanded(
+              child: CalendarList(),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.settings_outlined),
+              title: const Text('设置'),
+              onTap: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddCalendarSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.rss_feed_outlined),
+              title: const Text('订阅日历'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.add_circle_outline),
+              title: Text(t.newCalendar),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                showDialog<bool>(
+                  context: context,
+                  builder: (_) => CalendarCreator(),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: Text(t.cancel),
+              onTap: () => Navigator.of(ctx).pop(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ViewSwitcherButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ViewSwitcherButton({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final color = selected ? cs.primary : cs.onSurfaceVariant;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? cs.primaryContainer.withOpacity(0.3) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 24, color: color),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(fontSize: 12, color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Left sidebar (desktop only)
 class CalendarDeck extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -265,6 +800,7 @@ class CalendarDeck extends ConsumerWidget {
   }
 }
 
+/// Calendar list with "我管理的" and "我订阅的" sections
 class CalendarList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -275,23 +811,11 @@ class CalendarList extends ConsumerWidget {
       listenable: ctl,
       builder: (context, _) {
         return Container(
-          width: 260,
           color: bt.mentionBg,
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                GestureDetector(
-                  onTap: () {
-                    showDialog<bool>(
-                        context: context,
-                        builder: (context) => CalendarCreator());
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        child: Text(t.newCalendar),
-                  ),
-                ),
                 _Section(
                     title: t.myCalendar,
                   expanded: ctl.myCalendarListMode,
@@ -470,5 +994,3 @@ class _SubscribedCalendarRow extends StatelessWidget {
     );
   }
 }
-
-

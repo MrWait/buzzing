@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:buzzing/controller/im.dart';
+import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
@@ -137,11 +137,11 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
       ],
     );
 
-    final isDesktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
+    final desktop = isDesktop;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: isDesktop
+      child: desktop
           ? _buildDesktopMessage(context, cs, tt, im, isSelf, bubble)
           : _buildMobileMessage(isSelf, bubble),
     );

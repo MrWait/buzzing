@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:buzzing/utils/config/config.dart';
 import 'package:buzzing/models/model.dart';
 import 'package:buzzing/widget/im_widget.dart';
@@ -42,6 +43,16 @@ class HttpUtil {
     //dio.options.baseUrl = Config.apiUrl();
     dio.options.connectTimeout = Duration(milliseconds: 30000);
     dio.options.receiveTimeout = Duration(milliseconds: 30000);
+
+    (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+      final client = HttpClient()..idleTimeout = const Duration(seconds: 3);
+      client.badCertificateCallback =
+          (X509Certificate cert, String host, int port) {
+        L.d("allow self-signed certificate: $host:$port");
+        return true;
+      };
+      return client;
+    };
   }
 
   static void resetBaseUrl(String url) {

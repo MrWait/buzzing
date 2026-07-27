@@ -1,5 +1,6 @@
 import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/model.dart';
+import 'package:buzzing/utils/platform.dart';
 import 'package:flutter/material.dart';
 
 class EventPlanerHeader extends StatelessWidget implements PreferredSizeWidget {
@@ -18,10 +19,15 @@ class EventPlanerHeader extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => Size.fromHeight(60);
+  Size get preferredSize => Size.fromHeight(isMobile ? 36 : 60);
 
   @override
   Widget build(BuildContext context) {
+    if (isMobile) return _buildMobile(context);
+    return _buildDesktop(context);
+  }
+
+  Widget _buildDesktop(BuildContext context) {
     var color = Theme.of(context).colorScheme.primary;
     return AppBar(
       title: Row(
@@ -76,6 +82,35 @@ class EventPlanerHeader extends StatelessWidget implements PreferredSizeWidget {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildMobile(BuildContext context) {
+    return Container(
+      height: 36,
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).colorScheme.outlineVariant, width: 0.5),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left, size: 20),
+            onPressed: onPrevious,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.chevron_right, size: 20),
+            onPressed: onNext,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 36),
+          ),
+        ],
+      ),
     );
   }
 }

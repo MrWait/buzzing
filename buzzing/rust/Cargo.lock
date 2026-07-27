@@ -341,6 +341,7 @@ name = "base-log"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "log",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",

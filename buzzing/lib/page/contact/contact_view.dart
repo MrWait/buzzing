@@ -2,14 +2,30 @@ import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/provider/page_providers.dart';
+import 'package:buzzing/routes/app_routes.dart';
 import 'package:buzzing/utils/common_utils.dart';
+import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/widget/header_bar.dart';
 import 'package:buzzing/widget/navigate_bar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class ContactPage extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (isMobile) {
+      return const _ContactMobile();
+    }
+    return const _ContactDesktop();
+  }
+}
+
+/// Desktop: original double-column layout
+class _ContactDesktop extends ConsumerWidget {
+  const _ContactDesktop();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
@@ -33,6 +49,198 @@ class ContactPage extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Mobile: full-screen contact list (org tree + users)
+class _ContactMobile extends ConsumerWidget {
+  const _ContactMobile();
+
+  Widget _buildLeftDrawer(BuildContext context, WidgetRef ref, ColorScheme cs, TextTheme tt,
+      String avatarUrl, String userName) {
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => context.push(AppRoute.PERSONAL),
+                    child: CircleAvatar(
+                      radius: 28,
+                      backgroundImage: avatarUrl.isNotEmpty
+                          ? CachedNetworkImageProvider(avatarUrl)
+                          : null,
+                      child: avatarUrl.isEmpty
+                          ? Text(userName[0], style: tt.titleMedium)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(userName, style: tt.titleMedium),
+                        const SizedBox(height: 2),
+                        Text(
+                          ref.watch(imProvider).loginUser.tenant.name,
+                          style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: const Text('个人名片'),
+              onTap: () { Navigator.of(context).pop(); context.push(AppRoute.PERSONAL); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.devices_outlined),
+              title: const Text('登录设备'),
+              onTap: () { Navigator.of(context).pop(); context.push(AppRoute.DEVICES); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_outlined),
+              title: const Text('设置'),
+              onTap: () { Navigator.of(context).pop(); context.push(AppRoute.SETTINGS); },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final ctl = ref.watch(contactLogicProvider);
+    final im = ref.watch(imProvider);
+    final user = im.loginUser.user;
+    final avatarUrl = CommonUtils.fixResourceUrl(user.avatar);
+    final userName = user.name.isNotEmpty ? user.name : "?";
+
+    final drawer = _buildLeftDrawer(context, ref, cs, tt, avatarUrl, userName);
+
+    return Scaffold(
+      drawer: drawer,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: cs.outlineVariant, width: 0.5),
+                ),
+              ),
+              child: GestureDetector(
+                onTap: () => Scaffold.of(context).openDrawer(),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 16,
+                      backgroundImage: avatarUrl.isNotEmpty
+                          ? CachedNetworkImageProvider(avatarUrl)
+                          : null,
+                      child: avatarUrl.isEmpty
+                          ? Text(userName[0], style: tt.bodySmall)
+                          : null,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(t.contacts, style: tt.titleSmall),
+                  ],
+                ),
+              ),
+            ),
+            // Search
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: TextField(
+                onChanged: (v) => ctl.search(v),
+                decoration: InputDecoration(
+                  hintText: t.search,
+                  hintStyle: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                  prefixIcon: Icon(Icons.search, color: cs.onSurfaceVariant, size: 18),
+                  filled: true,
+                  fillColor: cs.surfaceVariant.withOpacity(0.5),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  isDense: true,
+                ),
+              ),
+            ),
+            // Category tabs
+            Container(
+              height: 36,
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: cs.outlineVariant, width: 0.5),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(child: _ContactCategoryTab(label: t.contacts, selected: ctl.mode == 0, onTap: () { if (ctl.mode != 0) { ctl.setMode(0); ctl.enterOrgRoot(); } })),
+                  Expanded(child: _ContactCategoryTab(label: t.starContacts, selected: ctl.mode == 1, onTap: () => ctl.setMode(1))),
+                  Expanded(child: _ContactCategoryTab(label: t.externalContacts, selected: ctl.mode == 2, onTap: () => ctl.setMode(2))),
+                ],
+              ),
+            ),
+            // Content
+            Expanded(
+              child: ListenableBuilder(
+                listenable: ctl,
+                builder: (ctx, _) {
+                  switch (ctl.mode) {
+                    case 0:
+                      return OrganizationView();
+                    default:
+                      return _PlaceholderView();
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ContactCategoryTab extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ContactCategoryTab({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: selected ? cs.primary : Colors.transparent, width: 2),
+          ),
+        ),
+        child: Text(label, style: TextStyle(fontSize: 13, color: selected ? cs.primary : cs.onSurfaceVariant, fontWeight: selected ? FontWeight.w600 : FontWeight.normal)),
       ),
     );
   }
