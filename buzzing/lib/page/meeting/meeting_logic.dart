@@ -1,9 +1,9 @@
 import 'package:buzzing/controller/app_controller.dart';
 import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/utils/logger_util.dart';
+import 'package:buzzing/utils/platform.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-
 import 'signaling/device_info.dart';
 import 'signaling/session.dart';
 import 'signaling/signaling.dart';
@@ -77,6 +77,7 @@ class MeetingLogic extends ChangeNotifier {
   }
 
   void createMeeting({String? roomId, String? roomTitle}) {
+    if (isMobile) return; // 移动端使用 VcPage 路由，由调用方处理
     // 不 await：调用方无需等待窗口创建结果；createWindow 内部会处理复用或新建
     app.createWindow('VcWindow', true, true, {
       'token': token,
@@ -91,6 +92,7 @@ class MeetingLogic extends ChangeNotifier {
   /// 打开视频会议窗口并加入指定房间
   /// 注意：此处不再调用入会 API，由 VcLogic.confirmJoin 在预加入页面调用
   void joinMeeting(String roomId, {String? roomTitle}) {
+    if (isMobile) return; // 移动端使用 VcPage 路由，由调用方处理
     app.createWindow('VcWindow', true, true, {
       'token': token,
       'uid': uid,

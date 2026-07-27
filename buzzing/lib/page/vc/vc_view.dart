@@ -5,15 +5,18 @@ import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/page/meeting/widgets/chat_overlay.dart';
 import 'package:buzzing/page/meeting/widgets/meeting_controls.dart';
 import 'package:buzzing/page/meeting/widgets/screen_share_dialog.dart';
+import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../meeting/signaling/signaling.dart';
+import 'vc_floating.dart';
 import 'vc_logic.dart';
 
 class VcWindow extends StatefulWidget {
@@ -387,6 +390,211 @@ class _ConnectingView extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 移动端 VC 全屏页面 — 通过路由 push，替代桌面子窗口
+/// 读取全局 vcLogicProvider，页面 pop 时保留 WebRTC 连接
+class VcPage extends ConsumerStatefulWidget {
+  const VcPage({super.key});
+
+  @override
+  ConsumerState<VcPage> createState() => _VcPageState();
+}
+
+class _VcPageState extends ConsumerState<VcPage> {
+  bool _minimizeOnPop = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final logic = ref.watch(vcLogicProvider);
+
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) return;
+        if (_minimizeOnPop && logic.inCalling) {
+          logic.minimize();
+          showVcFloating(context);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: cs.surfaceContainerLow,
+        body: ListenableBuilder(
+          listenable: logic,
+          builder: (context, _) {
+            switch (logic.phase) {
+              case VcPhase.prejoin:
+                return _PreJoinView(logic: logic);
+              case VcPhase.inMeeting:
+                if (!logic.inCalling) {
+                  return _ConnectingView();
+                }
+                return _buildMeetingView(cs, logic);
+              case VcPhase.ended:
+                return _ConnectingView();
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMeetingView(ColorScheme cs, VcLogic logic) {
+    var remoteCount = logic.remoteRenderers.length;
+    return Column(
+      children: [
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: remoteCount == 0
+                    ? _localOnlyView(cs, logic)
+                    : remoteCount == 1
+                        ? _oneRemoteView(cs, logic)
+                        : _multiGridView(cs, logic),
+              ),
+              ChatOverlay(
+                messages: logic.chatMessages,
+                unread: logic.chatUnread,
+                open: logic.chatOpen,
+                onSend: logic.sendChatMessage,
+                onToggle: logic.toggleChat,
+                myUid: logic.uid,
+              ),
+            ],
+          ),
+        ),
+        MeetingControls(
+          isScreenSharing: logic.signaling?.videoSource == VideoSource.Screen,
+          onToggleScreenShare: () {
+            if (logic.signaling?.videoSource == VideoSource.Screen) {
+              logic.stopScreenSharing();
+            } else {
+              showScreenShareDialog(context, logic.startScreenSharing);
+            }
+          },
+          onHangUp: () {
+            _minimizeOnPop = false;
+            logic.hangUp();
+            Navigator.of(context).pop();
+          },
+          onToggleLayout: () =>
+              logic.setLayoutMode(
+            logic.layoutMode == 'grid' ? 'speaker' : 'grid',
+          ),
+          layoutMode: logic.layoutMode,
+          onToggleChat: logic.toggleChat,
+          chatUnread: logic.chatUnread,
+          micEnabled: logic.micEnabled,
+          microphones: logic.micList,
+          selectedMicDeviceId: logic.selectedMicDeviceId,
+          onToggleMic: logic.toggleMic,
+          onSelectMicrophone: logic.switchMicrophoneDevice,
+          cameraEnabled: logic.cameraEnabled,
+          cameras: logic.cameraList,
+          selectedCameraDeviceId: logic.selectedCameraDeviceId,
+          onToggleCamera: logic.toggleCamera,
+          onSelectCamera: logic.switchCameraDevice,
+        ),
+      ],
+    );
+  }
+
+  Widget _localOnlyView(ColorScheme cs, VcLogic logic) {
+    return Center(
+      child: Container(
+        width: 320,
+        height: 240,
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(7),
+          child: RTCVideoView(logic.localRenderer, mirror: true),
+        ),
+      ),
+    );
+  }
+
+  Widget _oneRemoteView(ColorScheme cs, VcLogic logic) {
+    var pair = logic.remoteRenderers.entries.first;
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Container(
+            color: cs.surfaceContainerLow,
+            child: RTCVideoView(pair.value),
+          ),
+        ),
+        Positioned(
+          right: 20,
+          bottom: 20,
+          child: Container(
+            width: 200,
+            height: 150,
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: cs.outlineVariant),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(7),
+              child: RTCVideoView(logic.localRenderer, mirror: true),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _multiGridView(ColorScheme cs, VcLogic logic) {
+    var entries = logic.remoteRenderers.entries.toList();
+    if (entries.length == 1) {
+      return Row(
+        children: [
+          Expanded(child: RTCVideoView(entries[0].value)),
+          Container(width: 2, color: cs.outlineVariant),
+          Expanded(child: RTCVideoView(logic.localRenderer, mirror: true)),
+        ],
+      );
+    }
+    return Column(
+      children: [
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(child: Container(color: cs.surfaceContainerLow, child: RTCVideoView(entries[0].value))),
+              Container(width: 2, color: cs.outlineVariant),
+              Expanded(child: Container(color: cs.surfaceContainerLow, child: RTCVideoView(entries[1].value))),
+            ],
+          ),
+        ),
+        Container(height: 2, color: cs.outlineVariant),
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  color: cs.surfaceContainerLow,
+                  child: RTCVideoView(entries.length > 2 ? entries[2].value : logic.localRenderer,
+                      mirror: entries.length <= 2),
+                ),
+              ),
+              Container(width: 2, color: cs.outlineVariant),
+              Expanded(
+                child: Container(
+                  color: cs.surfaceContainerLow,
+                  child: RTCVideoView(logic.localRenderer, mirror: true),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

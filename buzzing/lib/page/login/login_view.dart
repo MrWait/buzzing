@@ -1,5 +1,6 @@
 import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/utils/common_utils.dart';
+import 'package:buzzing/utils/platform.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
@@ -56,28 +57,81 @@ class LoginPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final logic = ref.watch(loginLogicProvider);
+    final isWide = MediaQuery.of(context).size.width >= 600;
     return ListenableBuilder(
       listenable: logic,
       builder: (ctx, _) {
         return Scaffold(
-          body: Center(
-            child: SizedBox(
-              width: 720,
-              child: Row(
-                children: [
-                  SizedBox(width: 340, child: _BrandPanel()),
-                  SizedBox(
-                    width: 380,
-                    child: logic.loginMode == 2
-                        ? _TenantPanel(logic: logic)
-                        : _FormPanel(logic: logic),
-                  ),
-                ],
-              ),
+          body: SafeArea(
+            child: Center(
+              child: isWide
+                  ? SizedBox(
+                      width: 720,
+                      child: Row(
+                        children: [
+                          SizedBox(width: 340, child: _BrandPanel()),
+                          SizedBox(
+                            width: 380,
+                            child: logic.loginMode == 2
+                                ? _TenantPanel(logic: logic)
+                                : _FormPanel(logic: logic),
+                          ),
+                        ],
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _MobileBrandHeader(),
+                          const SizedBox(height: 32),
+                          logic.loginMode == 2
+                              ? _TenantPanel(logic: logic)
+                              : _FormPanel(logic: logic),
+                        ],
+                      ),
+                    ),
             ),
           ),
         );
       },
+    );
+  }
+}
+
+class _MobileBrandHeader extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: cs.primary,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Center(
+            child: Text(
+              "B",
+              style: TextStyle(
+                color: cs.onPrimary,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          "Buzzing",
+          style: tt.titleLarge,
+        ),
+      ],
     );
   }
 }
@@ -376,10 +430,9 @@ class _UnionSelectorState extends State<_UnionSelector> {
         widget.logic.dialogServerCtrl.text = server;
         widget.logic.dialogPortCtrl.text = port.toString();
         await widget.logic.onAddServer();
+        return;
       }
     }
-    serverCtrl.dispose();
-    portCtrl.dispose();
   }
 
   @override

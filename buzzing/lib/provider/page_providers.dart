@@ -7,6 +7,7 @@ import '../page/meeting/meeting_logic.dart';
 import '../page/contact/contact_logic.dart';
 import '../page/chat/chat_logic.dart';
 import '../page/feed/feed_logic.dart';
+import '../page/vc/vc_logic.dart';
 import '../utils/data_persistence.dart';
 import 'sdk_provider.dart';
 import 'im_provider.dart';
@@ -49,6 +50,25 @@ final meetingLogicProvider = Provider.autoDispose<MeetingLogic>((ref) {
   final userName = accountLoginUser?.user.name ?? '';
   final logic = MeetingLogic(app: app, token: token, userName: userName);
   logic.init();
+  return logic;
+});
+
+/// 全局 VcLogic 单例 — 页面 pop 时不释放 WebRTC 连接
+final vcLogicProvider = Provider<VcLogic>((ref) {
+  final account = DataPersistence.getAccount();
+  var accountLoginUser = account?.loginUser;
+  final token = accountLoginUser?.token ?? '';
+  final uid = accountLoginUser?.user.id.toString() ?? '';
+  final userName = accountLoginUser?.user.name ?? '';
+  final logic = VcLogic(token: token, uid: uid, userName: userName);
+  // 注册全局入会 API（桌面子窗口也可用）
+  if (VcLogic.globalJoinApi == null) {
+    try {
+      final homeLogic = ref.read(meetingHomeLogicProvider);
+      VcLogic.globalJoinApi = (roomId, password) => homeLogic.joinMeeting(roomId, password: password);
+    } catch (_) {}
+  }
+  ref.onDispose(() => logic.dispose());
   return logic;
 });
 

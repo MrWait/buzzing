@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:buzzing/utils/logger_util.dart';
+import 'package:buzzing/utils/platform.dart';
 import 'package:flutter/material.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:screen_capturer/screen_capturer.dart';
@@ -8,6 +9,7 @@ import 'package:screen_capturer/screen_capturer.dart';
 class ScreenshotService {
   // 打开截图窗口
   static Future<void> startScreenshot() async {
+    if (!isDesktop) return;
     // 获取屏幕截图
     final Image? fullScreenImage = await captureFullScreen();
     if (fullScreenImage == null) return;

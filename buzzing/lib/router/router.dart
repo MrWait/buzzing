@@ -1,149 +1,158 @@
-import 'dart:io';
-
 import 'package:buzzing/page/calendar/calendar_view.dart';
+import 'package:buzzing/page/chat/chat_view.dart';
+import 'package:buzzing/page/chat/group_profile_page.dart';
+import 'package:buzzing/page/chat/invite_links_page.dart';
+import 'package:buzzing/page/chat/join_requests_page.dart';
+import 'package:buzzing/page/chat/member_list_page.dart';
 import 'package:buzzing/page/contact/contact_view.dart';
+import 'package:buzzing/page/devices/devices_page.dart';
 import 'package:buzzing/page/im/im_view.dart';
 import 'package:buzzing/page/login/login_view.dart';
 import 'package:buzzing/page/meeting/meeting_view.dart';
-import 'package:buzzing/page/chat/group_profile_page.dart';
-import 'package:buzzing/page/chat/member_list_page.dart';
-import 'package:buzzing/page/chat/join_requests_page.dart';
-import 'package:buzzing/page/chat/invite_links_page.dart';
 import 'package:buzzing/page/office/office_view.dart';
-import 'package:buzzing/page/search/search_view.dart';
+import 'package:buzzing/page/personal/personal_page.dart';
+import 'package:buzzing/page/vc/vc_view.dart';
+import 'package:buzzing/webview.dart';
 import 'package:buzzing/page/openapp/openapp_list_page.dart';
+import 'package:buzzing/page/search/search_view.dart';
 import 'package:buzzing/page/setting/settings_page.dart';
 import 'package:buzzing/page/splash/splash_view.dart';
 import 'package:buzzing/routes/app_routes.dart';
+import 'package:buzzing/utils/platform.dart';
+import 'package:buzzing/widget/mobile_shell.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-final _isDesktop = Platform.isMacOS || Platform.isWindows || Platform.isLinux;
-
 final routerProvider = Provider<GoRouter>((ref) {
+  final tabRoutes = <GoRoute>[
+    GoRoute(
+      path: AppRoute.IM,
+      pageBuilder: (ctx, state) => _pageBuilder(ctx, state, const ImPage()),
+      routes: isMobile
+          ? [
+              GoRoute(
+                path: 'chat/:chatId',
+                pageBuilder: (ctx, state) => _pageBuilder(
+                  ctx,
+                  state,
+                  ChatPage(routeChatId: state.pathParameters['chatId']!),
+                ),
+              ),
+            ]
+          : [],
+    ),
+    GoRoute(
+      path: AppRoute.CONTACT,
+      pageBuilder: (ctx, state) => _pageBuilder(ctx, state, ContactPage()),
+    ),
+    GoRoute(
+      path: AppRoute.CALENDAR,
+      pageBuilder: (ctx, state) => _pageBuilder(ctx, state, CalendarPage()),
+    ),
+    GoRoute(
+      path: AppRoute.MEETING,
+      pageBuilder: (ctx, state) => _pageBuilder(ctx, state, MeetingPage()),
+    ),
+    GoRoute(
+      path: AppRoute.OFFICE,
+      pageBuilder: (ctx, state) => _pageBuilder(ctx, state, const OfficePage()),
+    ),
+  ];
+
+  final fullRoutes = <GoRoute>[
+    GoRoute(
+      path: AppRoute.SPLASH,
+      pageBuilder: (ctx, state) => _pageBuilder(ctx, state, SplashPage()),
+    ),
+    GoRoute(
+      path: AppRoute.LOGIN,
+      pageBuilder: (ctx, state) => _pageBuilder(ctx, state, LoginPage()),
+    ),
+    GoRoute(
+      path: AppRoute.PERSONAL,
+      pageBuilder: (ctx, state) => _pageBuilder(ctx, state, const PersonalPage()),
+    ),
+    GoRoute(
+      path: AppRoute.DEVICES,
+      pageBuilder: (ctx, state) => _pageBuilder(ctx, state, const DevicesPage()),
+    ),
+    GoRoute(
+      path: AppRoute.SETTINGS,
+      pageBuilder: (ctx, state) => _pageBuilder(ctx, state, SettingsPage()),
+    ),
+    GoRoute(
+      path: AppRoute.SEARCH,
+      pageBuilder: (ctx, state) => _pageBuilder(ctx, state, SearchPage()),
+    ),
+    GoRoute(
+      path: AppRoute.OPEN_PLATFORM,
+      pageBuilder: (ctx, state) => _pageBuilder(ctx, state, OpenAppListPage()),
+    ),
+    GoRoute(
+      path: '${AppRoute.GROUP_PROFILE}/:chatId',
+      pageBuilder: (ctx, state) => _pageBuilder(
+        ctx,
+        state,
+        GroupProfilePage(chatId: Int64(int.parse(state.pathParameters['chatId']!))),
+      ),
+    ),
+    GoRoute(
+      path: '${AppRoute.MEMBER_LIST}/:chatId',
+      pageBuilder: (ctx, state) => _pageBuilder(
+        ctx,
+        state,
+        MemberListPage(chatId: Int64(int.parse(state.pathParameters['chatId']!))),
+      ),
+    ),
+    GoRoute(
+      path: '${AppRoute.JOIN_REQUESTS}/:chatId',
+      pageBuilder: (ctx, state) => _pageBuilder(
+        ctx,
+        state,
+        JoinRequestsPage(chatId: Int64(int.parse(state.pathParameters['chatId']!))),
+      ),
+    ),
+    GoRoute(
+      path: '${AppRoute.INVITE_LINKS}/:chatId',
+      pageBuilder: (ctx, state) => _pageBuilder(
+        ctx,
+        state,
+        InviteLinksPage(chatId: Int64(int.parse(state.pathParameters['chatId']!))),
+      ),
+    ),
+    GoRoute(
+      path: AppRoute.VC,
+      pageBuilder: (ctx, state) => _pageBuilder(ctx, state, const VcPage()),
+    ),
+    GoRoute(
+      path: AppRoute.WEBVIEW,
+      pageBuilder: (ctx, state) => _pageBuilder(ctx, state, const WebviewPage()),
+    ),
+  ];
+
+  if (isDesktop) {
+    return GoRouter(
+      initialLocation: AppRoute.SPLASH,
+      routes: [...tabRoutes, ...fullRoutes],
+    );
+  }
+
   return GoRouter(
     initialLocation: AppRoute.SPLASH,
     routes: [
-      GoRoute(
-        path: AppRoute.SPLASH,
-        pageBuilder: (ctx, state) => _noTransitionPage(
-          ctx,
-          state,
-          SplashPage(),
-        ),
+      ShellRoute(
+        builder: (ctx, state, child) => MobileShell(child: child),
+        routes: tabRoutes,
       ),
-      GoRoute(
-        path: AppRoute.LOGIN,
-        pageBuilder: (ctx, state) => _noTransitionPage(
-          ctx,
-          state,
-          LoginPage(),
-        ),
-      ),
-      GoRoute(
-        path: AppRoute.IM,
-        pageBuilder: (ctx, state) => _noTransitionPage(
-          ctx,
-          state,
-          ImPage(),
-        ),
-      ),
-      GoRoute(
-        path: AppRoute.CONTACT,
-        pageBuilder: (ctx, state) => _noTransitionPage(
-          ctx,
-          state,
-          ContactPage(),
-        ),
-      ),
-      GoRoute(
-        path: AppRoute.CALENDAR,
-        pageBuilder: (ctx, state) => _noTransitionPage(
-          ctx,
-          state,
-          CalendarPage(),
-        ),
-      ),
-      GoRoute(
-        path: AppRoute.MEETING,
-        pageBuilder: (ctx, state) => _noTransitionPage(
-          ctx,
-          state,
-          MeetingPage(),
-        ),
-      ),
-      GoRoute(
-        path: AppRoute.SETTINGS,
-        pageBuilder: (ctx, state) => _noTransitionPage(
-          ctx,
-          state,
-          SettingsPage(),
-        ),
-      ),
-      GoRoute(
-        path: AppRoute.OFFICE,
-        pageBuilder: (ctx, state) => _noTransitionPage(
-          ctx,
-          state,
-          const OfficePage(),
-        ),
-      ),
-      GoRoute(
-        path: '${AppRoute.GROUP_PROFILE}/:chatId',
-        pageBuilder: (ctx, state) => _noTransitionPage(
-          ctx,
-          state,
-          GroupProfilePage(chatId: Int64(int.parse(state.pathParameters['chatId']!))),
-        ),
-      ),
-      GoRoute(
-        path: '${AppRoute.MEMBER_LIST}/:chatId',
-        pageBuilder: (ctx, state) => _noTransitionPage(
-          ctx,
-          state,
-          MemberListPage(chatId: Int64(int.parse(state.pathParameters['chatId']!))),
-        ),
-      ),
-      GoRoute(
-        path: '${AppRoute.JOIN_REQUESTS}/:chatId',
-        pageBuilder: (ctx, state) => _noTransitionPage(
-          ctx,
-          state,
-          JoinRequestsPage(chatId: Int64(int.parse(state.pathParameters['chatId']!))),
-        ),
-      ),
-      GoRoute(
-        path: AppRoute.OPEN_PLATFORM,
-        pageBuilder: (ctx, state) => _noTransitionPage(
-          ctx,
-          state,
-          OpenAppListPage(),
-        ),
-      ),
-      GoRoute(
-        path: AppRoute.SEARCH,
-        pageBuilder: (ctx, state) => _noTransitionPage(
-          ctx,
-          state,
-          SearchPage(),
-        ),
-      ),
-      GoRoute(
-        path: '${AppRoute.INVITE_LINKS}/:chatId',
-        pageBuilder: (ctx, state) => _noTransitionPage(
-          ctx,
-          state,
-          InviteLinksPage(chatId: Int64(int.parse(state.pathParameters['chatId']!))),
-        ),
-      ),
+      ...fullRoutes,
     ],
   );
 });
 
-Page<Object> _noTransitionPage(BuildContext ctx, GoRouterState state, Widget child) {
-  if (_isDesktop) {
+Page<Object> _pageBuilder(BuildContext ctx, GoRouterState state, Widget child) {
+  if (isDesktop) {
     return CustomTransitionPage(
       key: state.pageKey,
       child: child,
@@ -154,4 +163,3 @@ Page<Object> _noTransitionPage(BuildContext ctx, GoRouterState state, Widget chi
   }
   return MaterialPage(child: child, key: state.pageKey);
 }
-

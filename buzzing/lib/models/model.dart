@@ -37,7 +37,7 @@ class UnionConfig {
     unionId = 1024;
     gateway = "https://www.buzzing-im.com";
     gatewayPort = 5150;
-    ws = "ws=//www.buzzing-im.com";
+    ws = "wss://www.buzzing-im.com";
     wsPort = 8889;
     rtc = "www.buzzing-im.com";
     rtcPort = 8086;
@@ -108,6 +108,7 @@ class Union {
   void setConfig(UnionConfig newConfig) {
     config = newConfig;
     server = config.gateway;
+    L.d("Union setConfig, newConfig: ${newConfig}");
     if (!server.startsWith("http")) {
       server = "http://" + server;
     }
@@ -119,6 +120,7 @@ class Union {
     if (port != 80) {
       url += ":" + port.toString();
     }
+    L.d("current server: ${server}, url: ${url}");
     return url;
   }
 

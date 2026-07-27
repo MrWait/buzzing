@@ -71,6 +71,18 @@ class VcLogic extends ChangeNotifier {
   /// 窗口当前是否处于隐藏状态（由 VcView 在 onWindowClose 中设置）
   bool isHidden = false;
 
+  /// 最小化：保留 WebRTC 连接，仅隐藏 UI（移动端使用）
+  void minimize() {
+    isHidden = true;
+    notifyListeners();
+  }
+
+  /// 恢复：从最小化状态恢复（移动端使用）
+  void restore() {
+    isHidden = false;
+    notifyListeners();
+  }
+
   Future<void> init() async {
     L.d('[VcLogic] init: token=${token.length}chars, uid=$uid, roomId=$_roomId');
     await localRenderer.initialize();

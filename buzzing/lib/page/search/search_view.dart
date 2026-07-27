@@ -216,71 +216,119 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     final hasQuery = _keyword.isNotEmpty;
     final hasResults = _messages.isNotEmpty || _chats.isNotEmpty || _users.isNotEmpty || _files.isNotEmpty;
 
+    final isWide = MediaQuery.of(context).size.width >= 600;
+
     return Scaffold(
       backgroundColor: bt.mentionBg,
-      body: Row(
-        children: [
-          NaviBar(),
-          Expanded(
-            child: Column(
-              children: [
-                Container(child: HeaderBarWindows()),
-                // search input
-                Container(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  color: cs.surface,
-                  child: TextField(
-                    controller: _searchCtrl,
-                    focusNode: _focusNode,
-                    onSubmitted: _doSearch,
-                    onChanged: (v) {
-                      if (v.isEmpty) {
-                        setState(() { _keyword = ''; _messages = []; _chats = []; _users = []; _files = []; });
-                      }
-                    },
-                    decoration: InputDecoration(
-                      hintText: t.searchPlaceholder,
-                      prefixIcon: Icon(Icons.search, color: cs.onSurfaceVariant),
-                      suffixIcon: _searchCtrl.text.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(Icons.clear, size: 18),
-                              onPressed: () { _searchCtrl.clear(); _focusNode.requestFocus(); setState(() { _keyword = ''; _messages = []; _chats = []; _users = []; _files = []; }); },
-                            )
-                          : null,
-                      filled: true,
-                      fillColor: cs.surfaceVariant.withOpacity(0.5),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      body: SafeArea(
+        child: isWide
+            ? Row(
+                children: [
+                  NaviBar(),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Container(child: HeaderBarWindows()),
+                        _buildSearchBar(cs),
+                        // tabs
+                        Container(
+                          color: cs.surface,
+                          child: Row(
+                            children: [
+                              _buildTab(SearchTab.all, t.searchAll),
+                              _buildTab(SearchTab.messages, t.searchMessages),
+                              _buildTab(SearchTab.chats, t.searchChats),
+                              _buildTab(SearchTab.users, t.searchUsers),
+                              _buildTab(SearchTab.files, t.searchFiles),
+                            ],
+                          ),
+                        ),
+                        Divider(height: 1, color: cs.outlineVariant),
+                        // results / history
+                        Expanded(
+                          child: _loading
+                              ? Center(child: CircularProgressIndicator())
+                              : hasQuery
+                                  ? (hasResults ? _buildResults() : Center(child: Text(t.searchNoResults, style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant))))
+                                  : _buildHistory(),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                // tabs
-                Container(
-                  color: cs.surface,
-                  child: Row(
-                    children: [
-                      _buildTab(SearchTab.all, t.searchAll),
-                      _buildTab(SearchTab.messages, t.searchMessages),
-                      _buildTab(SearchTab.chats, t.searchChats),
-                      _buildTab(SearchTab.users, t.searchUsers),
-                      _buildTab(SearchTab.files, t.searchFiles),
-                    ],
+                ],
+              )
+            : Column(
+                children: [
+                  _buildSearchBar(cs),
+                  Container(
+                    color: cs.surface,
+                    child: Row(
+                      children: [
+                        _buildTab(SearchTab.all, t.searchAll),
+                        _buildTab(SearchTab.messages, t.searchMessages),
+                        _buildTab(SearchTab.chats, t.searchChats),
+                        _buildTab(SearchTab.users, t.searchUsers),
+                        _buildTab(SearchTab.files, t.searchFiles),
+                      ],
+                    ),
                   ),
+                  Divider(height: 1, color: cs.outlineVariant),
+                  Expanded(
+                    child: _loading
+                        ? Center(child: CircularProgressIndicator())
+                        : hasQuery
+                            ? (hasResults ? _buildResults() : Center(child: Text(t.searchNoResults, style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant))))
+                            : _buildHistory(),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar(ColorScheme cs) {
+    final tt = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      color: cs.surface,
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _searchCtrl,
+              focusNode: _focusNode,
+              onSubmitted: _doSearch,
+              onChanged: (v) {
+                if (v.isEmpty) {
+                  setState(() { _keyword = ''; _messages = []; _chats = []; _users = []; _files = []; });
+                }
+              },
+              decoration: InputDecoration(
+                hintText: t.searchPlaceholder,
+                prefixIcon: Icon(Icons.search, color: cs.onSurfaceVariant),
+                suffixIcon: _searchCtrl.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.clear, size: 18),
+                        onPressed: () { _searchCtrl.clear(); _focusNode.requestFocus(); setState(() { _keyword = ''; _messages = []; _chats = []; _users = []; _files = []; }); },
+                      )
+                    : null,
+                filled: true,
+                fillColor: cs.surfaceVariant.withOpacity(0.5),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
                 ),
-                Divider(height: 1, color: cs.outlineVariant),
-                // results / history
-                Expanded(
-                  child: _loading
-                      ? Center(child: CircularProgressIndicator())
-                      : hasQuery
-                          ? (hasResults ? _buildResults() : Center(child: Text(t.searchNoResults, style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant))))
-                          : _buildHistory(),
-                ),
-              ],
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
             ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Text('取消', style: tt.bodyMedium?.copyWith(
+              color: cs.primary,
+              decoration: TextDecoration.underline,
+            )),
           ),
         ],
       ),

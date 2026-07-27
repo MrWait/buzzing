@@ -43,7 +43,7 @@ class Apis {
       return UnionConfig.fromString(s);
     } catch (e) {
       L.w("sync config error: ${e}");
-      return Future.error(e);
+      return null;
     }
   }
 }
