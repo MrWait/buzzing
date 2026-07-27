@@ -21,7 +21,6 @@ pub use super::cycleds::Entity as Cycleds;
 pub use super::depts::Entity as Depts;
 pub use super::document_members::Entity as DocumentMembers;
 pub use super::document_shares::Entity as DocumentShares;
-pub use super::document_spaces::Entity as DocumentSpaces;
 pub use super::document_stars::Entity as DocumentStars;
 pub use super::document_versions::Entity as DocumentVersions;
 pub use super::document_visits::Entity as DocumentVisits;

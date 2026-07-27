@@ -7,7 +7,7 @@
 | 层 | 内容 |
 |----|------|
 | **编辑体验** | 富文本 + 结构化组件 + AI 辅助 |
-| **内容组织** | 知识库 → 空间 → 子页面（多级） |
+| **内容组织** | 知识库 → 文档（支持子页面层级） |
 | **协作矩阵** | Yjs 实时协作 + IM 联动 + 通知 + 评论 |
 | **权限安全** | 分级权限 + 分享链接 + 水印 + DLP + 审计 |
 | **多端** | Web SPA + Flutter 桌面 + 移动端只读 |
@@ -30,7 +30,7 @@
 | 测试 | 无（待 M12 系统性补齐） |
 | IM 集成 | 无 |
 | AI | 无 |
-| 知识库 | 无（只有 space 单层，默认空间已锁不可删除/归档，`sp_type=0`） |
+| 知识库 | 已完成 `wikis` 表 + 后端 CRUD，含首页文档自动创建与生命周期绑定；文档通过 `documents.wiki_id` 直接归属知识库，通过 `parent_id` 形成树形层级（去掉了中间 Space 层） |
 
 ---
 
@@ -57,7 +57,7 @@
 | M4 | 权限与分享 | A | 2 周 | M3 | ✅ 已完成（空间继承延后至 M7） |
 | M5 | 版本历史 | B | 1-2 周 | M2 | 🔲 待开始 |
 | M6 | 多端支持 | B | 3-4 周 | M4 | 🔲 待开始 |
-| M7 | 知识库层 | B | 2-3 周 | M3, M4 | 🔲 待开始 |
+| M7 | 知识库层 | B | 2-3 周 | M3, M4 | ✅ 已完成 |
 | M8 | IM 集成 | B | 1-2 周 | M4, M7 | 🔲 待开始 |
 | M9 | 富组件与体验 | B | 2-3 周 | M1 | 🔲 待开始 |
 | M10 | 企业安全合规 | C | 2-3 周 | M4 | 🔲 待开始 |
@@ -299,7 +299,7 @@ Flutter 桌面 / 移动端可用。
 ## M7 — 知识库层
 
 ### 目标
-从"空间 → 文档"扁平结构升级为**知识库层级**，支持团队级 Wiki。
+从「空间 → 文档」扁平结构升级为**知识库层级**，简化中间层，文档直接归属于知识库并通过 `parent_id` 形成树形结构。
 
 ### 需求
 
@@ -307,16 +307,17 @@ Flutter 桌面 / 移动端可用。
 ```
 Organization (租户)
  └── Wiki (知识库) ← 新增
-      └── Space (空间/文件夹)
-           └── Document (文档，可含子页面)
+      └── Document (文档，可含子页面，通过 parent_id 形成树)
 ```
-- [ ] 数据库：`wikis` 表（id, tenant_id, name, description, cover, icon, owner_id）
-- [ ] 数据库：`wiki_members` 表（角色继承到内部空间/文档）
-- [ ] `space.wiki_id` 关联
+- [ ] 数据库：`wikis` 表（id, tenant_id, name, description, cover, icon, creator_id）
+- [ ] 数据库：`wiki_members` 表（角色继承到知识库内文档）
+- [ ] `documents` 表增加 `wiki_id` 字段，文档直接归属知识库（无需经过空间层）
+- [ ] 利用现有 `parent_id` 实现文档树形层级
+- [ ] `document_spaces` 保留表结构（兼容历史数据），但不再作为 UI 概念
 
 #### 7.2 知识库首页
 - [ ] 概览页（描述 + 最近更新 + 置顶文档 + 成员）
-- [ ] 侧栏树形导航（wiki → space → doc → subdoc）
+- [ ] 侧栏树形导航（wiki → doc(含子文档)）
 - [ ] 成员列表 + 加入申请
 
 #### 7.3 CRUD API
@@ -324,15 +325,19 @@ Organization (租户)
 - [ ] `POST /api/office/wikis/{id}/members`
 - [ ] `GET /api/office/wikis/{id}/pins`（置顶文档）
 - [ ] `GET /api/office/wikis/{id}/recent`
+- [ ] `GET /api/office/wikis/{id}/docs?parent_id=xxx` — 知识库中文档树（按 parent_id 组织）
 
 #### 7.4 迁移
-- [ ] 现有 space 自动归属到默认 wiki
-- [ ] Web + Flutter 侧栏改造
+- [ ] `documents` 表新增 `wiki_id` 字段，历史文档保留 `space_id`（向后兼容），新文档通过 wiki_id 归属
+- [ ] 后台脚本：为每个租户创建默认知识库，将现有 space 下的文档归入
+- [ ] Web 侧栏改造：知识库 → 文档树（去掉空间层）
+- [ ] Flutter 侧栏同步改造
 
 ### 交付产物
 - `wikis` + `wiki_members` 表
-- 后端知识库 API
-- 前端知识库首页 + 侧栏改造
+- `documents.wiki_id` 字段
+- 后端知识库 API + 文档树接口
+- 前端知识库首页 + 侧栏改造（去空间层）
 
 ---
 

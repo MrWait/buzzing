@@ -11,7 +11,14 @@ use common::{id_gen, model::UserBrief};
 
 #[derive(Debug, Deserialize)]
 pub struct CreateDocParams {
-    pub space_id: String,
+    pub wiki_id: Option<String>,
+    pub title: String,
+    pub parent_id: Option<String>,
+    pub icon: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreatePersonalDocParams {
     pub title: String,
     pub parent_id: Option<String>,
     pub icon: Option<String>,
@@ -26,14 +33,11 @@ pub struct UpdateDocParams {
 
 #[derive(Debug, Deserialize)]
 pub struct MoveDocParams {
-    pub space_id: Option<String>,
-    /// null 表示移到空间根级
     pub parent_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct DuplicateParams {
-    /// 是否递归复制子页面（默认 false）
     #[serde(default)]
     pub include_children: bool,
 }
@@ -41,7 +45,7 @@ pub struct DuplicateParams {
 #[derive(Debug, Serialize)]
 pub struct DocResponse {
     pub id: String,
-    pub space_id: String,
+    pub wiki_id: Option<String>,
     pub parent_id: Option<String>,
     pub title: String,
     pub icon: Option<String>,
@@ -57,7 +61,7 @@ impl DocResponse {
     pub fn from_model(d: crate::models::documents::Model) -> Self {
         Self {
             id: d.id.to_string(),
-            space_id: d.space_id.to_string(),
+            wiki_id: d.wiki_id.map(|v| v.to_string()),
             parent_id: d.parent_id.map(|v| v.to_string()),
             title: d.title,
             icon: d.icon,
@@ -84,10 +88,13 @@ pub async fn list(
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Response> {
     let _claim = UserBrief::from_string(&auth.claims.pid)?;
-    let space_id = params.get("space_id").and_then(|s| s.parse().ok()).unwrap_or(0);
-    let docs = DocumentModel::get_by_space_id(&ctx.db, space_id).await?;
-    let items: Vec<DocResponse> = docs.into_iter().map(DocResponse::from_model).collect();
-    format::json(items)
+    if let Some(wiki_id) = params.get("wiki_id").and_then(|s| s.parse::<i64>().ok()) {
+        let docs = DocumentModel::get_by_wiki_id(&ctx.db, wiki_id).await?;
+        let items: Vec<DocResponse> = docs.into_iter().map(DocResponse::from_model).collect();
+        format::json(items)
+    } else {
+        format::json(Vec::<DocResponse>::new())
+    }
 }
 
 #[debug_handler]
@@ -97,7 +104,7 @@ pub async fn create(
     Json(params): Json<CreateDocParams>,
 ) -> Result<Response> {
     let claim = UserBrief::from_string(&auth.claims.pid)?;
-    let space_id: i64 = params.space_id.parse().map_err(|_| Error::InternalServerError)?;
+    let wiki_id: Option<i64> = params.wiki_id.as_deref().and_then(|s| s.parse().ok());
     let parent_id = params
         .parent_id
         .as_deref()
@@ -106,7 +113,39 @@ pub async fn create(
         &ctx.db,
         base::models::_entities::documents::ActiveModel {
             id: ActiveValue::set(id_gen(None)),
-            space_id: ActiveValue::set(space_id),
+            wiki_id: ActiveValue::set(wiki_id),
+            tenant_id: ActiveValue::set(claim.tenant_id),
+            creator: ActiveValue::set(claim.id),
+            title: ActiveValue::set(params.title),
+            doc_type: ActiveValue::set(1),
+            version: ActiveValue::set(common::time::current_ms() as i64),
+            content: ActiveValue::set(vec![]),
+            parent_id: ActiveValue::set(parent_id),
+            icon: ActiveValue::set(params.icon),
+            ..Default::default()
+        },
+    )
+    .await?;
+    format::json(DocResponse::from_model(doc))
+}
+
+/// 创建个人文档（wiki_id = NULL）
+#[debug_handler]
+pub async fn create_personal(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Json(params): Json<CreatePersonalDocParams>,
+) -> Result<Response> {
+    let claim = UserBrief::from_string(&auth.claims.pid)?;
+    let parent_id = params
+        .parent_id
+        .as_deref()
+        .and_then(|s| s.parse::<i64>().ok());
+    let doc = DocumentModel::create(
+        &ctx.db,
+        base::models::_entities::documents::ActiveModel {
+            id: ActiveValue::set(id_gen(None)),
+            wiki_id: ActiveValue::set(None),
             tenant_id: ActiveValue::set(claim.tenant_id),
             creator: ActiveValue::set(claim.id),
             title: ActiveValue::set(params.title),
@@ -136,7 +175,6 @@ pub async fn get(
     format::json(DocResponse::from_model(doc))
 }
 
-/// 查询当前用户对文档的权限
 #[debug_handler]
 pub async fn permission(
     auth: auth::JWT,
@@ -184,7 +222,6 @@ pub async fn update(
     format::json(DocResponse::from_model(doc))
 }
 
-/// 软删除（进入回收站）
 #[debug_handler]
 pub async fn delete(
     auth: auth::JWT,
@@ -193,6 +230,8 @@ pub async fn delete(
 ) -> Result<Response> {
     let claim = UserBrief::from_string(&auth.claims.pid)?;
     require_role(&ctx, claim.id, id, Role::Owner).await?;
+    // 检查是否为 wiki 首页文档，禁止单独删除
+    check_not_home_doc(&ctx, id).await?;
     DocumentModel::trash(&ctx.db, id).await?;
     format::json(serde_json::json!({"ok": true}))
 }
@@ -214,7 +253,7 @@ pub async fn edit_url(
     })
 }
 
-/// 移动文档到新空间或改父级
+/// 移动文档到新父级
 #[debug_handler]
 pub async fn move_doc(
     auth: auth::JWT,
@@ -224,25 +263,14 @@ pub async fn move_doc(
 ) -> Result<Response> {
     let claim = UserBrief::from_string(&auth.claims.pid)?;
     require_role(&ctx, claim.id, id, Role::Editor).await?;
-    let space_id = params
-        .space_id
-        .as_deref()
-        .and_then(|s| s.parse::<i64>().ok());
-    // parent_id: 字段存在 → 需要更新（None 也表示移到根级）
-    // 通过 Option<String> 中 "0" / "" / null 表达 "根级"
-    let parent = if params.space_id.is_some() || params.parent_id.is_some() {
-        Some(match params.parent_id.as_deref() {
-            None | Some("") | Some("0") => None,
-            Some(s) => s.parse::<i64>().ok(),
-        })
-    } else {
-        None
+    let parent = match params.parent_id.as_deref() {
+        None | Some("") | Some("0") => Some(None),
+        Some(s) => Some(s.parse::<i64>().ok()),
     };
-    let doc = DocumentModel::move_to(&ctx.db, id, space_id, parent).await?;
+    let doc = DocumentModel::move_to(&ctx.db, id, parent).await?;
     format::json(DocResponse::from_model(doc))
 }
 
-/// 复制文档
 #[debug_handler]
 pub async fn duplicate(
     auth: auth::JWT,
@@ -256,7 +284,6 @@ pub async fn duplicate(
     format::json(DocResponse::from_model(new_root))
 }
 
-/// 递归复制文档 (Box + Pin 消除 async 递归)
 fn duplicate_recursive<'a>(
     db: &'a DatabaseConnection,
     src_id: i64,
@@ -269,7 +296,6 @@ fn duplicate_recursive<'a>(
         let src = DocumentModel::get_by_id(db, src_id)
             .await?
             .ok_or(Error::NotFound)?;
-        // 复制 Yjs 状态：src content 里读一个完整 state，再作为新文档的初始 content
         let content: Vec<u8> = if src.content.is_empty() {
             vec![]
         } else {
@@ -284,7 +310,7 @@ fn duplicate_recursive<'a>(
             db,
             base::models::_entities::documents::ActiveModel {
                 id: ActiveValue::set(new_id),
-                space_id: ActiveValue::set(src.space_id),
+                wiki_id: ActiveValue::set(src.wiki_id),
                 tenant_id: ActiveValue::set(claim.tenant_id),
                 creator: ActiveValue::set(claim.id),
                 title: ActiveValue::set(format!("{} (副本)", src.title)),
@@ -309,7 +335,6 @@ fn duplicate_recursive<'a>(
     })
 }
 
-/// 记录访问
 #[debug_handler]
 pub async fn visit(
     auth: auth::JWT,
@@ -321,7 +346,6 @@ pub async fn visit(
     format::json(serde_json::json!({"ok": true}))
 }
 
-/// 最近访问
 #[debug_handler]
 pub async fn recent(
     auth: auth::JWT,
@@ -349,7 +373,31 @@ pub async fn recent(
     format::json(items)
 }
 
-/// 空间下的树形结构
+/// 我创建的文档
+#[debug_handler]
+pub async fn my_docs(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
+    let claim = UserBrief::from_string(&auth.claims.pid)?;
+    let docs = DocumentModel::get_by_creator(&ctx.db, claim.id, claim.tenant_id).await?;
+    let items: Vec<DocResponse> = docs.into_iter().map(DocResponse::from_model).collect();
+    format::json(items)
+}
+
+/// 与我共享的文档（用户有权限但不是创建者）
+#[debug_handler]
+pub async fn shared_docs(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
+    let claim = UserBrief::from_string(&auth.claims.pid)?;
+    let docs = DocumentModel::get_shared_with_user(&ctx.db, claim.id, claim.tenant_id).await?;
+    let items: Vec<DocResponse> = docs.into_iter().map(DocResponse::from_model).collect();
+    format::json(items)
+}
+
+/// 知识库下的树形结构（通过 wiki_id 查询，不再需要 space_id）
 #[debug_handler]
 pub async fn tree(
     auth: auth::JWT,
@@ -357,11 +405,11 @@ pub async fn tree(
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Response> {
     let _claim = UserBrief::from_string(&auth.claims.pid)?;
-    let space_id: i64 = params
-        .get("space_id")
+    let wiki_id: i64 = params
+        .get("wiki_id")
         .and_then(|s| s.parse().ok())
-        .ok_or_else(|| Error::BadRequest("space_id required".into()))?;
-    let all = DocumentModel::get_space_tree_flat(&ctx.db, space_id).await?;
+        .ok_or_else(|| Error::BadRequest("wiki_id required".into()))?;
+    let all = DocumentModel::get_wiki_tree_flat(&ctx.db, wiki_id).await?;
     let tree = build_tree(all);
     format::json(tree)
 }
@@ -378,7 +426,6 @@ struct TreeNode {
 fn build_tree(docs: Vec<crate::models::documents::Model>) -> Vec<TreeNode> {
     use std::collections::HashMap;
 
-    // 内部临时结构：使用 i64，便于挂载
     struct Tmp {
         id: i64,
         parent_id: Option<i64>,
@@ -387,7 +434,6 @@ fn build_tree(docs: Vec<crate::models::documents::Model>) -> Vec<TreeNode> {
         children: Vec<Tmp>,
     }
 
-    // 用 id → Tmp 建索引，先构造无 children 的节点
     let mut nodes: HashMap<i64, Tmp> = HashMap::with_capacity(docs.len());
     let mut order: Vec<i64> = Vec::with_capacity(docs.len());
     for d in docs {
@@ -404,7 +450,6 @@ fn build_tree(docs: Vec<crate::models::documents::Model>) -> Vec<TreeNode> {
         );
     }
 
-    // 分离根 / 待挂载子集
     let mut roots: Vec<Tmp> = Vec::new();
     let mut children_map: HashMap<i64, Vec<Tmp>> = HashMap::new();
     for id in order {
@@ -413,13 +458,12 @@ fn build_tree(docs: Vec<crate::models::documents::Model>) -> Vec<TreeNode> {
                 Some(pid) if nodes.contains_key(&pid) || children_map.contains_key(&pid) => {
                     children_map.entry(pid).or_default().push(n);
                 }
-                Some(_) => roots.push(n), // 孤儿提升为根
+                Some(_) => roots.push(n),
                 None => roots.push(n),
             }
         }
     }
 
-    // 递归挂载
     fn attach(node: &mut Tmp, children_map: &mut HashMap<i64, Vec<Tmp>>) {
         if let Some(mut children) = children_map.remove(&node.id) {
             for c in &mut children {
@@ -431,7 +475,6 @@ fn build_tree(docs: Vec<crate::models::documents::Model>) -> Vec<TreeNode> {
     for r in &mut roots {
         attach(r, &mut children_map);
     }
-    // 若还残留（孤儿嵌套），一并作为根
     let mut orphans: Vec<Tmp> = children_map.into_values().flatten().collect();
     roots.append(&mut orphans);
 
@@ -447,7 +490,6 @@ fn build_tree(docs: Vec<crate::models::documents::Model>) -> Vec<TreeNode> {
     roots.into_iter().map(to_pub).collect()
 }
 
-/// M8.1 文档预览（供 IM 卡片使用）
 #[debug_handler]
 pub async fn preview(
     auth: auth::JWT,
@@ -482,4 +524,31 @@ pub async fn preview(
         "updated_at": doc.updated_at.to_rfc3339(),
         "creator": creator,
     }))
+}
+
+/// 个人文档树（wiki_id IS NULL）
+#[debug_handler]
+pub async fn personal_tree(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
+    let claim = UserBrief::from_string(&auth.claims.pid)?;
+    let all = DocumentModel::get_personal_tree(&ctx.db, claim.id, claim.tenant_id).await?;
+    let tree = build_tree(all);
+    format::json(tree)
+}
+
+/// 检查文档是否为 wiki 首页文档（禁止删除/回收/永久删除）
+pub async fn check_not_home_doc(ctx: &AppContext, doc_id: i64) -> Result<()> {
+    use sea_orm::PaginatorTrait;
+    use base::models::_entities::wikis::{Column as WCol, Entity as WEnt};
+    let count = WEnt::find()
+        .filter(WCol::HomeDocId.eq(doc_id))
+        .count(&ctx.db)
+        .await
+        .map_err(|_| Error::NotFound)?;
+    if count > 0 {
+        return Err(Error::BadRequest("cannot delete wiki home page".into()));
+    }
+    Ok(())
 }

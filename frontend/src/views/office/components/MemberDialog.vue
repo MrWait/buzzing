@@ -4,17 +4,50 @@
     <h3 class="mp-title">成员管理</h3>
 
     <div class="add-row">
-      <input
-        v-model="newUserId"
-        placeholder="用户 ID"
-        @keydown.enter="addMember"
-      />
+      <div class="user-search-wrap" ref="searchWrapRef">
+        <input
+          v-model="searchQuery"
+          placeholder="搜索用户添加…"
+          @input="onSearchInput"
+          @focus="searchFocused = true"
+          @keydown.down.prevent="onSearchKeydown('down')"
+          @keydown.up.prevent="onSearchKeydown('up')"
+          @keydown.enter.prevent="onSearchEnter"
+        />
+        <div v-if="selectedUser" class="selected-user">
+          <img v-if="selectedUser.avatar" :src="selectedUser.avatar" class="sel-avatar" />
+          <div v-else class="sel-avatar sel-avatar-fallback">{{ initials(selectedUser.name) }}</div>
+          <span class="sel-name">{{ selectedUser.name }}</span>
+          <button class="sel-clear" @click="selectedUser = null; searchQuery = ''">✕</button>
+        </div>
+        <Transition name="fade">
+          <div v-if="showSuggestions" class="search-suggestions">
+            <div
+              v-for="(u, i) in searchResults"
+              :key="u.id"
+              class="suggestion-item"
+              :class="{ active: i === searchSelectedIndex }"
+              @mousedown.prevent="selectUser(u)"
+            >
+              <img v-if="u.avatar" :src="u.avatar" class="suggestion-avatar" />
+              <div v-else class="suggestion-avatar suggestion-avatar-fallback">{{ u.name.charAt(0) }}</div>
+              <div class="suggestion-info">
+                <div class="suggestion-name">{{ u.name }}</div>
+              </div>
+            </div>
+            <div v-if="searchQuery && !searching && searchResults.length === 0" class="no-results">
+              无匹配用户
+            </div>
+            <div v-if="searching" class="search-loading">搜索中…</div>
+          </div>
+        </Transition>
+      </div>
       <select v-model.number="newRole">
         <option :value="ROLE_VIEWER">阅读者</option>
         <option :value="ROLE_COMMENTER">评论者</option>
         <option :value="ROLE_EDITOR">编辑者</option>
       </select>
-      <button class="btn-primary" :disabled="!newUserId || submitting" @click="addMember">
+      <button class="btn-primary" :disabled="!selectedUser || submitting" @click="addMember">
         添加
       </button>
     </div>
@@ -59,6 +92,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { membersApi, type MemberDto } from '@/services/office/members'
+import api from '@/services/api'
 import {
   ROLE_COMMENTER,
   ROLE_EDITOR,
@@ -66,14 +100,91 @@ import {
   ROLE_VIEWER,
 } from '@/composables/usePermission'
 
+interface SearchUser {
+  id: string
+  name: string
+  avatar: string | null
+}
+
 const props = defineProps<{ open: boolean; docId: string }>()
 
 const members = ref<MemberDto[]>([])
 const loading = ref(false)
 const submitting = ref(false)
 const errMsg = ref<string | null>(null)
-const newUserId = ref('')
+
 const newRole = ref<number>(ROLE_VIEWER)
+
+// 用户搜索
+const searchQuery = ref('')
+const selectedUser = ref<SearchUser | null>(null)
+const searchResults = ref<SearchUser[]>([])
+const searchSelectedIndex = ref(0)
+const searching = ref(false)
+const searchFocused = ref(false)
+const searchWrapRef = ref<HTMLElement>()
+let searchDebounce: ReturnType<typeof setTimeout> | null = null
+
+const showSuggestions = ref(false)
+
+async function doSearch(q: string) {
+  if (!q.trim()) {
+    searchResults.value = []
+    showSuggestions.value = false
+    searching.value = false
+    return
+  }
+  searching.value = true
+  showSuggestions.value = true
+  try {
+    const { data } = await api.get<SearchUser[]>('/office/mentions/users', { params: { q } })
+    searchResults.value = data
+    searchSelectedIndex.value = 0
+  } catch {
+    searchResults.value = []
+  } finally {
+    searching.value = false
+  }
+}
+
+function onSearchInput() {
+  if (selectedUser.value) {
+    selectedUser.value = null
+  }
+  if (searchDebounce) clearTimeout(searchDebounce)
+  searchDebounce = setTimeout(() => doSearch(searchQuery.value), 200)
+}
+
+function selectUser(u: SearchUser) {
+  selectedUser.value = u
+  searchQuery.value = ''
+  showSuggestions.value = false
+}
+
+function onSearchKeydown(dir: 'up' | 'down') {
+  if (!showSuggestions.value || searchResults.value.length === 0) return
+  if (dir === 'down') {
+    searchSelectedIndex.value = (searchSelectedIndex.value + 1) % searchResults.value.length
+  } else {
+    searchSelectedIndex.value = (searchSelectedIndex.value - 1 + searchResults.value.length) % searchResults.value.length
+  }
+}
+
+function onSearchEnter() {
+  if (showSuggestions.value && searchResults.value.length > 0) {
+    selectUser(searchResults.value[searchSelectedIndex.value])
+  }
+}
+
+// 点击外部关闭搜索下拉
+function onDocClick(e: MouseEvent) {
+  if (searchWrapRef.value && !searchWrapRef.value.contains(e.target as Node)) {
+    showSuggestions.value = false
+  }
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('click', onDocClick)
+}
 
 async function refresh() {
   loading.value = true
@@ -98,12 +209,13 @@ onMounted(() => {
 })
 
 async function addMember() {
-  if (!newUserId.value || submitting.value) return
+  if (!selectedUser.value || submitting.value) return
   submitting.value = true
   errMsg.value = null
   try {
-    await membersApi.add(props.docId, newUserId.value.trim(), newRole.value)
-    newUserId.value = ''
+    await membersApi.add(props.docId, selectedUser.value.id, newRole.value)
+    selectedUser.value = null
+    searchQuery.value = ''
     await refresh()
   } catch (e) {
     errMsg.value = e instanceof Error ? e.message : String(e)
@@ -172,16 +284,117 @@ function initials(name: string) {
   gap: 8px;
   margin-bottom: 12px;
 }
-.add-row input {
+.user-search-wrap {
+  position: relative;
   flex: 1;
+}
+.user-search-wrap input {
+  width: 100%;
   padding: 8px 10px;
   border: 1px solid #d0d0d0;
   border-radius: 4px;
   font-size: 14px;
   outline: none;
+  box-sizing: border-box;
 }
-.add-row input:focus {
+.user-search-wrap input:focus {
   border-color: #1565c0;
+}
+.selected-user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #e3f2fd;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+.sel-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.sel-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #bbdefb;
+  color: #1565c0;
+  font-size: 11px;
+  font-weight: 600;
+}
+.sel-name {
+  font-size: 13px;
+  color: #1565c0;
+  flex: 1;
+}
+.sel-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #999;
+  font-size: 12px;
+  padding: 0 2px;
+}
+.sel-clear:hover {
+  color: #333;
+}
+.search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  z-index: 210;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 4px;
+}
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.suggestion-item:hover,
+.suggestion-item.active {
+  background: #f0f0f0;
+}
+.suggestion-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.suggestion-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e3f2fd;
+  color: #1565c0;
+  font-size: 12px;
+  font-weight: 600;
+}
+.suggestion-info {
+  flex: 1;
+}
+.suggestion-name {
+  font-size: 13px;
+  color: #333;
+}
+.no-results,
+.search-loading {
+  padding: 12px;
+  text-align: center;
+  color: #999;
+  font-size: 13px;
 }
 .add-row select {
   padding: 8px 10px;
@@ -288,5 +501,11 @@ function initials(name: string) {
 }
 .btn-remove:hover {
   background: #ffebee;
+}
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 </style>

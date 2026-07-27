@@ -14,6 +14,7 @@ pub struct Model {
     pub icon: Option<String>,
     pub cover: Option<String>,
     pub creator_id: i64,
+    pub home_doc_id: Option<i64>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

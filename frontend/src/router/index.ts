@@ -53,6 +53,16 @@ const routes: RouteRecordRaw[] = [
         name: 'OfficeEditor',
         component: () => import('@/views/office/EditorView.vue'),
       },
+      {
+        path: 'wiki/:wikiId',
+        name: 'WikiHome',
+        component: () => import('@/views/office/WikiView.vue'),
+      },
+      {
+        path: 'wiki/:wikiId/:docId',
+        name: 'WikiEditor',
+        component: () => import('@/views/office/WikiEditorView.vue'),
+      },
     ],
   },
   {

@@ -9,3 +9,4 @@ cargo.log
 **/*.rs.bk
 *.db
 local/
+.xmake/

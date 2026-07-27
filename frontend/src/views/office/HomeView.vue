@@ -1,18 +1,16 @@
 <template>
   <div class="home">
-    <SpaceSidebar
-      :active-view="view"
-      @switch-view="onSwitchView"
+    <PersonalSidebar
       @search="searchOpen = true"
       @collapse-change="onCollapseChange"
+      @section-change="onSectionChange"
     />
 
     <section class="content" :class="{ 'sidebar-collapsed': contentShifted }">
-      <WikiHome v-if="view === 'wiki' && wikiStore.currentWikiId" />
-      <DocList v-else-if="view === 'space'" />
-      <StarredView v-else-if="view === 'starred'" />
-      <RecentView v-else-if="view === 'recent'" />
-      <TrashView v-else-if="view === 'trash'" />
+      <HomePanel v-if="currentSection === 'home'" @navigate-wiki="onNavigateWiki" />
+      <WikiGrid v-if="currentSection === 'wikis'" />
+      <StarredView v-if="currentSection === 'starred'" />
+      <TrashView v-if="currentSection === 'trash'" />
     </section>
 
     <SearchBar v-model:open="searchOpen" />
@@ -20,64 +18,38 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
-import { useDocumentStore } from '@/stores/document'
-import { useWikiStore } from '@/stores/wiki'
-import SpaceSidebar from './components/SpaceSidebar.vue'
-import DocList from './components/DocList.vue'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import PersonalSidebar from './components/PersonalSidebar.vue'
 import SearchBar from './components/SearchBar.vue'
-import WikiHome from './components/WikiHome.vue'
+import HomePanel from './components/HomePanel.vue'
+import WikiGrid from './components/WikiGrid.vue'
 import StarredView from './views/StarredView.vue'
-import RecentView from './views/RecentView.vue'
 import TrashView from './TrashView.vue'
 
-type ViewMode = 'wiki' | 'space' | 'starred' | 'recent' | 'trash'
-
-const store = useDocumentStore()
-const wikiStore = useWikiStore()
+const router = useRouter()
+const route = useRoute()
 const searchOpen = ref(false)
-const view = ref<ViewMode>('wiki')
 const contentShifted = ref(false)
+const currentSection = ref(initSection())
 
-onMounted(async () => {
-  await wikiStore.loadWikis()
-  await store.loadSpaces()
-  await store.loadStarred()
-  if (wikiStore.currentWikiId) {
-    view.value = 'wiki'
-  } else if (store.currentSpaceId) {
-    view.value = 'space'
-    await store.loadDocuments(store.currentSpaceId)
-  }
-})
+function initSection(): string {
+  const s = route.query.section
+  if (s === 'wikis' || s === 'starred' || s === 'trash') return s
+  return 'home'
+}
 
-watch(
-  () => store.currentSpaceId,
-  async (id) => {
-    if (id && view.value === 'space') {
-      await store.loadDocuments(id)
-    }
-  },
-)
-
-watch(
-  () => wikiStore.currentWikiId,
-  (id) => {
-    if (id && view.value !== 'wiki') {
-      view.value = 'wiki'
-    }
-  },
-)
+function onSectionChange(section: string) {
+  currentSection.value = section
+  router.replace({ query: { section } })
+}
 
 function onCollapseChange(collapsed: boolean) {
   contentShifted.value = collapsed
 }
 
-function onSwitchView(v: ViewMode) {
-  view.value = v
-  if (v === 'starred') store.loadStarred()
-  if (v === 'recent') store.loadRecent()
-  if (v === 'trash') store.loadTrash()
+function onNavigateWiki(wikiId: string) {
+  router.push({ name: 'WikiHome', params: { wikiId } })
 }
 </script>
 
@@ -87,7 +59,6 @@ function onSwitchView(v: ViewMode) {
   height: 100%;
   position: relative;
 }
-
 .content {
   flex: 1;
   min-width: 0;

@@ -56,21 +56,31 @@ impl BizOffice for AppOffice {
         user_name: &str,
     ) -> Result<()> {
         use common::id_gen;
-        use crate::models::document_spaces::DocumentSpaceModel;
+        use sea_orm::ActiveValue as AV;
+        use yrs::{Doc, ReadTxn, Transact};
 
-        let space_name = format!("{} 的文档", user_name);
-        DocumentSpaceModel::create(
+        // 创建个人根文档（wiki_id = NULL）
+        let doc_id = id_gen(None);
+        let empty_yjs = {
+            let doc = Doc::new();
+            doc.transact().encode_state_as_update_v1(&Default::default())
+        };
+        crate::models::documents::DocumentModel::create(
             &ctx.db,
-            base::models::_entities::document_spaces::ActiveModel {
-                id: ActiveValue::set(id_gen(None)),
-                tenant_id: ActiveValue::set(tenant_id),
-                creator: ActiveValue::set(user_id),
-                name: ActiveValue::set(space_name),
-                sp_type: ActiveValue::set(0),
+            base::models::_entities::documents::ActiveModel {
+                id: AV::Set(doc_id),
+                wiki_id: AV::Set(None),
+                tenant_id: AV::Set(tenant_id),
+                creator: AV::Set(user_id),
+                title: AV::Set(format!("{} 的文档库", user_name)),
+                doc_type: AV::Set(1),
+                version: AV::Set(common::time::current_ms() as i64),
+                content: AV::Set(empty_yjs),
+                parent_id: AV::Set(Some(user_id)),
+                icon: AV::Set(None),
                 ..Default::default()
             },
-        )
-        .await?;
+        ).await?;
         Ok(())
     }
 }

@@ -14,7 +14,7 @@
 │                                                                      │
 │  Backend:                                                             │
 │    document_versions  ── 版本快照/对比/回滚                             │
-│    wikis / wiki_members ── 知识库层级                                  │
+│    wikis / wiki_members ── 知识库层级（文档直接通过 wiki_id 归属）                                  │
 │    document_mentions ── @提及存储                                      │
 │    document_reactions ── 表情反应                                      │
 │    /api/office/versions/* ── 版本 CRUD                                 │
@@ -44,7 +44,7 @@
 | 版本存储 | Yjs `encode_state_as_update_v1` 增量快照 | 与现有 Yjs 持久化一致，支持按需合并 |
 | 版本对比 | 取两个快照的 Yjs update 解码后逐节点 diff | 无需额外存储 diff，快照即 diff 源 |
 | Flutter 编辑 | `webview_flutter` 嵌入 SPA | 编辑器逻辑全部在 Web 端，Flutter 仅提供容器 + 原生工具栏叠加 |
-| 知识库层级 | `wikis` 表 → `spaces.wiki_id` FK | 与现有 space 兼容，迁移成本最低 |
+| 知识库层级 | `wikis` 表 + `documents.wiki_id`，文档通过 `parent_id` 形成树 | 去掉了中间 Space 层，三层 → 两层，更简洁；利用已有的 `parent_id` 实现树形层级 |
 | @提及实现 | ProseMirror `mention` node + 弹出搜索浮层 | 标准方案，协作友好（y-prosemirror 同步 node） |
 | 公式渲染 | KaTeX（行内 `math_inline` + 块级 `math_display` node） | 轻量，无外部依赖加载慢问题 |
 | 代码高亮 | highlight.js（运行时 + 按语言动态加载） | 生态好，支持 190+ 语言，包体积可控 |
@@ -188,7 +188,23 @@ class BuzzingChannel {
 
 ## M7 — 知识库层
 
-### 7.1 数据模型
+### 7.1 设计决策
+
+**简化层级**：去掉中间 Space 层，将三层结构「知识库 → 空间 → 文档」简化为两层结构：
+
+```
+Organization (租户)
+ └── Wiki (知识库)
+      └── Document (文档，可含子页面，通过 parent_id 形成树)
+```
+
+**理由**：
+- 三层结构让用户困惑（空间和知识库的边界模糊）
+- 文档已有 `parent_id` 字段（M3.5 实现），天然支持树形层级，无需额外中间层
+- 权限链路更短：`wiki_members` → `documents.wiki_id`
+- 与飞书等主流产品的用户心智模型一致
+
+### 7.2 数据模型
 
 ```sql
 CREATE TABLE wikis (
@@ -211,15 +227,24 @@ CREATE TABLE wiki_members (
     PRIMARY KEY (wiki_id, user_id)
 );
 
--- spaces 表新增字段
-ALTER TABLE document_spaces ADD COLUMN wiki_id BIGINT REFERENCES wikis(id);
-ALTER TABLE document_spaces ADD COLUMN wiki_space_type SMALLINT NOT NULL DEFAULT 0;
-  -- 0=personal(不属于wiki), 1=wiki_root(wiki的默认空间), 2=wiki_sub(wiki下用户创建的空间)
+-- documents 表新增 wiki_id 字段
+ALTER TABLE documents ADD COLUMN wiki_id BIGINT REFERENCES wikis(id);
+-- document_spaces 保留表结构（兼容历史数据），UI 不再暴露空间概念
 ```
 
-**权限继承链**：`wiki_members` → `spaces`（通过 `wiki_id`）→ `documents`（通过 `inherit_from_space`）
+**权限继承链**：`wiki_members`（通过 `documents.wiki_id`）→ `documents`
+- 文档查询权限时：creator 优先 → `document_members` → 回退到 `wiki_members`（按 `documents.wiki_id`）
 
-### 7.2 API 设计
+**文档树结构**：利用现有 `documents.parent_id`（自引用 FK），无需新增字段：
+```
+Wiki 首页 (wiki_doc_type=1)
+ ├── 子文档 A (parent_id = wiki首页id)
+ │    ├── 孙文档 A1 (parent_id = A)
+ │    └── 孙文档 A2 (parent_id = A)
+ └── 子文档 B (parent_id = wiki首页id)
+```
+
+### 7.3 API 设计
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
@@ -227,24 +252,25 @@ ALTER TABLE document_spaces ADD COLUMN wiki_space_type SMALLINT NOT NULL DEFAULT
 | `POST` | `/api/office/wikis` | 创建知识库 `{ name, description, icon }` |
 | `GET` | `/api/office/wikis/{id}` | 知识库详情 |
 | `PATCH` | `/api/office/wikis/{id}` | 更新知识库信息 |
-| `DELETE` | `/api/office/wikis/{id}` | 删除知识库（归档所有子空间+文档） |
+| `DELETE` | `/api/office/wikis/{id}` | 删除知识库（归档内部所有文档） |
 | `GET` | `/api/office/wikis/{id}/members` | 成员列表 |
 | `POST` | `/api/office/wikis/{id}/members` | 添加成员 `{ user_id, role }` |
 | `DELETE` | `/api/office/wikis/{id}/members/{user_id}` | 移除成员 |
-| `GET` | `/api/office/wikis/{id}/spaces` | 知识库下的空间列表（含树） |
+| `GET` | `/api/office/wikis/{id}/docs?parent_id=xxx` | 知识库文档树（按 parent_id 组织） |
 | `GET` | `/api/office/wikis/{id}/recent` | 知识库最近更新 |
 | `POST` | `/api/office/wikis/{id}/pins` | 置顶文档 |
 | `DELETE` | `/api/office/wikis/{id}/pins/{doc_id}` | 取消置顶 |
+| `POST` | `/api/office/wikis/{id}/docs` | 在知识库下创建文档 `{ title, parent_id? }` |
 
-### 7.3 迁移方案
+### 7.4 迁移方案
 
 1. 创建 `wikis` / `wiki_members` 表
-2. 后台创建默认知识库：遍历所有现有 space，创建同名 wiki（每个租户一个）
-3. `spaces` 表增加 `wiki_id` 字段，将 space 挂到对应 wiki
-4. 前端侧栏改造：wiki → space → doc 三级
-5. 现有"个人空间"归类到"个人知识库"
+2. `documents` 表新增 `wiki_id` 字段（可为 null，兼容历史数据）
+3. 后台脚本：遍历所有现有 space，为每个租户创建默认知识库；将 space 下的文档的 `wiki_id` 设为对应知识库 ID
+4. `document_spaces` 保留表结构但不作为 UI 概念暴露
+5. Web / Flutter 侧栏改造：知识库 → 文档树（去掉空间层）
 
-### 7.4 前端设计
+### 7.5 前端设计
 
 **侧栏改造**：
 ```
@@ -253,15 +279,20 @@ SidebarHeader (现有)
   └── 标题 "在线文档"
 QuickGroup (现有)
   ├── 星标 / 最近 / 回收站
-KnowledgeBaseSection (新增)
-  ├── WikiNode (可展开)
-  │    ├── SpaceNode (带 icon)
-  │    │    ├── DocTreeNode (现有)
+WikiTreeNode (新增，替代原有的 SpaceTree)
+  └── DocTreeNode (展开子文档)
 ```
 
-**首页改造**：
-- `HomeView` 展示当前 wiki 概览页（描述 + 最近更新 + 置顶 + 成员）
+**知识库首页**：
+- `WikiHome.vue`：概览页（描述 + 最近更新 + 置顶 + 成员）
 - wiki 切换器在侧栏顶部
+
+**创建文档流程**：
+- 新建文档时选择归属的知识库 + 父文档（可选）
+- 文档树直接在知识库内通过 `parent_id` 组织
+
+**@提及搜索**：
+- `@doc` → `GET /api/office/mentions/docs?q=keyword&wiki_id=xxx`（不再传 space_id）
 
 ---
 

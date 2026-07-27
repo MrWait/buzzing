@@ -43,6 +43,7 @@
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { useYjs } from '@/composables/useYjs'
 import { useDocumentStore } from '@/stores/document'
+import { useWikiStore } from '@/stores/wiki'
 import { docsApi } from '@/services/office/docs'
 import { usePermission } from '@/composables/usePermission'
 import TitleBar from './TitleBar.vue'
@@ -71,6 +72,7 @@ provide('yjs-type', type)
 provide('yjs-provider', provider)
 
 const store = useDocumentStore()
+const wikiStore = useWikiStore()
 const searchOpen = ref(false)
 const showMembers = ref(false)
 
@@ -124,37 +126,30 @@ const isReadonly = computed(() => perm.readOnly.value)
 onMounted(async () => {
   await store.reportVisit(props.docId)
   await loadChain(props.docId)
-  if (store.spaces.length === 0) {
-    await store.loadSpaces()
-  }
 })
 
 async function loadChain(id: string) {
   const list: Array<{ id: string; title: string; icon: string | null }> = []
   let cursor: string | null = id
+  let docWikiId: string | null = null
   const visited = new Set<string>()
   while (cursor && !visited.has(cursor)) {
     visited.add(cursor)
     try {
       const { data } = await docsApi.get(cursor)
+      if (!docWikiId) docWikiId = data.wiki_id
       list.unshift({ id: data.id, title: data.title || '未命名', icon: data.icon })
       cursor = data.parent_id
-      if (list.length === 1) {
-        store.currentSpaceId = data.space_id
-      }
-    } catch {
-      break
-    }
+    } catch { break }
   }
   chain.value = list
+  if (docWikiId) {
+    wikiStore.setCurrentWiki(docWikiId)
+  }
 }
 
 const crumbs = computed<BreadcrumbItem[]>(() => {
   const items: BreadcrumbItem[] = []
-  const sp = store.spaces.find(s => s.id === store.currentSpaceId)
-  if (sp) {
-    items.push({ id: sp.id, label: sp.name, icon: sp.icon ?? undefined, route: { name: 'OfficeHome' } })
-  }
   chain.value.forEach((n, idx) => {
     const isLast = idx === chain.value.length - 1
     items.push({

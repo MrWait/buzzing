@@ -15,7 +15,7 @@ struct UserRow {
 #[derive(Debug, FromQueryResult, Serialize)]
 struct DocRow {
     id: i64,
-    space_id: i64,
+    wiki_id: Option<i64>,
     title: String,
     icon: Option<String>,
     updated_at: chrono::DateTime<chrono::FixedOffset>,
@@ -56,17 +56,17 @@ pub async fn search_docs(
 ) -> Result<Response> {
     let claim = UserBrief::from_string(&auth.claims.pid)?;
     let q = params.get("q").map(|s| s.as_str()).unwrap_or("").trim().to_lowercase();
-    let space_id: Option<i64> = params.get("space_id").and_then(|s| s.parse().ok());
+    let wiki_id: Option<i64> = params.get("wiki_id").and_then(|s| s.parse().ok());
     let mut conditions = vec![
         format!("tenant_id = {}", claim.tenant_id),
         "trashed_at IS NULL".to_string(),
         format!("title ILIKE '%{}%'", q.replace('\'', "''")),
     ];
-    if let Some(sid) = space_id {
-        conditions.push(format!("space_id = {}", sid));
+    if let Some(wid) = wiki_id {
+        conditions.push(format!("wiki_id = {}", wid));
     }
     let sql = format!(
-        "SELECT id, space_id, title, icon, updated_at FROM {} WHERE {} ORDER BY updated_at DESC LIMIT 20",
+        "SELECT id, wiki_id, title, icon, updated_at FROM {} WHERE {} ORDER BY updated_at DESC LIMIT 20",
         table_name("documents"),
         conditions.join(" AND "),
     );

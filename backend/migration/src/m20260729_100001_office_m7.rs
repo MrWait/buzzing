@@ -51,7 +51,7 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // wiki_pins 表（置顶文档）
+        // wiki_pins 表
         manager
             .create_table(
                 Table::create()
@@ -75,16 +75,15 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // document_spaces 新增字段
+        // documents 新增 wiki_id（替代 document_spaces.wiki_id，去掉空间层）
         let db = manager.get_connection();
         let backend = manager.get_database_backend();
-        let stmts = [
-            "ALTER TABLE document_spaces ADD COLUMN IF NOT EXISTS wiki_id BIGINT REFERENCES wikis(id)",
-            "ALTER TABLE document_spaces ADD COLUMN IF NOT EXISTS wiki_space_type SMALLINT NOT NULL DEFAULT 0",
-        ];
-        for sql in stmts {
-            db.execute(Statement::from_string(backend, sql)).await?;
-        }
+        db.execute(Statement::from_string(backend,
+            "ALTER TABLE documents ADD COLUMN IF NOT EXISTS wiki_id BIGINT REFERENCES wikis(id)"
+        )).await?;
+        db.execute(Statement::from_string(backend,
+            "CREATE INDEX IF NOT EXISTS idx_documents_wiki_id ON documents(wiki_id)"
+        )).await?;
 
         Ok(())
     }
@@ -101,13 +100,12 @@ impl MigrationTrait for Migration {
             .await?;
         let db = manager.get_connection();
         let backend = manager.get_database_backend();
-        let stmts = [
-            "ALTER TABLE document_spaces DROP COLUMN IF EXISTS wiki_id",
-            "ALTER TABLE document_spaces DROP COLUMN IF EXISTS wiki_space_type",
-        ];
-        for sql in stmts {
-            db.execute(Statement::from_string(backend, sql)).await?;
-        }
+        db.execute(Statement::from_string(backend,
+            "DROP INDEX IF EXISTS idx_documents_wiki_id"
+        )).await?;
+        db.execute(Statement::from_string(backend,
+            "ALTER TABLE documents DROP COLUMN IF EXISTS wiki_id"
+        )).await?;
         Ok(())
     }
 }
