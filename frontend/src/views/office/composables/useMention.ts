@@ -2,6 +2,7 @@ import { type EditorView } from 'prosemirror-view'
 import { Plugin, PluginKey } from 'prosemirror-state'
 import { reactive } from 'vue'
 import api from '@/services/api'
+import { useDocumentStore } from '@/stores/document'
 
 export interface MentionSuggestion {
   id: string
@@ -56,7 +57,8 @@ export function createMentionPlugin(state: MentionState, docId?: string) {
 
   function searchDocs(q: string) {
     const params: Record<string, string> = { q }
-    if (docId) params.space_id = docId
+    const wikiId = docId ? useDocumentStore().currentWikiId ?? undefined : undefined
+    if (wikiId) params.wiki_id = wikiId
     api.get<Array<{ id: string; title: string; icon: string | null }>>('/office/mentions/docs', { params })
       .then(({ data }) => {
         state.items = data.map(d => ({

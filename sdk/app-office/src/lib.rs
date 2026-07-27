@@ -32,67 +32,9 @@ impl AppOffice {
         Ok(headers)
     }
 
-    pub async fn list_spaces(&self) -> Result<Vec<SpaceResponse>> {
-        let url = format!("{}/spaces", Self::base_url()?);
-        let client = reqwest::Client::new();
-        let resp = client
-            .get(&url)
-            .headers(Self::headers()?)
-            .send()
-            .await?
-            .error_for_status()?
-            .text()
-            .await?;
-        Ok(serde_json::from_str(&resp)?)
-    }
-
-    pub async fn create_space(&self, name: &str) -> Result<SpaceResponse> {
-        let url = format!("{}/spaces", Self::base_url()?);
-        let body = serde_json::json!({ "name": name });
-        let client = reqwest::Client::new();
-        let resp = client
-            .post(&url)
-            .headers(Self::headers()?)
-            .json(&body)
-            .send()
-            .await?
-            .error_for_status()?
-            .text()
-            .await?;
-        Ok(serde_json::from_str(&resp)?)
-    }
-
-    pub async fn update_space(&self, id: i64, name: &str) -> Result<SpaceResponse> {
-        let url = format!("{}/spaces/{}", Self::base_url()?, id);
-        let body = serde_json::json!({ "name": name });
-        let client = reqwest::Client::new();
-        let resp = client
-            .put(&url)
-            .headers(Self::headers()?)
-            .json(&body)
-            .send()
-            .await?
-            .error_for_status()?
-            .text()
-            .await?;
-        Ok(serde_json::from_str(&resp)?)
-    }
-
-    pub async fn delete_space(&self, id: i64) -> Result<()> {
-        let url = format!("{}/spaces/{}", Self::base_url()?, id);
-        let client = reqwest::Client::new();
-        client
-            .delete(&url)
-            .headers(Self::headers()?)
-            .send()
-            .await?
-            .error_for_status()?;
-        Ok(())
-    }
-
-    pub async fn list_docs(&self, space_id: i64) -> Result<Vec<DocResponse>> {
+    pub async fn list_docs(&self, wiki_id: i64) -> Result<Vec<DocResponse>> {
         let url = format!("{}/docs", Self::base_url()?);
-        let query = vec![("space_id", space_id.to_string())];
+        let query = vec![("wiki_id", wiki_id.to_string())];
         let client = reqwest::Client::new();
         let resp = client
             .get(&url)
@@ -106,9 +48,9 @@ impl AppOffice {
         Ok(serde_json::from_str(&resp)?)
     }
 
-    pub async fn create_doc(&self, space_id: i64, title: &str) -> Result<DocResponse> {
+    pub async fn create_doc(&self, wiki_id: i64, title: &str) -> Result<DocResponse> {
         let url = format!("{}/docs", Self::base_url()?);
-        let body = serde_json::json!({ "space_id": space_id.to_string(), "title": title });
+        let body = serde_json::json!({ "wiki_id": wiki_id.to_string(), "title": title });
         let client = reqwest::Client::new();
         let resp = client
             .post(&url)
@@ -136,14 +78,11 @@ impl AppOffice {
         Ok(serde_json::from_str(&resp)?)
     }
 
-    pub async fn update_doc(&self, id: i64, title: Option<&str>, space_id: Option<i64>) -> Result<DocResponse> {
+    pub async fn update_doc(&self, id: i64, title: Option<&str>) -> Result<DocResponse> {
         let url = format!("{}/docs/{}", Self::base_url()?, id);
         let mut body = serde_json::Map::new();
         if let Some(t) = title {
             body.insert("title".into(), serde_json::Value::String(t.into()));
-        }
-        if let Some(s) = space_id {
-            body.insert("space_id".into(), serde_json::Value::String(s.to_string()));
         }
         let client = reqwest::Client::new();
         let resp = client
@@ -186,18 +125,9 @@ impl AppOffice {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SpaceResponse {
-    pub id: String,
-    pub name: String,
-    pub sp_type: i32,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DocResponse {
     pub id: String,
-    pub space_id: String,
+    pub wiki_id: String,
     pub title: String,
     pub doc_type: i32,
     pub version: i64,

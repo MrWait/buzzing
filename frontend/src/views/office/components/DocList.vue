@@ -1,13 +1,25 @@
 <template>
   <div class="doc-list">
     <div class="doc-list-header">
-      <h3>{{ currentSpaceName || '文档' }}</h3>
-      <button class="btn-new" @click="showNewDoc = true">+ 新建</button>
+      <h3>{{ currentWikiName || '文档' }}</h3>
+      <div class="header-actions">
+        <div class="new-btn-wrap" ref="newBtnRef">
+          <button class="btn-new" @click="toggleNewMenu">+</button>
+          <Transition name="fade">
+            <div v-if="newMenuOpen" class="new-dropdown">
+              <div class="new-dropdown-item" @click="handleNewDoc">新建文档</div>
+            </div>
+          </Transition>
+        </div>
+        <TopRightBar />
+      </div>
     </div>
+
     <div v-if="showNewDoc" class="inline-form">
       <input v-model="newDocTitle" placeholder="文档标题" @keyup.enter="handleCreateDoc" />
       <button @click="handleCreateDoc">确定</button>
     </div>
+
     <div v-if="store.documents.length === 0" class="empty">暂无文档</div>
     <div
       v-for="doc in sortedDocs"
@@ -36,23 +48,28 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDocumentStore, type DocInfo } from '@/stores/document'
+import { useWikiStore } from '@/stores/wiki'
 import ContextMenu, { type ContextMenuItem } from './ContextMenu.vue'
+import TopRightBar from '@/components/TopRightBar.vue'
 
 const store = useDocumentStore()
+const wikiStore = useWikiStore()
 const router = useRouter()
+
 const showNewDoc = ref(false)
 const newDocTitle = ref('')
+const newMenuOpen = ref(false)
+const newBtnRef = ref<HTMLElement>()
 
 const menuOpen = ref(false)
 const menuPos = ref<{ x: number; y: number }>({ x: 0, y: 0 })
 const menuItems = ref<ContextMenuItem[]>([])
 
-// 展示空间内所有文档，按最近更新倒序
 const sortedDocs = computed(() =>
   [...store.documents].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
 )
-const currentSpaceName = computed(
-  () => store.spaces.find(s => s.id === store.currentSpaceId)?.name ?? '',
+const currentWikiName = computed(
+  () => wikiStore.wikis.find(w => w.id === store.currentWikiId)?.name ?? '',
 )
 
 function formatTime(iso: string): string {
@@ -70,10 +87,28 @@ function openEditor(docId: string) {
 }
 
 async function handleCreateDoc() {
-  if (!newDocTitle.value.trim() || !store.currentSpaceId) return
-  await store.createDocument(newDocTitle.value.trim(), store.currentSpaceId)
+  if (!newDocTitle.value.trim() || !store.currentWikiId) return
+  await store.createDocument(newDocTitle.value.trim(), store.currentWikiId)
   newDocTitle.value = ''
   showNewDoc.value = false
+}
+
+function toggleNewMenu() {
+  newMenuOpen.value = !newMenuOpen.value
+}
+
+function handleNewDoc() {
+  newMenuOpen.value = false
+  showNewDoc.value = true
+}
+
+function onDocClick(e: MouseEvent) {
+  if (newBtnRef.value && !newBtnRef.value.contains(e.target as Node)) {
+    newMenuOpen.value = false
+  }
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('click', onDocClick)
 }
 
 function openMenu(e: MouseEvent, doc: DocInfo) {
@@ -113,14 +148,54 @@ function buildMenu(doc: DocInfo) {
   font-size: 16px;
   font-weight: 600;
 }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.new-btn-wrap {
+  position: relative;
+}
 .btn-new {
-  padding: 4px 12px;
+  width: 32px;
+  height: 32px;
   background: #1a1a2e;
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-new:hover {
+  background: #2a2a4e;
+}
+.new-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 120px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 1000;
+  padding: 4px;
+}
+.new-dropdown-item {
+  padding: 8px 12px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
+  white-space: nowrap;
+  color: #333;
+}
+.new-dropdown-item:hover {
+  background: #f0f0f0;
 }
 .inline-form {
   display: flex;
@@ -185,5 +260,11 @@ function buildMenu(doc: DocInfo) {
 .doc-more:hover {
   background: #e5e7eb;
   color: #374151;
+}
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 </style>

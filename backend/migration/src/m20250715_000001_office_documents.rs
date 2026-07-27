@@ -9,36 +9,24 @@ impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .create_table(
-                table_auto_tz(DocumentSpaces::Table)
-                    .col(crate::pk(DocumentSpaces::Id))
-                    .col(big_integer(DocumentSpaces::TenantId))
-                    .col(big_integer(DocumentSpaces::Creator))
-                    .col(string(DocumentSpaces::Name))
-                    .col(integer(DocumentSpaces::SpType))
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_table(
                 table_auto_tz(Documents::Table)
                     .col(crate::pk(Documents::Id))
-                    .col(big_integer(Documents::SpaceId))
                     .col(big_integer(Documents::TenantId))
                     .col(big_integer(Documents::Creator))
                     .col(string(Documents::Title))
                     .col(integer(Documents::DocType))
                     .col(big_integer(Documents::Version))
                     .col(blob(Documents::Content))
+                    .col(big_integer(Documents::WikiId))
                     .to_owned(),
             )
             .await?;
         manager
             .create_index(
                 Index::create()
-                    .name("idx-documents-space")
+                    .name("idx-documents-wiki")
                     .table(Documents::Table)
-                    .col(Documents::SpaceId)
+                    .col(Documents::WikiId)
                     .to_owned(),
             )
             .await?;
@@ -76,34 +64,21 @@ impl MigrationTrait for Migration {
             .await?;
         manager
             .drop_table(Table::drop().table(Documents::Table).to_owned())
-            .await?;
-        manager
-            .drop_table(Table::drop().table(DocumentSpaces::Table).to_owned())
             .await
     }
-}
-
-#[derive(DeriveIden)]
-enum DocumentSpaces {
-    Table,
-    Id,
-    TenantId,
-    Creator,
-    Name,
-    SpType,
 }
 
 #[derive(DeriveIden)]
 enum Documents {
     Table,
     Id,
-    SpaceId,
     TenantId,
     Creator,
     Title,
     DocType,
     Version,
     Content,
+    WikiId,
 }
 
 #[derive(DeriveIden)]

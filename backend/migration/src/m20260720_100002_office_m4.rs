@@ -8,19 +8,7 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // 1. documents 加 inherit_from_space
-        manager
-            .alter_table(
-                Table::alter()
-                    .table(Documents::Table)
-                    .add_column_if_not_exists(
-                        boolean(Documents::InheritFromSpace).default(true),
-                    )
-                    .to_owned(),
-            )
-            .await?;
-
-        // 2. document_shares 新建
+        // 1. document_shares 新建
         manager
             .create_table(
                 table_auto_tz(DocumentShares::Table)
@@ -57,7 +45,7 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // 3. document_members 补齐 (document_id, user_id) 唯一 — 已在 PK 中，改为补 (user_id) 单列索引以加速查询
+        // 2. document_members 补齐
         let db = manager.get_connection();
         db.execute(Statement::from_string(
             manager.get_database_backend(),
@@ -78,23 +66,8 @@ impl MigrationTrait for Migration {
         .await?;
         manager
             .drop_table(Table::drop().table(DocumentShares::Table).to_owned())
-            .await?;
-        manager
-            .alter_table(
-                Table::alter()
-                    .table(Documents::Table)
-                    .drop_column(Documents::InheritFromSpace)
-                    .to_owned(),
-            )
-            .await?;
-        Ok(())
+            .await
     }
-}
-
-#[derive(DeriveIden)]
-enum Documents {
-    Table,
-    InheritFromSpace,
 }
 
 #[derive(DeriveIden)]

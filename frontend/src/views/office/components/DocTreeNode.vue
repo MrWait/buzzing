@@ -4,13 +4,8 @@
       class="doc-row"
       :class="{ active: isActive }"
       :style="{ paddingLeft: `${8 + level * 12}px` }"
-      draggable="true"
       @click="openDoc"
       @contextmenu.prevent="emitMenu"
-      @dragstart="onDragStart"
-      @dragover.prevent="onDragOver"
-      @drop.prevent="onDrop"
-      @dragleave="dropHover = false"
     >
       <span
         class="chevron"
@@ -20,19 +15,16 @@
       <span class="doc-icon">{{ node.icon || '📄' }}</span>
       <span class="doc-title">{{ node.title || '未命名' }}</span>
       <span class="doc-add" @click.stop="emitAddChild">+</span>
-      <span class="doc-more" @click.stop="emitMenuMore">···</span>
+      <span class="doc-more" @click.stop="emitMenu">···</span>
     </div>
     <div v-if="expanded && hasChildren" class="children">
       <DocTreeNode
         v-for="child in node.children"
         :key="child.id"
         :node="child"
-        :space-id="spaceId"
         :level="level + 1"
-        @open-menu="(payload) => $emit('open-menu', payload)"
-        @open-menu-more="(payload) => $emit('open-menu-more', payload)"
         @add-child="(payload) => $emit('add-child', payload)"
-        @drop-onto="(payload) => $emit('drop-onto', payload)"
+        @open-menu="(payload) => $emit('open-menu', payload)"
       />
     </div>
   </div>
@@ -45,20 +37,17 @@ import type { DocTreeNode as DocTreeNodeDto } from '@/services/office/docs'
 
 const props = defineProps<{
   node: DocTreeNodeDto
-  spaceId: string
   level: number
 }>()
+
 const emit = defineEmits<{
-  (e: 'open-menu', payload: { event: MouseEvent; node: DocTreeNodeDto; spaceId: string }): void
-  (e: 'open-menu-more', payload: { el: HTMLElement; node: DocTreeNodeDto; spaceId: string }): void
-  (e: 'add-child', payload: { node: DocTreeNodeDto; spaceId: string }): void
-  (e: 'drop-onto', payload: { docId: string; fromSpaceId: string; targetSpaceId: string; targetParent: string | null }): void
+  (e: 'add-child', payload: { parentId: string }): void
+  (e: 'open-menu', payload: { event: MouseEvent; node: DocTreeNodeDto }): void
 }>()
 
 const router = useRouter()
 const route = useRoute()
 const expanded = ref(false)
-const dropHover = ref(false)
 
 const hasChildren = computed(() => props.node.children.length > 0)
 const isActive = computed(() => String(route.params.docId ?? '') === props.node.id)
@@ -71,38 +60,12 @@ function toggle() {
   if (hasChildren.value) expanded.value = !expanded.value
 }
 
-function emitMenu(e: MouseEvent) {
-  emit('open-menu', { event: e, node: props.node, spaceId: props.spaceId })
-}
-
-function emitMenuMore(e: MouseEvent) {
-  emit('open-menu-more', { el: e.currentTarget as HTMLElement, node: props.node, spaceId: props.spaceId })
-}
-
 function emitAddChild() {
-  emit('add-child', { node: props.node, spaceId: props.spaceId })
+  emit('add-child', { parentId: props.node.id })
 }
 
-function onDragStart(e: DragEvent) {
-  e.dataTransfer?.setData('text/plain', `doc:${props.node.id}@${props.spaceId}`)
-}
-
-function onDragOver() {
-  dropHover.value = true
-}
-
-function onDrop(e: DragEvent) {
-  dropHover.value = false
-  const raw = e.dataTransfer?.getData('text/plain') ?? ''
-  if (!raw.startsWith('doc:')) return
-  const [id, fromSpaceId] = raw.slice(4).split('@')
-  if (id === props.node.id) return
-  emit('drop-onto', {
-    docId: id,
-    fromSpaceId,
-    targetSpaceId: props.spaceId,
-    targetParent: props.node.id,
-  })
+function emitMenu(e: MouseEvent) {
+  emit('open-menu', { event: e, node: props.node })
 }
 </script>
 

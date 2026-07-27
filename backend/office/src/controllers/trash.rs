@@ -2,7 +2,7 @@ use axum::debug_handler;
 use loco_rs::prelude::*;
 use serde::Serialize;
 
-use crate::controllers::docs::DocResponse;
+use crate::controllers::docs::{check_not_home_doc, DocResponse};
 use crate::models::documents::DocumentModel;
 use crate::permission::{require_role, Role};
 use common::model::UserBrief;
@@ -64,6 +64,7 @@ pub async fn purge(
 ) -> Result<Response> {
     let claim = UserBrief::from_string(&auth.claims.pid)?;
     require_role(&ctx, claim.id, id, Role::Owner).await?;
+    check_not_home_doc(&ctx, id).await?;
     DocumentModel::purge(&ctx.db, id).await?;
     format::json(serde_json::json!({"ok": true}))
 }

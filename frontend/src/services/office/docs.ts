@@ -2,7 +2,7 @@ import api from '@/services/api'
 
 export interface DocDto {
   id: string
-  space_id: string
+  wiki_id: string | null
   parent_id: string | null
   title: string
   icon: string | null
@@ -37,7 +37,7 @@ export interface RecentItemDto {
 
 export interface SearchResultDto {
   id: string
-  space_id: string
+  wiki_id: string | null
   title: string
   icon: string | null
   highlight: string
@@ -46,13 +46,19 @@ export interface SearchResultDto {
 }
 
 export const docsApi = {
-  list(spaceId: string) {
-    return api.get<DocDto[]>('/office/docs', { params: { space_id: spaceId } })
+  personalTree() {
+    return api.get<DocTreeNode[]>('/office/personal/tree')
+  },
+  createPersonal(payload: { title: string; parent_id?: string; icon?: string }) {
+    return api.post<DocDto>('/office/personal/docs', payload)
+  },
+  list(wikiId: string) {
+    return api.get<DocDto[]>('/office/docs', { params: { wiki_id: wikiId } })
   },
   get(id: string) {
     return api.get<DocDto>(`/office/docs/${id}`)
   },
-  create(payload: { space_id: string; title: string; parent_id?: string; icon?: string }) {
+  create(payload: { wiki_id: string; title: string; parent_id?: string; icon?: string }) {
     return api.post<DocDto>('/office/docs', payload)
   },
   update(id: string, payload: { title?: string; icon?: string; cover?: string }) {
@@ -67,9 +73,8 @@ export const docsApi = {
   purge(id: string) {
     return api.delete(`/office/docs/${id}/purge`)
   },
-  move(id: string, payload: { space_id?: string; parent_id?: string | null }) {
+  move(id: string, payload: { parent_id?: string | null }) {
     return api.post<DocDto>(`/office/docs/${id}/move`, {
-      space_id: payload.space_id,
       parent_id: payload.parent_id === null ? '0' : payload.parent_id,
     })
   },
@@ -82,8 +87,8 @@ export const docsApi = {
   recent(limit = 20) {
     return api.get<RecentItemDto[]>('/office/docs/recent', { params: { limit } })
   },
-  tree(spaceId: string) {
-    return api.get<DocTreeNode[]>('/office/docs/tree', { params: { space_id: spaceId } })
+  tree(wikiId: string) {
+    return api.get<DocTreeNode[]>('/office/docs/tree', { params: { wiki_id: wikiId } })
   },
   trashList() {
     return api.get<TrashItemDto[]>('/office/docs/trash')
@@ -97,7 +102,13 @@ export const docsApi = {
   unstar(id: string) {
     return api.delete(`/office/docs/${id}/star`)
   },
-  search(payload: { q: string; space_id?: string; limit?: number }) {
+  search(payload: { q: string; wiki_id?: string; limit?: number }) {
     return api.post<SearchResultDto[]>('/office/docs/search', payload)
+  },
+  my() {
+    return api.get<DocDto[]>('/office/docs/my')
+  },
+  shared() {
+    return api.get<DocDto[]>('/office/docs/shared')
   },
 }

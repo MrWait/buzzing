@@ -8,7 +8,7 @@ pub struct Migration;
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        // 1. documents 扩展列 (M3)
+        // 1. documents 扩展列
         manager
             .alter_table(
                 Table::alter()
@@ -22,22 +22,7 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // 2. document_spaces 扩展列 (M3)
-        manager
-            .alter_table(
-                Table::alter()
-                    .table(DocumentSpaces::Table)
-                    .add_column_if_not_exists(string_null(DocumentSpaces::Icon))
-                    .add_column_if_not_exists(string_null(DocumentSpaces::Color))
-                    .add_column_if_not_exists(integer(DocumentSpaces::SortOrder).default(0))
-                    .add_column_if_not_exists(timestamp_with_time_zone_null(
-                        DocumentSpaces::ArchivedAt,
-                    ))
-                    .to_owned(),
-            )
-            .await?;
-
-        // 3. document_stars 表
+        // 2. document_stars 表
         manager
             .create_table(
                 table_auto_tz(DocumentStars::Table)
@@ -60,7 +45,7 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // 4. document_visits 表
+        // 3. document_visits 表
         manager
             .create_table(
                 table_auto_tz(DocumentVisits::Table)
@@ -93,24 +78,14 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        // 5. 原生 SQL：索引 + tsvector (PostgreSQL 全文搜索)
+        // 4. 原生 SQL：索引 + tsvector
         let db = manager.get_connection();
         let backend = manager.get_database_backend();
         let stmts = [
-            // 子页面索引
             "CREATE INDEX IF NOT EXISTS idx_documents_parent \
              ON documents(parent_id)",
-            // 回收站索引
             "CREATE INDEX IF NOT EXISTS idx_documents_trashed \
              ON documents(trashed_at) WHERE trashed_at IS NOT NULL",
-            // 空间归档索引
-            "CREATE INDEX IF NOT EXISTS idx_spaces_archived \
-             ON document_spaces(archived_at) WHERE archived_at IS NOT NULL",
-            // 空间排序索引
-            "CREATE INDEX IF NOT EXISTS idx_spaces_sort \
-             ON document_spaces(tenant_id, sort_order)",
-            // documents 全文搜索：title(weight A) + plain_text(weight B)
-            // 使用 'simple' 分词器（按字符拆分，兼容中文；后续可换 pg_jieba）
             "ALTER TABLE documents \
              ADD COLUMN IF NOT EXISTS search_tsv tsvector \
              GENERATED ALWAYS AS ( \
@@ -132,8 +107,6 @@ impl MigrationTrait for Migration {
         for sql in [
             "DROP INDEX IF EXISTS idx_documents_search",
             "ALTER TABLE documents DROP COLUMN IF EXISTS search_tsv",
-            "DROP INDEX IF EXISTS idx_spaces_sort",
-            "DROP INDEX IF EXISTS idx_spaces_archived",
             "DROP INDEX IF EXISTS idx_documents_trashed",
             "DROP INDEX IF EXISTS idx_documents_parent",
         ] {
@@ -144,17 +117,6 @@ impl MigrationTrait for Migration {
             .await?;
         manager
             .drop_table(Table::drop().table(DocumentStars::Table).to_owned())
-            .await?;
-        manager
-            .alter_table(
-                Table::alter()
-                    .table(DocumentSpaces::Table)
-                    .drop_column(DocumentSpaces::Icon)
-                    .drop_column(DocumentSpaces::Color)
-                    .drop_column(DocumentSpaces::SortOrder)
-                    .drop_column(DocumentSpaces::ArchivedAt)
-                    .to_owned(),
-            )
             .await?;
         manager
             .alter_table(
@@ -180,15 +142,6 @@ enum Documents {
     Icon,
     Cover,
     PlainText,
-}
-
-#[derive(DeriveIden)]
-enum DocumentSpaces {
-    Table,
-    Icon,
-    Color,
-    SortOrder,
-    ArchivedAt,
 }
 
 #[derive(DeriveIden)]

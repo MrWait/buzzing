@@ -1,9 +1,5 @@
 # Windows: cmd.exe for both normal and [script] recipes.
 # macOS/Linux: change to:
-#   set shell := ["sh", "-c"]
-#   set script-interpreter := ["sh", "-c"]
-set shell := ["cmd.exe", "/c"]
-set script-interpreter := ["cmd.exe", "/c"]
 
 # 服务端 DB 重置
 [working-directory: 'backend/base']
@@ -83,14 +79,12 @@ cjson:
 
 # 初始化用户数据（账户、租户、部门）。默认 init.json，可用 -s 指定文件
 [windows]
-[script]
 [working-directory: 'utils']
 init_data:
     set NODE_TLS_REJECT_UNAUTHORIZED=0
     node init.js
 
 [unix]
-[script]
 [working-directory: 'utils']
 init_data:
     NODE_TLS_REJECT_UNAUTHORIZED=0 node init.js

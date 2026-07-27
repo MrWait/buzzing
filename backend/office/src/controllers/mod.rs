@@ -5,7 +5,6 @@ pub mod mentions;
 pub mod render;
 pub mod search;
 pub mod shares;
-pub mod spaces;
 pub mod stars;
 pub mod trash;
 pub mod versions;
@@ -18,13 +17,9 @@ pub fn routes() -> Vec<Routes> {
     vec![
         Routes::new()
             .prefix("/api/office")
-            // 空间
-            .add("/spaces", get(spaces::list))
-            .add("/spaces", post(spaces::create))
-            .add("/spaces/archived", get(spaces::list_archived))
-            .add("/spaces/{id}", put(spaces::update))
-            .add("/spaces/{id}", delete(spaces::delete))
-            .add("/spaces/{id}/archive", post(spaces::archive))
+            // 个人文档库
+            .add("/personal/tree", get(docs::personal_tree))
+            .add("/personal/docs", post(docs::create_personal))
             // 文档 CRUD
             .add("/docs", get(docs::list))
             .add("/docs", post(docs::create))
@@ -38,7 +33,7 @@ pub fn routes() -> Vec<Routes> {
             .add("/docs/{id}", delete(docs::delete))
             .add("/docs/{id}/edit-url", get(docs::edit_url))
             .add("/docs/{id}/permission", get(docs::permission))
-            // M6 文档渲染（HTML 预览）
+            // M6 文档渲染
             .add("/docs/{id}/render", get(render::render))
             // M3 新增
             .add("/docs/{id}/move", post(docs::move_doc))
@@ -53,12 +48,14 @@ pub fn routes() -> Vec<Routes> {
             .add("/docs/{id}/members", post(members::add))
             .add("/docs/{id}/members/{user_id}", patch(members::update))
             .add("/docs/{id}/members/{user_id}", delete(members::remove))
-            // M8.1 文档预览（IM 消息卡片）
+            // M8.1 文档预览
+            .add("/docs/my", get(docs::my_docs))
+            .add("/docs/shared", get(docs::shared_docs))
             .add("/docs/{id}/preview", get(docs::preview))
             // M8.2 @提及搜索
             .add("/mentions/users", get(mentions::search_users))
             .add("/mentions/docs", get(mentions::search_docs))
-            // M5 版本历史（diff 必须放在 {version_id} 之前，避免 `diff` 被解析为 version_id）
+            // M5 版本历史
             .add("/docs/{id}/versions", get(versions::list))
             .add("/docs/{id}/versions", post(versions::create))
             .add("/docs/{id}/versions/diff", post(versions::diff))
@@ -77,7 +74,6 @@ pub fn routes() -> Vec<Routes> {
             .add("/wikis/{id}/members", get(wikis::list_members))
             .add("/wikis/{id}/members", post(wikis::add_member))
             .add("/wikis/{id}/members/{user_id}", delete(wikis::remove_member))
-            .add("/wikis/{id}/spaces", get(wikis::list_spaces))
             .add("/wikis/{id}/recent", get(wikis::recent))
             .add("/wikis/{id}/pins", get(wikis::list_pins))
             .add("/wikis/{id}/pins", post(wikis::add_pin))
@@ -85,7 +81,6 @@ pub fn routes() -> Vec<Routes> {
         Routes::new()
             .prefix("/api/office/auth")
             .add("/login", post(auth::login)),
-        // M4 公开共享入口
         Routes::new()
             .prefix("/api/share")
             .add("/{token}", get(shares::resolve))
