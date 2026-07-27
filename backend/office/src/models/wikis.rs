@@ -1,5 +1,5 @@
 use loco_rs::{model::ModelResult, prelude::*};
-use sea_orm::{QueryOrder, QuerySelect};
+use sea_orm::QueryOrder;
 use sea_orm::sea_query::Query;
 
 pub use base::models::_entities::wikis::{ActiveModel, Column, Entity, Model};

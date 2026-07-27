@@ -30,8 +30,8 @@
 
 ## M4 — 权限与分享
 
-- [ ] **空间级成员表**（`space_members`）：暂缓，随 M7 知识库层补齐
-- [ ] **`require_role` 继承**：回退到空间成员读取角色，依赖上一条
+- [ ] ~~空间级成员表（`space_members`）~~：已取消，空间层在 M7 设计中被移除，权限改由 `wiki_members` + `documents.wiki_id` 直接继承
+- [ ] **`require_role` 继承**：回退到 wiki_members 读取角色（通过 `documents.wiki_id`）
 - [ ] **Viewer 模式隐藏工具栏**：FloatingToolbar / SlashMenu 在 viewer 下隐藏或禁用
 - [ ] **文档列表角色徽章**：列表项右侧显示 "所有者 / 编辑 / 评论 / 查看"
 - [ ] **用户搜索器**：当前使用 user_id 输入，待接入组织通讯录后升级

@@ -3,7 +3,7 @@ import api from '@/services/api'
 
 export interface DocDetail {
   id: number
-  space_id: number
+  wiki_id: number
   title: string
   doc_type: number
   version: number

@@ -111,7 +111,8 @@
 - [x] 新建 `wikis` 表（id, tenant_id, name, description, icon, cover, creator_id）
 - [x] 新建 `wiki_members` 表（wiki_id, user_id, role, joined_at）
 - [x] 新建 `wiki_pins` 表（id, wiki_id, doc_id, pinned_by, created_at）
-- [x] `document_spaces` 增加字段：`wiki_id` + `wiki_space_type`
+- [x] `documents` 表新增 `wiki_id` 字段（替代 `document_spaces.wiki_id`，文档直接归属知识库）
+- [x] `document_spaces` 增加字段：`wiki_id` + `wiki_space_type`（保留表结构兼容历史，UI 不再暴露空间概念）
 - [x] 迁移文件 `m20260729_100001_office_m7.rs`
 
 ### 7.2 后端 — wiki CRUD
@@ -119,7 +120,7 @@
 - [x] `controllers/wikis.rs`：
   - `GET /api/office/wikis` — 当前用户可访问的知识库列表
   - `POST /api/office/wikis` — 创建知识库
-  - `GET /api/office/wikis/{id}` — 知识库详情（含 member_count + space_count）
+  - `GET /api/office/wikis/{id}` — 知识库详情（含 member_count）
   - `PATCH /api/office/wikis/{id}` — 更新
   - `DELETE /api/office/wikis/{id}` — 删除
 - [x] `models/wikis.rs` + `models/wiki_members.rs` + `models/wiki_pins.rs` SeaORM 实体 / Model
@@ -130,22 +131,25 @@
 - [x] `GET /api/office/wikis/{id}/members` — 成员列表
 - [x] `POST /api/office/wikis/{id}/members` — 添加成员
 - [x] `DELETE /api/office/wikis/{id}/members/{user_id}` — 移除成员
-- [x] `GET /api/office/wikis/{id}/spaces` — 知识库空间列表
+- [x] `GET /api/office/wikis/{id}/docs?parent_id=xxx` — 知识库文档树（按 parent_id 组织，替代原有的空间列表，以 `GET /api/office/docs/tree?wiki_id=` 实现）
 - [x] `GET /api/office/wikis/{id}/recent` — 最近更新文档（前 20）
 - [x] `POST /api/office/wikis/{id}/pins` — 置顶文档
 - [x] `DELETE /api/office/wikis/{id}/pins/{doc_id}` — 取消置顶
+- [x] `POST /api/office/wikis/{id}/docs` — 在知识库下创建文档（以 `POST /api/office/docs` 接收 `wiki_id` 实现）
 
 ### 7.4 后端 — 权限继承
 
 - [x] `permission.rs` 新增 `WikiRole` enum + `resolve_wiki_role` + `require_wiki_role`
-- [x] `require_role` 回退链：creator → document_members → wiki_members（通过 `space.wiki_id`）
-- [x] 默认 space 自动继承 wiki 角色（`inherit_from_space` 为 true 时）
+- [x] `require_role` 回退链：creator → document_members → wiki_members（通过 `documents.wiki_id`，在 `permission.rs:106` 实现）
+- [x] 文档权限直接通过 `documents.wiki_id` 继承知识库角色，无需独立 `inherit_from_wiki` 字段
 
 ### 7.5 前端 — 侧栏改造
 
 - [x] Wiki 切换器（侧栏顶部 `<select>` 下拉选择知识库）
-- [x] 选中知识库后过滤空间列表
+- [x] 选中知识库后显示文档树（按 parent_id 组织，去掉了空间层过滤）
 - [x] `useWikiStore` Pinia store（wikis 列表 + currentWikiId）
+- [x] 侧栏将原来的 `SpaceTree` 替换为 `WikiDocTree`（知识库 → 文档树，以 `WikiSidebar.vue` + `DocTreeNode.vue` 实现）
+- [x] 侧栏组件重命名：`SpaceSidebar.vue` → `WikiSidebar.vue`
 
 ### 7.6 前端 — 知识库首页
 
@@ -153,11 +157,32 @@
 - [x] `HomeView` 改造：默认显示 WikiHome（有 wiki 时）/ DocList（无 wiki 时）
 - [x] `document` store 新增 `filter` + `setFilter`
 
-### 7.7 M7 验收
+### 7.7 默认知识库隐藏 + 首页跳转
 
-- [ ] 新建知识库，可在其下创建 space + doc（需部署验证）
-- [ ] 知识库成员角色正确继承到文档（inherit_from_space）
-- [ ] 侧栏 wiki 下拉切换正确过滤空间
+- [x] `wikis` 表新增 `home_doc_id` 字段，引用首页文档 ID
+- [x] 迁移文件 `m20260731_100001_office_wiki_home_doc.rs`
+- [x] `POST /api/office/wikis` 创建知识库时自动生成首页文档（标题 = wiki 名称，Yjs 空文档）
+- [x] `DELETE /api/office/wikis/{id}` 删除知识库时级联硬删除首页文档
+- [x] `DELETE /api/office/docs/{id}` 禁止删除 wiki 首页文档（返回 400）
+- [x] `DELETE /api/office/docs/{id}/purge` 禁止永久删除 wiki 首页文档（返回 400）
+- [x] 前端：侧栏置顶知识库点击时直接跳转到首页文档编辑器（`OfficeEditor`）
+- [x] `WikiResponse` 返回 `home_doc_id` 字段
+- [x] `wikis` 表新增 `is_default` 字段（用户注册时自动创建的默认知识库标记）
+- [x] 迁移文件 `m20260731_100002_office_wiki_is_default.rs`
+- [x] `create_user_default` 默认知识库设置 `is_default=true`
+- [x] 前端 `WikiGrid` 过滤 `is_default=true` 不展示
+- [x] 前端 `WikiSidebar` 置顶知识库过滤 `is_default=true`
+- [x] 点击知识库卡片/置顶知识库时跳转到首页文档编辑器
+- [x] 新建知识库后自动跳转到首页文档编辑器
+- [x] 侧栏文档树过滤首页文档（首页文档作为 wiki 容器，不显示在树中，子文档提升为根节点）
+- [x] 打开文档编辑器时自动同步当前知识库（`EditorContent.vue` 根据文档 `wiki_id` 设置 `wikiStore.currentWikiId`）
+
+### 7.8 M7 验收
+
+- [ ] 新建知识库，可在其下创建文档（多层树形结构，无需经过空间）
+- [ ] 知识库成员角色正确继承到文档（`documents.wiki_id`）
+- [ ] 侧栏 wiki 切换正确展示文档树，文档父子层级展示正常
+- [ ] 去掉所有 UI 中的"空间"概念（新建按钮、侧栏、搜索参数等）
 
 ---
 

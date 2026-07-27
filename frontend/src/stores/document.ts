@@ -1,67 +1,55 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { docsApi, type DocDto, type DocTreeNode, type StarItemDto, type TrashItemDto, type RecentItemDto } from '@/services/office/docs'
-import { spacesApi, type SpaceDto } from '@/services/office/spaces'
+import { wikisApi } from '@/services/office/wikis'
 
-// 兼容旧调用点使用的字段名
-export interface SpaceInfo extends SpaceDto {}
 export interface DocInfo extends DocDto {}
 
 export const useDocumentStore = defineStore('document', () => {
-  const spaces = ref<SpaceInfo[]>([])
   const documents = ref<DocInfo[]>([])
   const currentTree = ref<DocTreeNode[]>([])
   const starred = ref<StarItemDto[]>([])
   const recent = ref<RecentItemDto[]>([])
   const trash = ref<TrashItemDto[]>([])
-  const currentSpaceId = ref('')
+  const currentWikiId = ref('')
   const starredSet = ref<Set<string>>(new Set())
-  // M7 知识库过滤
-  const filter = ref<{ wiki_id?: string }>({})
+  const rootNodeId = ref<string | null>(null)
 
-  async function loadSpaces() {
-    const res = await spacesApi.list()
-    spaces.value = res.data
-    if (spaces.value.length > 0 && !currentSpaceId.value) {
-      currentSpaceId.value = spaces.value[0].id
-    }
-  }
-
-  async function loadDocuments(spaceId: string) {
-    const res = await docsApi.list(spaceId)
+  async function loadDocuments(wikiId: string) {
+    const res = await docsApi.list(wikiId)
     documents.value = res.data
-    currentSpaceId.value = spaceId
+    currentWikiId.value = wikiId
   }
 
-  async function loadTree(spaceId: string) {
-    const res = await docsApi.tree(spaceId)
+  async function loadTree(wikiId: string) {
+    const res = await docsApi.tree(wikiId)
     currentTree.value = res.data
   }
 
-  async function createDocument(title: string, spaceId: string, parentId?: string | null) {
+  async function createDocument(title: string, wikiId: string, parentId?: string | null) {
     await docsApi.create({
-      space_id: spaceId,
+      wiki_id: wikiId,
       title,
       parent_id: parentId ?? undefined,
     })
-    await loadDocuments(spaceId)
-    await loadTree(spaceId)
+    await loadDocuments(wikiId)
+    await loadTree(wikiId)
   }
 
   async function deleteDocument(id: string) {
     await docsApi.trash(id)
-    if (currentSpaceId.value) {
-      await loadDocuments(currentSpaceId.value)
-      await loadTree(currentSpaceId.value)
+    if (currentWikiId.value) {
+      await loadDocuments(currentWikiId.value)
+      await loadTree(currentWikiId.value)
     }
   }
 
   async function restoreDocument(id: string) {
     await docsApi.restore(id)
     await loadTrash()
-    if (currentSpaceId.value) {
-      await loadDocuments(currentSpaceId.value)
-      await loadTree(currentSpaceId.value)
+    if (currentWikiId.value) {
+      await loadDocuments(currentWikiId.value)
+      await loadTree(currentWikiId.value)
     }
   }
 
@@ -70,41 +58,21 @@ export const useDocumentStore = defineStore('document', () => {
     await loadTrash()
   }
 
-  async function moveDocument(id: string, payload: { spaceId?: string; parentId?: string | null }) {
-    await docsApi.move(id, { space_id: payload.spaceId, parent_id: payload.parentId })
-    if (currentSpaceId.value) {
-      await loadDocuments(currentSpaceId.value)
-      await loadTree(currentSpaceId.value)
+  async function moveDocument(id: string, payload: { parentId?: string | null }) {
+    await docsApi.move(id, { parent_id: payload.parentId })
+    if (currentWikiId.value) {
+      await loadDocuments(currentWikiId.value)
+      await loadTree(currentWikiId.value)
     }
   }
 
   async function duplicateDocument(id: string, includeChildren = false) {
     const res = await docsApi.duplicate(id, includeChildren)
-    if (currentSpaceId.value) {
-      await loadDocuments(currentSpaceId.value)
-      await loadTree(currentSpaceId.value)
+    if (currentWikiId.value) {
+      await loadDocuments(currentWikiId.value)
+      await loadTree(currentWikiId.value)
     }
     return res.data
-  }
-
-  async function createSpace(name: string, extra?: { icon?: string; color?: string }) {
-    await spacesApi.create({ name, ...extra })
-    await loadSpaces()
-  }
-
-  async function updateSpace(id: string, payload: { name?: string; icon?: string; color?: string; sort_order?: number }) {
-    await spacesApi.update(id, payload)
-    await loadSpaces()
-  }
-
-  async function archiveSpace(id: string, archived: boolean) {
-    await spacesApi.archive(id, archived)
-    await loadSpaces()
-  }
-
-  async function deleteSpace(id: string) {
-    await spacesApi.delete(id)
-    await loadSpaces()
   }
 
   async function loadStarred() {
@@ -134,10 +102,6 @@ export const useDocumentStore = defineStore('document', () => {
     trash.value = res.data
   }
 
-  function setFilter(f: { wiki_id?: string }) {
-    filter.value = f
-  }
-
   async function reportVisit(id: string) {
     try {
       await docsApi.visit(id)
@@ -146,15 +110,21 @@ export const useDocumentStore = defineStore('document', () => {
     }
   }
 
+  async function ensureRootNodeId() {
+    if (rootNodeId.value) return
+    try {
+      const { data } = await docsApi.personalTree()
+      const root = data.find(n => n.parent_id !== null)
+      rootNodeId.value = root?.id ?? null
+    } catch {
+      // ignore
+    }
+  }
+
   return {
-    // state
-    spaces, documents, currentTree, starred, recent, trash, currentSpaceId, starredSet, filter,
-    // spaces
-    loadSpaces, createSpace, updateSpace, archiveSpace, deleteSpace,
-    // documents
+    documents, currentTree, starred, recent, trash, currentWikiId, starredSet, rootNodeId,
     loadDocuments, loadTree, createDocument, deleteDocument, restoreDocument, purgeDocument,
     moveDocument, duplicateDocument, reportVisit,
-    // views
-    loadStarred, toggleStar, loadRecent, loadTrash, setFilter,
+    loadStarred, toggleStar, loadRecent, loadTrash, ensureRootNodeId,
   }
 })

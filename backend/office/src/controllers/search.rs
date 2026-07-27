@@ -8,14 +8,14 @@ use common::model::UserBrief;
 #[derive(Debug, Deserialize)]
 pub struct SearchParams {
     pub q: String,
-    pub space_id: Option<String>,
+    pub wiki_id: Option<String>,
     pub limit: Option<u64>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct SearchResult {
     pub id: String,
-    pub space_id: String,
+    pub wiki_id: Option<String>,
     pub title: String,
     pub icon: Option<String>,
     pub highlight: String,
@@ -26,7 +26,7 @@ pub struct SearchResult {
 #[derive(Debug, FromQueryResult)]
 struct SearchRow {
     id: i64,
-    space_id: i64,
+    wiki_id: Option<i64>,
     title: String,
     icon: Option<String>,
     highlight: String,
@@ -46,18 +46,15 @@ pub async fn search(
         return format::json(Vec::<SearchResult>::new());
     }
     let limit = params.limit.unwrap_or(20).min(100);
-    let space_filter = params
-        .space_id
+    let wiki_filter = params
+        .wiki_id
         .as_deref()
         .and_then(|s| s.parse::<i64>().ok());
 
-    // 使用 plainto_tsquery 兼容普通输入，'simple' 分词器（后续可换 pg_jieba）
-    // 权限过滤：tenant_id 匹配 + trashed_at 为空
-    // space_id 可选过滤
-    let sql = if space_filter.is_some() {
+    let sql = if wiki_filter.is_some() {
         r#"
         SELECT
-            id, space_id, title, icon,
+            id, wiki_id, title, icon,
             ts_headline(
                 'simple',
                 COALESCE(plain_text, ''),
@@ -69,7 +66,7 @@ pub async fn search(
         FROM documents
         WHERE tenant_id = $2
           AND trashed_at IS NULL
-          AND space_id = $3
+          AND wiki_id = $3
           AND search_tsv @@ plainto_tsquery('simple', $1)
         ORDER BY ts_rank(search_tsv, plainto_tsquery('simple', $1)) DESC, updated_at DESC
         LIMIT $4
@@ -77,7 +74,7 @@ pub async fn search(
     } else {
         r#"
         SELECT
-            id, space_id, title, icon,
+            id, wiki_id, title, icon,
             ts_headline(
                 'simple',
                 COALESCE(plain_text, ''),
@@ -95,11 +92,11 @@ pub async fn search(
         "#
     };
 
-    let values: Vec<sea_orm::Value> = if let Some(sp) = space_filter {
+    let values: Vec<sea_orm::Value> = if let Some(wi) = wiki_filter {
         vec![
             query.into(),
             claim.tenant_id.into(),
-            sp.into(),
+            wi.into(),
             (limit as i64).into(),
         ]
     } else {
@@ -113,7 +110,7 @@ pub async fn search(
         .into_iter()
         .map(|r| SearchResult {
             id: r.id.to_string(),
-            space_id: r.space_id.to_string(),
+            wiki_id: r.wiki_id.map(|v| v.to_string()),
             title: r.title,
             icon: r.icon,
             highlight: r.highlight,

@@ -5,7 +5,7 @@
       <div>
         <h2 class="wh-name">{{ wiki.name }}</h2>
         <p v-if="wiki.description" class="wh-desc">{{ wiki.description }}</p>
-        <p class="wh-meta">{{ wiki.member_count }} 位成员 · {{ wiki.space_count }} 个空间</p>
+        <p class="wh-meta">{{ wiki.member_count }} 位成员</p>
       </div>
     </div>
 
