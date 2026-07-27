@@ -6,9 +6,10 @@ import 'package:buzzing/models/idl/entity.pbenum.dart';
 
 import 'package:buzzing/models/model.dart';
 import 'package:buzzing/provider/im_provider.dart';
-import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/routes/app_routes.dart';
+import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/utils/logger_util.dart';
+import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/widget/message.dart';
 import 'package:buzzing/widget/message_input.dart';
 import 'package:fixnum/fixnum.dart';
@@ -16,60 +17,114 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class ChatPage extends ConsumerWidget {
+class ChatPage extends ConsumerStatefulWidget {
+  final String? routeChatId;
+
+  const ChatPage({super.key, this.routeChatId});
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ChatPage> createState() => _ChatPageState();
+}
+
+class _ChatPageState extends ConsumerState<ChatPage> {
+  @override
+  void initState() {
+    super.initState();
+    _enterChatFromRoute();
+  }
+
+  @override
+  void didUpdateWidget(ChatPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.routeChatId != oldWidget.routeChatId) {
+      _enterChatFromRoute();
+    }
+  }
+
+  void _enterChatFromRoute() {
+    if (widget.routeChatId != null) {
+      final id = Int64(int.parse(widget.routeChatId!));
+      ref.read(imProvider).enterChat(id);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final bt = Theme.of(context).extension<BuzzingTheme>()!;
     final im = ref.watch(imProvider);
+
+    if (isMobile && widget.routeChatId != null) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+          title: Text(im.getChat(im.chatId)?.name ?? ''),
+        ),
+        body: _ChatBody(bt: bt, im: im),
+      );
+    }
+
     return Container(
       color: bt.mentionBg,
       child: ListenableBuilder(
         listenable: im,
-        builder: (ctx, _) {
-          var chatId = im.chatId;
-          var chat = im.getChat(chatId);
-          if (chatId == 0) {
-            return Center(
-              child: Text(
-                '选择一个会话开始聊天',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-            );
-          }
-          final announcement = chat?.chatType == 2
-              ? im.entity.messages[chatId]
-              : null;
-          return Column(
-            children: [
-              _ChatHeader(chat: chat, chatId: chatId, im: im),
-              if (announcement != null &&
-                  announcement.tpy == MessageType.ANNOUNCEMENT.value)
-                _AnnouncementBanner(
-                  message: announcement,
-                  isOwner: im.userId == chat?.ownerId,
-                  isAdmin: chat?.adminIds.contains(im.userId) ?? false,
-                  im: im,
-                  chatId: chatId,
-                ),
-              if (im.pinnedMessages.isNotEmpty)
-                _PinnedBanner(
-                  pinnedMessages: im.pinnedMessages,
-                  im: im,
-                ),
-              if (im.chatSearchVisible)
-                _ChatSearchBar(im: im, chatId: chatId),
-              Expanded(
-                child: im.isThreadPanelOpen && im.threadRootMessage != null
-                    ? _ThreadPanel(im: im)
-                    : MessageView(),
-              ),
-              if (!im.isThreadPanelOpen) MessageInput(),
-            ],
-          );
-        },
+        builder: (ctx, _) => _ChatBody(bt: bt, im: im),
       ),
+    );
+  }
+}
+
+class _ChatBody extends StatelessWidget {
+  final BuzzingTheme bt;
+  final ImController im;
+
+  const _ChatBody({required this.bt, required this.im});
+
+  @override
+  Widget build(BuildContext context) {
+    var chatId = im.chatId;
+    var chat = im.getChat(chatId);
+    if (chatId == 0) {
+      return Center(
+        child: Text(
+          '选择一个会话开始聊天',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
+    final announcement = chat?.chatType == 2
+        ? im.entity.messages[chatId]
+        : null;
+    return Column(
+      children: [
+        _ChatHeader(chat: chat, chatId: chatId, im: im),
+        if (announcement != null &&
+            announcement.tpy == MessageType.ANNOUNCEMENT.value)
+          _AnnouncementBanner(
+            message: announcement,
+            isOwner: im.userId == chat?.ownerId,
+            isAdmin: chat?.adminIds.contains(im.userId) ?? false,
+            im: im,
+            chatId: chatId,
+          ),
+        if (im.pinnedMessages.isNotEmpty)
+          _PinnedBanner(
+            pinnedMessages: im.pinnedMessages,
+            im: im,
+          ),
+        if (im.chatSearchVisible)
+          _ChatSearchBar(im: im, chatId: chatId),
+        Expanded(
+          child: im.isThreadPanelOpen && im.threadRootMessage != null
+              ? _ThreadPanel(im: im)
+              : const MessageView(),
+        ),
+        if (!im.isThreadPanelOpen) MessageInput(),
+      ],
     );
   }
 }
@@ -137,7 +192,6 @@ class _ChatHeader extends StatelessWidget {
                   style: tt.bodySmall?.copyWith(color: cs.onPrimary),
                 ),
               ),
-              // 在线状态圆点 (仅 P2P)
               if (presence.isNotEmpty)
                 Positioned(
                   right: 0, bottom: 0,
@@ -475,6 +529,8 @@ class _ThreadPanel extends ConsumerWidget {
 }
 
 class MessageView extends ConsumerWidget {
+  const MessageView({super.key});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;

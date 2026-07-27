@@ -1,4 +1,5 @@
 import 'package:buzzing/provider/app_state_provider.dart';
+import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/widget/navigate_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,6 +39,47 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final tt = Theme.of(context).textTheme;
     final state = ref.watch(appStateProvider);
     final notifier = ref.read(appStateProvider.notifier);
+
+    if (isMobile) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('设置')),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Text('通用', style: tt.titleMedium),
+            const SizedBox(height: 16),
+            _buildOptionGroup(
+              label: '主题',
+              options: const [
+                _Option('跟随系统', 0),
+                _Option('浅色', 1),
+                _Option('深色', 2),
+              ],
+              selectedValue: state.theme,
+              onSelected: (v) => notifier.changeTheme(v),
+            ),
+            const SizedBox(height: 24),
+            _buildOptionGroup(
+              label: '语言',
+              options: const [
+                _Option('跟随系统', 0),
+                _Option('中文', 1),
+                _Option('English', 2),
+              ],
+              selectedValue: state.languageIndex,
+              onSelected: (v) => notifier.changeLanguage(v),
+            ),
+            const SizedBox(height: 24),
+            ListTile(
+              leading: const Icon(Icons.apps),
+              title: const Text('开发者控制台'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _openOpenPlatform,
+            ),
+          ],
+        ),
+      );
+    }
 
     return Scaffold(
       body: Row(

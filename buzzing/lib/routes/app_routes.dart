@@ -21,6 +21,10 @@ abstract class AppRoute {
   static const INVITE_LINKS = "/invite_links";
   static const SEARCH = "/search";
   static const OPEN_PLATFORM = "/open-platform";
+  static const PERSONAL = "/personal";
+  static const DEVICES = "/devices";
+  static const VC = "/vc";
+  static const WEBVIEW = "/webview";
 }
 
 extension RoutesExtention on String {

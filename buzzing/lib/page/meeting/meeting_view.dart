@@ -6,11 +6,17 @@ import 'package:buzzing/page/meeting/widgets/meeting_video_view.dart';
 import 'package:buzzing/page/meeting/widgets/participant_panel.dart';
 import 'package:buzzing/page/meeting/widgets/screen_share_dialog.dart';
 import 'package:buzzing/page/meeting/widgets/share_to_chat_dialog.dart';
+import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/provider/page_providers.dart';
+import 'package:buzzing/routes/app_routes.dart';
+import 'package:buzzing/utils/common_utils.dart';
+import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/widget/header_bar.dart';
 import 'package:buzzing/widget/navigate_bar.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../meeting/signaling/signaling.dart';
 import 'meeting_home_logic.dart';
@@ -19,12 +25,39 @@ import 'meeting_logic.dart';
 class MeetingPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (isMobile) {
+      return const _MeetingMobile();
+    }
+    return const _MeetingDesktop();
+  }
+}
+
+/// Desktop: original double-column layout
+class _MeetingDesktop extends ConsumerWidget {
+  const _MeetingDesktop();
+
+  void _openVcMobile(WidgetRef ref, BuildContext context, String roomId, {String? roomTitle}) {
+    if (!isMobile) return;
+    final vcLogic = ref.read(vcLogicProvider);
+    vcLogic.reactivate(roomId: roomId, roomTitle: roomTitle);
+    context.push(AppRoute.VC);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final ctl = ref.watch(meetingLogicProvider);
     final homeCtl = ref.watch(meetingHomeLogicProvider);
-    // Provider.autoDispose 不会监听 ChangeNotifier.notifyListeners，
-    // 这里用 ListenableBuilder 包裹依赖 homeCtl/ctl 状态的部分，确保 tab 切换、push 刷新等能重建 UI
+
+    void openVc(String roomId, {String? roomTitle}) {
+      if (isMobile) {
+        _openVcMobile(ref, context, roomId, roomTitle: roomTitle);
+      } else {
+        ctl.joinMeeting(roomId, roomTitle: roomTitle);
+      }
+    }
+
     return Scaffold(
       backgroundColor: cs.surface,
       body: Row(
@@ -45,6 +78,7 @@ class MeetingPage extends ConsumerWidget {
                             ctl: ctl,
                             tt: tt,
                             cs: cs,
+                            onOpenVc: openVc,
                             onTabSelected: (index) {
                               homeCtl.setTabIndex(index);
                             },
@@ -54,7 +88,7 @@ class MeetingPage extends ConsumerWidget {
                               color: cs.surfaceVariant,
                               child: ctl.inCalling
                                   ? _buildVideoView(context, ctl, homeCtl)
-                                  : _MeetingHomeContent(homeCtl: homeCtl, ctl: ctl),
+                                  : _MeetingHomeContent(homeCtl: homeCtl, onOpenVc: openVc),
                             ),
                           ),
                           if (ctl.inCalling && homeCtl.currentTabIndex == 0)
@@ -116,11 +150,341 @@ class MeetingPage extends ConsumerWidget {
   }
 }
 
+/// Mobile: full-screen meeting with tabs + action buttons
+class _MeetingMobile extends ConsumerWidget {
+  const _MeetingMobile();
+
+  Widget _buildLeftDrawer(BuildContext context, WidgetRef ref, ColorScheme cs, TextTheme tt,
+      String avatarUrl, String userName) {
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => context.push(AppRoute.PERSONAL),
+                    child: CircleAvatar(
+                      radius: 28,
+                      backgroundImage: avatarUrl.isNotEmpty
+                          ? CachedNetworkImageProvider(avatarUrl)
+                          : null,
+                      child: avatarUrl.isEmpty
+                          ? Text(userName[0], style: tt.titleMedium)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(userName, style: tt.titleMedium),
+                        const SizedBox(height: 2),
+                        Text(
+                          ref.watch(imProvider).loginUser.tenant.name,
+                          style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: const Text('个人名片'),
+              onTap: () { Navigator.of(context).pop(); context.push(AppRoute.PERSONAL); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.devices_outlined),
+              title: const Text('登录设备'),
+              onTap: () { Navigator.of(context).pop(); context.push(AppRoute.DEVICES); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings_outlined),
+              title: const Text('设置'),
+              onTap: () { Navigator.of(context).pop(); context.push(AppRoute.SETTINGS); },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final homeCtl = ref.watch(meetingHomeLogicProvider);
+    final im = ref.watch(imProvider);
+    final user = im.loginUser.user;
+    final avatarUrl = CommonUtils.fixResourceUrl(user.avatar);
+    final userName = user.name.isNotEmpty ? user.name : "?";
+
+    void openVc(String roomId, {String? roomTitle}) {
+      final vcLogic = ref.read(vcLogicProvider);
+      vcLogic.reactivate(roomId: roomId, roomTitle: roomTitle);
+      context.push(AppRoute.VC);
+    }
+
+    void showSettings() {
+      showModalBottomSheet(
+        context: context,
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text('视频会议设置', style: tt.titleMedium),
+          ),
+        ),
+      );
+    }
+
+    final drawer = _buildLeftDrawer(context, ref, cs, tt, avatarUrl, userName);
+
+    return Scaffold(
+      drawer: drawer,
+      body: Builder(
+        builder: (ctx) => SafeArea(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: cs.outlineVariant, width: 0.5),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Scaffold.of(ctx).openDrawer(),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundImage: avatarUrl.isNotEmpty
+                                ? CachedNetworkImageProvider(avatarUrl)
+                                : null,
+                            child: avatarUrl.isEmpty
+                                ? Text(userName[0], style: tt.bodySmall)
+                                : null,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(t.meeting, style: tt.titleSmall),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.search, size: 20),
+                      onPressed: () => context.push(AppRoute.SEARCH),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size(36, 36),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: const Icon(Icons.settings_outlined, size: 20),
+                      onPressed: showSettings,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      style: IconButton.styleFrom(
+                        minimumSize: const Size(36, 36),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Vertical icon+text action buttons
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _VerticalActionBtn(
+                      icon: Icons.add,
+                      label: t.createMeeting,
+                      onTap: () {
+                        MeetingCreateSheet.show(context, onCreated: (req) async {
+                          var created = await homeCtl.createMeeting(
+                            title: req.title,
+                            password: req.password,
+                          );
+                          if (created != null && created.hasMeeting()) {
+                            openVc(created.meeting.roomId, roomTitle: created.meeting.title);
+                          }
+                        });
+                      },
+                    ),
+                    _VerticalActionBtn(
+                      icon: Icons.video_call,
+                      label: t.joinMeeting,
+                      onTap: () {
+                        MeetingJoinDialog.show(context, onJoin: (roomId, password) {
+                          openVc(roomId);
+                        });
+                      },
+                    ),
+                    _VerticalActionBtn(
+                      icon: Icons.schedule,
+                      label: t.scheduleMeeting,
+                      onTap: () {
+                        MeetingCreateSheet.show(
+                          context,
+                          isSchedule: true,
+                          onCreated: (req) {
+                            homeCtl.scheduleMeeting(
+                              title: req.title,
+                              scheduledAt: req.scheduledAt.toInt(),
+                              password: req.password,
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: cs.outlineVariant),
+              // 2D vertical scrolling list: all sections stacked
+              Expanded(
+                child: ListenableBuilder(
+                  listenable: homeCtl,
+                  builder: (ctx, _) {
+                    return ListView(
+                      children: [
+                        _MeetingSection(
+                          title: '进行中',
+                          meetings: homeCtl.activeMeetings,
+                          showJoinButton: true,
+                          emptyText: '暂无进行中的会议',
+                          onOpenVc: openVc,
+                        ),
+                        Divider(height: 1, color: cs.outlineVariant.withAlpha(60)),
+                        _MeetingSection(
+                          title: '已预定',
+                          meetings: homeCtl.scheduledMeetings,
+                          showJoinButton: false,
+                          emptyText: '暂无已预定的会议',
+                          onOpenVc: openVc,
+                        ),
+                        Divider(height: 1, color: cs.outlineVariant.withAlpha(60)),
+                        _MeetingSection(
+                          title: t.historyMeeting,
+                          meetings: homeCtl.historyMeetings,
+                          showJoinButton: false,
+                          emptyText: '暂无历史会议',
+                          onOpenVc: openVc,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VerticalActionBtn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _VerticalActionBtn({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 72,
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: cs.primaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 22, color: cs.onPrimaryContainer),
+            ),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(fontSize: 11, color: cs.onSurface)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MeetingSection extends StatelessWidget {
+  final String title;
+  final List<MeetingInfo> meetings;
+  final bool showJoinButton;
+  final String emptyText;
+  final void Function(String roomId, {String? roomTitle}) onOpenVc;
+
+  const _MeetingSection({
+    required this.title,
+    required this.meetings,
+    required this.showJoinButton,
+    required this.emptyText,
+    required this.onOpenVc,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Text(title, style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+        ),
+        if (meetings.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: Text(emptyText, style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+            ),
+          )
+        else
+          ...meetings.map((m) => _MeetingCard(
+            meeting: m,
+            showJoinButton: showJoinButton,
+            onTap: showJoinButton
+                ? () => onOpenVc(m.roomId, roomTitle: m.title)
+                : null,
+          )),
+      ],
+    );
+  }
+}
+
 class _MeetingSidebar extends StatelessWidget {
   final MeetingHomeLogic homeCtl;
   final MeetingLogic ctl;
   final TextTheme tt;
   final ColorScheme cs;
+  final void Function(String roomId, {String? roomTitle}) onOpenVc;
   final void Function(int index) onTabSelected;
 
   const _MeetingSidebar({
@@ -128,6 +492,7 @@ class _MeetingSidebar extends StatelessWidget {
     required this.ctl,
     required this.tt,
     required this.cs,
+    required this.onOpenVc,
     required this.onTabSelected,
   });
 
@@ -154,32 +519,27 @@ class _MeetingSidebar extends StatelessWidget {
                 _SidebarBtn(
                   label: t.createMeeting,
                   icon: Icons.add,
-                  onTap: () {
-                    MeetingCreateSheet.show(context, onCreated: (req) async {
-                      var created = await homeCtl.createMeeting(
-                        title: req.title,
-                        password: req.password,
-                      );
-                      if (created != null && created.hasMeeting()) {
-                        // 创建成功后打开 VC 窗口（预加入页面），入会 API 由 VcLogic.confirmJoin 调用
-                        ctl.createMeeting(
-                          roomId: created.meeting.roomId,
-                          roomTitle: created.meeting.title,
+                    onTap: () {
+                      MeetingCreateSheet.show(context, onCreated: (req) async {
+                        var created = await homeCtl.createMeeting(
+                          title: req.title,
+                          password: req.password,
                         );
-                      }
-                    });
-                  },
+                        if (created != null && created.hasMeeting()) {
+                          onOpenVc(created.meeting.roomId, roomTitle: created.meeting.title);
+                        }
+                      });
+                    },
                 ),
                 const SizedBox(height: 8),
                 _SidebarBtn(
                   label: t.joinMeeting,
                   icon: Icons.video_call,
-                  onTap: () {
-                    MeetingJoinDialog.show(context, onJoin: (roomId, password) async {
-                      // 直接打开预加入窗口；入会 API 由 VcLogic.confirmJoin 在用户确认后调用
-                      ctl.joinMeeting(roomId);
-                    });
-                  },
+                    onTap: () {
+                      MeetingJoinDialog.show(context, onJoin: (roomId, password) async {
+                        onOpenVc(roomId);
+                      });
+                    },
                 ),
                 const SizedBox(height: 8),
                 _SidebarBtn(
@@ -303,19 +663,19 @@ class _SidebarBtn extends StatelessWidget {
 
 class _MeetingHomeContent extends StatelessWidget {
   final MeetingHomeLogic homeCtl;
-  final MeetingLogic ctl;
+  final void Function(String roomId, {String? roomTitle}) onOpenVc;
 
-  const _MeetingHomeContent({required this.homeCtl, required this.ctl});
+  const _MeetingHomeContent({required this.homeCtl, required this.onOpenVc});
 
   @override
   Widget build(BuildContext context) {
     switch (homeCtl.currentTabIndex) {
       case 0:
-        return _MeetingList(meetings: homeCtl.activeMeetings, emptyText: '暂无进行中的会议', showJoinButton: true, homeCtl: homeCtl, ctl: ctl);
+        return _MeetingList(meetings: homeCtl.activeMeetings, emptyText: '暂无进行中的会议', showJoinButton: true, onOpenVc: onOpenVc);
       case 1:
-        return _MeetingList(meetings: homeCtl.scheduledMeetings, emptyText: '暂无已预定的会议', showJoinButton: false, homeCtl: homeCtl, ctl: ctl);
+        return _MeetingList(meetings: homeCtl.scheduledMeetings, emptyText: '暂无已预定的会议', showJoinButton: false, onOpenVc: onOpenVc);
       case 2:
-        return _MeetingList(meetings: homeCtl.historyMeetings, emptyText: '暂无历史会议', showJoinButton: false, homeCtl: homeCtl, ctl: ctl);
+        return _MeetingList(meetings: homeCtl.historyMeetings, emptyText: '暂无历史会议', showJoinButton: false, onOpenVc: onOpenVc);
       default:
         return const SizedBox.shrink();
     }
@@ -326,15 +686,13 @@ class _MeetingList extends StatelessWidget {
   final List<MeetingInfo> meetings;
   final String emptyText;
   final bool showJoinButton;
-  final MeetingHomeLogic homeCtl;
-  final MeetingLogic ctl;
+  final void Function(String roomId, {String? roomTitle}) onOpenVc;
 
   const _MeetingList({
     required this.meetings,
     required this.emptyText,
     required this.showJoinButton,
-    required this.homeCtl,
-    required this.ctl,
+    required this.onOpenVc,
   });
 
   @override
@@ -359,17 +717,16 @@ class _MeetingList extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       itemCount: meetings.length,
       itemBuilder: (context, i) {
-        var m = meetings[i];
-        return _MeetingCard(
-          meeting: m,
-          showJoinButton: showJoinButton,
-          onTap: () async {
-            if (showJoinButton) {
-              // 直接打开预加入窗口；入会 API 由 VcLogic.confirmJoin 在用户确认后调用
-              ctl.joinMeeting(m.roomId, roomTitle: m.title);
-            }
-          },
-        );
+            var m = meetings[i];
+            return _MeetingCard(
+              meeting: m,
+              showJoinButton: showJoinButton,
+              onTap: () async {
+                if (showJoinButton) {
+                  onOpenVc(m.roomId, roomTitle: m.title);
+                }
+              },
+            );
       },
     );
   }

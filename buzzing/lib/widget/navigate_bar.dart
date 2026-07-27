@@ -1,7 +1,6 @@
-import 'dart:io';
-
 import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/routes/app_routes.dart';
+import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/widget/header_bar.dart';
 import 'package:buzzing/widget/personal.dart';
 import 'package:buzzing/provider/im_provider.dart';
@@ -14,16 +13,17 @@ import 'button.dart';
 class NaviBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (isMobile) return const SizedBox.shrink();
+
     final bt = Theme.of(context).extension<BuzzingTheme>()!;
-    final cs = Theme.of(context).colorScheme;
     final im = ref.watch(imProvider);
     var padding = 0.0;
-    if (Platform.isMacOS) {
+    if (isApple) {
       padding = 32.0;
     }
     return GestureDetector(
         onPanStart: (details) {
-          windowManager.startDragging();
+          if (isDesktop) windowManager.startDragging();
         },
         child: Container(
             color: bt.navBarBg,

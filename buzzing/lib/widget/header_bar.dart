@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:buzzing/i18n/strings.g.dart';
+import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/widget/picker.dart';
 import 'package:buzzing/widget/profile.dart';
 import 'package:buzzing/provider/im_provider.dart';
@@ -17,7 +18,7 @@ class HeaderBar extends ConsumerWidget {
     final im = ref.watch(imProvider);
     return GestureDetector(
         onPanStart: (details) {
-          windowManager.startDragging();
+          if (isDesktop) windowManager.startDragging();
         },
         child: Row(children: [
           Expanded(
@@ -53,18 +54,18 @@ class HeaderBar extends ConsumerWidget {
                     GestureDetector(
                       child: Icon(Icons.minimize, color: cs.primary),
                       onTap: () {
-                        windowManager.minimize();
+                        if (isDesktop) windowManager.minimize();
                       },
                     ),
                     GestureDetector(
                         child: Icon(Icons.maximize, color: cs.primary),
                         onTap: () {
-                          windowManager.maximize();
+                          if (isDesktop) windowManager.maximize();
                         }),
                     GestureDetector(
                       child: Icon(Icons.close, color: cs.primary),
                       onTap: () {
-                        windowManager.close();
+                        if (isDesktop) windowManager.close();
                       },
                     ),
                   ]))),
@@ -75,6 +76,8 @@ class HeaderBar extends ConsumerWidget {
 class HeaderBarWindows extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    if (!isDesktop) return const SizedBox.shrink();
+
     final cs = Theme.of(context).colorScheme;
     if (Platform.isWindows) {
       return GestureDetector(
@@ -96,9 +99,8 @@ class HeaderBarWindows extends StatelessWidget {
           ],
         ),
       );
-    } else {
-      return Container();
     }
+    return const SizedBox.shrink();
   }
 }
 

@@ -40,6 +40,7 @@ files = [
     "timer.proto",
     "translate.proto",
     "openapp.proto",
+    "setting.proto",
 ]
 
 class bcolors:

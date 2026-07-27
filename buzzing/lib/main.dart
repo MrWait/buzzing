@@ -1,19 +1,18 @@
 // The original content is temporarily commented out to allow generating a self-contained demo - feel free to uncomment later.
 
 import "dart:async";
-import "dart:math";
 import "dart:convert";
+import "dart:io";
+import "dart:math";
 
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/page/screenshot/screenshot_view.dart';
 import 'package:buzzing/utils/config/config.dart';
-import 'package:buzzing/page/error_page.dart';
+import 'package:buzzing/utils/platform.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
-//import 'package:window_manager/window_manager.dart';
 import 'package:flutter/material.dart';
-//import 'ffi/ffi_cpp.dart' if (dart.library.html) 'ffi_web.dart';
 import 'package:buzzing/utils/env/config_wrapper.dart';
 import 'package:buzzing/utils/env/env_config.dart';
 import 'package:buzzing/page/screenshot/event_widget.dart';
@@ -27,14 +26,24 @@ import 'app.dart';
 import 'webview.dart';
 import 'vc.dart';
 
+class _BuzzingHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback = (cert, host, port) => true;
+  }
+}
+
 Future<Null> main(List<String> args) async {
-  if (args.firstOrNull == 'multi_window') {
+  HttpOverrides.global = _BuzzingHttpOverrides();
+
+  // Desktop multi-window entry point
+  if (args.firstOrNull == 'multi_window' && isDesktop) {
     WidgetsFlutterBinding.ensureInitialized();
     await windowManager.ensureInitialized();
     L.d("statr new window: ${args}");
     await windowManager.waitUntilReadyToShow();
 
-    //final windowId = int.parse(args[1]);
     final argument =
         (args[2].isEmpty ? const {} : jsonDecode(args[2]))
             as Map<String, dynamic>;

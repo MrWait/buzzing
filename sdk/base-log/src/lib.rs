@@ -34,6 +34,9 @@ pub fn init_log(path: &str) {
         // .with_writer(std::io::stderr)
         .with_ansi(false)
         .try_init();
+
+    log::set_max_level(log::LevelFilter::Debug);
+
     if let Ok(path) = path.parse::<PathBuf>() {
         let _ = reduce_log(&path, 7);
     }

@@ -190,13 +190,17 @@ class LoginLogic extends ChangeNotifier {
       var url = union.apiUrl();
       Config.union = union;
       HttpUtil.resetBaseUrl(url);
-      var config = await Apis.syncConfig();
-      L.d("sync config: ${config}");
-      if (config != null) {
-        union.setConfig(config);
-        DataPersistence.putUnion(union);
-        DataPersistence.addUnionToList(server, port);
-        DataPersistence.putCurrentUnionServer(server);
+      try {
+        var config = await Apis.syncConfig();
+        L.d("sync config: ${config}");
+        if (config != null) {
+          union.setConfig(config);
+          await DataPersistence.putUnion(union);
+          await DataPersistence.addUnionToList(server, port);
+          await DataPersistence.putCurrentUnionServer(server);
+        }
+      } catch (e) {
+        L.w("connect to server error: ${e}");
       }
     }
     if (union.config.union.isNotEmpty) {
