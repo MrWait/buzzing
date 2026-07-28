@@ -21,6 +21,10 @@ export function useBlockMenu(editorView: Ref<EditorView | null>) {
   const left = ref(-9999)
 
   function updateFromState(view: EditorView) {
+    if (!view.dom || !view.dom.isConnected) {
+      show.value = false
+      return
+    }
     const { selection } = view.state
     const { empty, $head } = selection
 
@@ -63,9 +67,12 @@ export function useBlockMenu(editorView: Ref<EditorView | null>) {
   let ro: ResizeObserver | null = null
 
   watch(editorView, (view) => {
+    if (ro) {
+      ro.disconnect()
+      ro = null
+    }
     if (!view) return
     updateFromState(view)
-    if (ro) ro.disconnect()
     ro = new ResizeObserver(() => {
       if (!show.value) return
       updateFromState(view)

@@ -1,38 +1,31 @@
 <template>
   <div class="editor-content">
     <div class="editor-header-sticky">
-      <header class="editor-header">
-        <Breadcrumb :items="crumbs" />
-        <div class="editor-header-right">
-          <span v-if="isReadonly" class="readonly-tag">只读</span>
-          <SyncStatus
-            :state="saveState"
-            :last-saved-at="lastSavedAt"
-            :connected="connected"
-          />
-          <Collaborators :users="editingUsers" />
-          <div class="panel-trigger" ref="versionTriggerRef">
-            <button class="header-btn" @click="toggleVersions">
-              版本历史
-            </button>
-            <VersionTimeline :open="showVersions" :doc-id="docId" @restored="onRestored" />
-          </div>
-          <div v-if="perm.canEdit.value" class="panel-trigger" ref="memberTriggerRef">
-            <button class="header-btn" @click="toggleMembers">
-              成员
-            </button>
-            <MemberDialog :open="showMembers" :doc-id="docId" />
-          </div>
-          <div v-if="perm.canEdit.value" class="panel-trigger" ref="shareTriggerRef">
-            <button class="header-btn header-btn-primary" @click="toggleShare">
-              共享
-            </button>
-            <ShareDialog :open="showShare" :doc-id="docId" />
-          </div>
-          <TopRightBar />
+      <EditorHeader
+        :crumbs="crumbs"
+        :save-state="saveState"
+        :last-saved-at="lastSavedAt"
+        :connected="connected"
+        :editing-users="editingUsers"
+      >
+        <span v-if="!canEdit" class="readonly-tag">只读</span>
+        <div v-if="canEdit" class="panel-trigger" ref="shareTriggerRef">
+          <button class="header-btn header-btn-primary" @click="toggleShare">
+            共享
+          </button>
+          <ShareDialog v-model:open="showShare" :doc-id="docId" />
         </div>
-      </header>
-      <TitleBar :doc-id="docId" :readonly="isReadonly" />
+        <button v-if="canEdit" class="header-btn" @click="toggleEditMode">
+          {{ isPreview ? '预览' : '编辑' }}
+        </button>
+        <span class="icon-group">
+          <span class="icon-btn" title="页面设置">⋯</span>
+          <span class="icon-btn" title="搜索" @click="searchOpen = true">🔍</span>
+          <span class="icon-btn" title="新建文档" @click="handleCreateDoc">+</span>
+        </span>
+        <TopRightBar />
+      </EditorHeader>
+      <TitleBar :doc-id="docId" :model-value="docTitle" :readonly="isReadonly" />
     </div>
     <ProseEditor :doc-id="docId" :readonly="isReadonly" />
     <SearchBar v-model:open="searchOpen" />
@@ -41,20 +34,19 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useYjs } from '@/composables/useYjs'
-import { useDocumentStore } from '@/stores/document'
+import { useAuthStore } from '@/stores/auth'
 import { useWikiStore } from '@/stores/wiki'
 import { docsApi } from '@/services/office/docs'
-import { usePermission } from '@/composables/usePermission'
+import { ROLE_VIEWER, ROLE_EDITOR } from '@/composables/usePermission'
 import TitleBar from './TitleBar.vue'
 import ProseEditor from './ProseEditor.vue'
-import Collaborators from './Collaborators.vue'
-import SyncStatus from './SyncStatus.vue'
-import Breadcrumb, { type BreadcrumbItem } from './Breadcrumb.vue'
 import SearchBar from './SearchBar.vue'
-import MemberDialog from './MemberDialog.vue'
+import EditorHeader from './EditorHeader.vue'
+import type { BreadcrumbItem } from './Breadcrumb.vue'
+import type { WalkItem } from '@/services/office/docs'
 import ShareDialog from './ShareDialog.vue'
-import VersionTimeline from './VersionTimeline.vue'
 import TopRightBar from '@/components/TopRightBar.vue'
 
 const props = defineProps<{ docId: string; searchOpen?: boolean }>()
@@ -71,12 +63,12 @@ const {
 provide('yjs-type', type)
 provide('yjs-provider', provider)
 
-const store = useDocumentStore()
+const router = useRouter()
+const authStore = useAuthStore()
 const wikiStore = useWikiStore()
+const currentUserId = computed(() => authStore.user?.id ?? '')
 const searchOpen = ref(false)
-const showMembers = ref(false)
 
-// 双向绑定 searchOpen: 父级通过 @search 打开，本地通过 SearchBar @close 关闭
 watch(() => props.searchOpen, (v) => {
   if (v !== undefined) searchOpen.value = v
 })
@@ -84,79 +76,63 @@ watch(searchOpen, (v) => {
   emit('update:searchOpen', v)
 })
 const showShare = ref(false)
-const showVersions = ref(false)
-const memberTriggerRef = ref<HTMLElement | null>(null)
-
 const shareTriggerRef = ref<HTMLElement | null>(null)
-const versionTriggerRef = ref<HTMLElement | null>(null)
 
-function toggleMembers() {
-  showMembers.value = !showMembers.value
-}
 function toggleShare() {
   showShare.value = !showShare.value
-}
-function toggleVersions() {
-  showVersions.value = !showVersions.value
 }
 
 function onOutsideClick(e: MouseEvent) {
   const t = e.target as Node
-  if (showMembers.value && memberTriggerRef.value && !memberTriggerRef.value.contains(t)) {
-    showMembers.value = false
-  }
   if (showShare.value && shareTriggerRef.value && !shareTriggerRef.value.contains(t)) {
     showShare.value = false
   }
-  if (showVersions.value && versionTriggerRef.value && !versionTriggerRef.value.contains(t)) {
-    showVersions.value = false
-  }
-}
-
-function onRestored() {
-  showVersions.value = false
 }
 onMounted(() => document.addEventListener('click', onOutsideClick))
 onBeforeUnmount(() => document.removeEventListener('click', onOutsideClick))
-const chain = ref<Array<{ id: string; title: string; icon: string | null }>>([])
 
-const perm = usePermission(props.docId)
-const isReadonly = computed(() => perm.readOnly.value)
+const isPreview = ref(false)
+function toggleEditMode() {
+  isPreview.value = !isPreview.value
+}
+
+async function handleCreateDoc() {
+  try {
+    const { data } = await docsApi.createPersonal({ title: '未命名' })
+    router.push({ name: 'OfficeEditor', params: { docId: data.id } })
+  } catch { /* ignore */ }
+}
+const chain = ref<WalkItem[]>([])
+const docTitle = ref('')
+
+const role = ref(ROLE_VIEWER)
+const canEdit = computed(() => role.value >= ROLE_EDITOR)
+const isReadonly = computed(() => role.value < ROLE_EDITOR || isPreview.value)
 
 onMounted(async () => {
-  await store.reportVisit(props.docId)
-  await loadChain(props.docId)
+  const { data } = await docsApi.get(props.docId)
+  role.value = data.role
+  docTitle.value = data.title
+  chain.value = data.walk
+  if (data.wiki_id) {
+    wikiStore.setCurrentWiki(data.wiki_id)
+  }
 })
-
-async function loadChain(id: string) {
-  const list: Array<{ id: string; title: string; icon: string | null }> = []
-  let cursor: string | null = id
-  let docWikiId: string | null = null
-  const visited = new Set<string>()
-  while (cursor && !visited.has(cursor)) {
-    visited.add(cursor)
-    try {
-      const { data } = await docsApi.get(cursor)
-      if (!docWikiId) docWikiId = data.wiki_id
-      list.unshift({ id: data.id, title: data.title || '未命名', icon: data.icon })
-      cursor = data.parent_id
-    } catch { break }
-  }
-  chain.value = list
-  if (docWikiId) {
-    wikiStore.setCurrentWiki(docWikiId)
-  }
-}
 
 const crumbs = computed<BreadcrumbItem[]>(() => {
   const items: BreadcrumbItem[] = []
   chain.value.forEach((n, idx) => {
     const isLast = idx === chain.value.length - 1
+    const isRoot = n.id === currentUserId.value
     items.push({
       id: n.id,
       label: n.title,
       icon: n.icon ?? undefined,
-      route: isLast ? undefined : { name: 'OfficeEditor', params: { docId: n.id } },
+      route: isLast
+        ? undefined
+        : isRoot
+          ? { name: 'OfficeHome' }
+          : { name: 'OfficeEditor', params: { docId: n.id } },
     })
   })
   return items
@@ -176,23 +152,6 @@ const crumbs = computed<BreadcrumbItem[]>(() => {
   top: 0;
   z-index: 10;
   background: #f0f0f0;
-}
-.editor-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  max-width: 1024px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 8px 24px 0;
-}
-.editor-header :deep(.breadcrumb) {
-  flex: 1;
-}
-.editor-header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 .readonly-tag {
   padding: 2px 8px;
@@ -216,6 +175,28 @@ const crumbs = computed<BreadcrumbItem[]>(() => {
 }
 .header-btn:hover {
   background: #f5f5f5;
+}
+.icon-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  color: #6b7280;
+  transition: background 0.15s;
+}
+.icon-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
 }
 .header-btn-primary {
   background: #1565c0;

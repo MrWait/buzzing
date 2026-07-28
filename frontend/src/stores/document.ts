@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import { docsApi, type DocDto, type DocTreeNode, type StarItemDto, type TrashItemDto, type RecentItemDto } from '@/services/office/docs'
-import { wikisApi } from '@/services/office/wikis'
+
 
 export interface DocInfo extends DocDto {}
 
@@ -13,7 +13,8 @@ export const useDocumentStore = defineStore('document', () => {
   const trash = ref<TrashItemDto[]>([])
   const currentWikiId = ref('')
   const starredSet = ref<Set<string>>(new Set())
-  const rootNodeId = ref<string | null>(null)
+  const personalTreeTick = ref(0)
+  const personalExpandedMap = reactive(new Map<string, boolean>())
 
   async function loadDocuments(wikiId: string) {
     const res = await docsApi.list(wikiId)
@@ -110,21 +111,10 @@ export const useDocumentStore = defineStore('document', () => {
     }
   }
 
-  async function ensureRootNodeId() {
-    if (rootNodeId.value) return
-    try {
-      const { data } = await docsApi.personalTree()
-      const root = data.find(n => n.parent_id !== null)
-      rootNodeId.value = root?.id ?? null
-    } catch {
-      // ignore
-    }
-  }
-
   return {
-    documents, currentTree, starred, recent, trash, currentWikiId, starredSet, rootNodeId,
+    documents, currentTree, starred, recent, trash, currentWikiId, starredSet, personalTreeTick, personalExpandedMap,
     loadDocuments, loadTree, createDocument, deleteDocument, restoreDocument, purgeDocument,
     moveDocument, duplicateDocument, reportVisit,
-    loadStarred, toggleStar, loadRecent, loadTrash, ensureRootNodeId,
+    loadStarred, toggleStar, loadRecent, loadTrash,
   }
 })

@@ -60,6 +60,8 @@
           :key="node.id"
           :node="node"
           :level="0"
+          :wiki-id="wikiId"
+          :expanded="expandedMap"
           @add-child="onAddChild"
           @open-menu="onOpenMenu"
         />
@@ -76,8 +78,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useWikiStore } from '@/stores/wiki'
 import { useDocumentStore } from '@/stores/document'
 import { docsApi, type DocTreeNode as DocTreeNodeDto } from '@/services/office/docs'
@@ -89,13 +91,13 @@ const props = defineProps<{
   wikiId: string
 }>()
 
-const route = useRoute()
 const router = useRouter()
 const wikiStore = useWikiStore()
 const store = useDocumentStore()
 
 const tree = ref<DocTreeNodeDto[]>([])
 const treeLoading = ref(false)
+const expandedMap = reactive(new Map<string, boolean>())
 const showNewDoc = ref(false)
 const newDocTitle = ref('')
 const showChildForm = ref(false)

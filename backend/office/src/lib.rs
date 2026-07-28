@@ -1,6 +1,5 @@
 use loco_rs::app::AppContext;
 use loco_rs::prelude::*;
-use sea_orm::ActiveValue;
 use std::sync::Arc;
 
 use common::ExternApp;
@@ -50,37 +49,12 @@ impl ExternApp for AppOffice {
 impl BizOffice for AppOffice {
     async fn create_user_default(
         &self,
-        ctx: &AppContext,
-        user_id: i64,
-        tenant_id: i64,
-        user_name: &str,
+        _ctx: &AppContext,
+        _user_id: i64,
+        _tenant_id: i64,
+        _user_name: &str,
     ) -> Result<()> {
-        use common::id_gen;
-        use sea_orm::ActiveValue as AV;
-        use yrs::{Doc, ReadTxn, Transact};
-
-        // 创建个人根文档（wiki_id = NULL）
-        let doc_id = id_gen(None);
-        let empty_yjs = {
-            let doc = Doc::new();
-            doc.transact().encode_state_as_update_v1(&Default::default())
-        };
-        crate::models::documents::DocumentModel::create(
-            &ctx.db,
-            base::models::_entities::documents::ActiveModel {
-                id: AV::Set(doc_id),
-                wiki_id: AV::Set(None),
-                tenant_id: AV::Set(tenant_id),
-                creator: AV::Set(user_id),
-                title: AV::Set(format!("{} 的文档库", user_name)),
-                doc_type: AV::Set(1),
-                version: AV::Set(common::time::current_ms() as i64),
-                content: AV::Set(empty_yjs),
-                parent_id: AV::Set(Some(user_id)),
-                icon: AV::Set(None),
-                ..Default::default()
-            },
-        ).await?;
+        // 个人空间是虚拟的，不需要创建根文档。顶层文档的 parent_id = user_id。
         Ok(())
     }
 }

@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import PersonalSidebar from './components/PersonalSidebar.vue'
 import SearchBar from './components/SearchBar.vue'
@@ -65,7 +65,5 @@ function onNavigateWiki(wikiId: string) {
   padding: 16px 24px;
   overflow-y: auto;
 }
-.content.sidebar-collapsed {
-  padding-left: 60px;
-}
+
 </style>

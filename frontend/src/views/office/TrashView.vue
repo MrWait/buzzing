@@ -1,7 +1,10 @@
 <template>
   <div class="trash-view">
     <header class="header">
-      <h2>回收站</h2>
+      <div class="header-row">
+        <h2>回收站</h2>
+        <TopRightBar />
+      </div>
       <p class="tip">回收站中的文档将在删除 30 天后自动永久清除。</p>
     </header>
     <div v-if="store.trash.length === 0" class="empty">回收站为空</div>
@@ -23,6 +26,7 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import TopRightBar from '@/components/TopRightBar.vue'
 import { useDocumentStore } from '@/stores/document'
 
 const store = useDocumentStore()
@@ -44,16 +48,20 @@ async function handlePurge(id: string) {
 <style scoped>
 .trash-view {
   max-width: 900px;
-  margin: 0 auto;
-  padding: 24px;
 }
 .header {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
-.header h2 {
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header-row h2 {
   font-size: 20px;
   font-weight: 600;
   color: #1f2937;
+  margin: 0;
 }
 .tip {
   color: #6b7280;

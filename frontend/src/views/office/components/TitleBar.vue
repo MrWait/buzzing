@@ -11,17 +11,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import api from '@/services/api'
 
-const props = defineProps<{ docId: string; readonly?: boolean }>()
+const props = defineProps<{ docId: string; modelValue?: string; readonly?: boolean }>()
 
-const title = ref('')
+const title = ref(props.modelValue ?? '')
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-onMounted(async () => {
-  const res = await api.get(`/office/docs/${props.docId}`)
-  title.value = res.data.title
+watch(() => props.modelValue, (v) => {
+  if (v !== undefined) title.value = v
 })
 
 function onInput() {

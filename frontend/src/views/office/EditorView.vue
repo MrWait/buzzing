@@ -3,6 +3,7 @@
     <PersonalSidebar
       @search="searchOpen = true"
       @collapse-change="(c) => editorShifted = c"
+      @section-change="onSectionChange"
     />
     <div class="editor-view" :class="{ 'sidebar-collapsed': editorShifted }">
       <EditorContent :key="docId" :doc-id="docId" v-model:search-open="searchOpen" />
@@ -39,8 +40,5 @@ function onSectionChange(section: string) {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-}
-.editor-view.sidebar-collapsed {
-  padding-left: 60px;
 }
 </style>

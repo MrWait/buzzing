@@ -29,18 +29,45 @@
 
     <div class="hp-content">
       <div v-if="loading" class="hp-loading">加载中…</div>
-      <div v-else-if="items.length === 0" class="hp-empty">暂无文档</div>
-      <div
-        v-for="item in items"
-        :key="item.id"
-        class="hp-item"
-        @click="openDoc(item.id)"
-      >
-        <span class="hp-item-icon">{{ item.icon || '📄' }}</span>
-        <span class="hp-item-title">{{ item.title }}</span>
-        <span class="hp-item-time">{{ formatTime(item.updated_at) }}</span>
-      </div>
+      <template v-else-if="items.length === 0">
+        <div class="hp-empty">暂无文档</div>
+      </template>
+      <template v-else>
+        <div class="hp-table-header">
+          <span class="col-title">标题</span>
+          <span class="col-location">位置</span>
+          <span class="col-owner">所有者</span>
+          <span class="col-created">创建时间</span>
+          <span class="col-visited">最近访问</span>
+          <span class="col-action">操作</span>
+        </div>
+        <div
+          v-for="item in items"
+          :key="item.id"
+          class="hp-item"
+          @click="openDoc(item.id)"
+        >
+          <span class="col-title">
+            <span class="hp-item-icon">{{ item.icon || '📄' }}</span>
+            <span class="hp-item-title">{{ item.title }}</span>
+          </span>
+          <span class="col-location">{{ item.wiki_id ? '知识库' : '个人空间' }}</span>
+          <span class="col-owner">—</span>
+          <span class="col-created">{{ formatDate(item.created_at) }}</span>
+          <span class="col-visited">{{ (item as any).visited_at ? formatTime((item as any).visited_at) : formatTime(item.updated_at) }}</span>
+          <span class="col-action">
+            <span class="hp-item-more" @click="showMenu($event, item)">···</span>
+          </span>
+        </div>
+      </template>
     </div>
+
+    <ContextMenu
+      v-model:open="menuOpen"
+      :x="menuPos.x"
+      :y="menuPos.y"
+      :items="menuItems"
+    />
   </div>
 </template>
 
@@ -49,7 +76,9 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { docsApi, type DocDto } from '@/services/office/docs'
 import { useDocumentStore } from '@/stores/document'
+import { useAuthStore } from '@/stores/auth'
 import TopRightBar from '@/components/TopRightBar.vue'
+import ContextMenu, { type ContextMenuItem } from './ContextMenu.vue'
 
 interface TabDef { key: string; label: string }
 
@@ -62,15 +91,65 @@ const tabs: TabDef[] = [
 
 const router = useRouter()
 const store = useDocumentStore()
+const authStore = useAuthStore()
 const activeTab = ref('recent')
 const items = ref<DocDto[]>([])
 const loading = ref(false)
 const showCreate = ref(false)
 const newDocTitle = ref('')
 
+const menuOpen = ref(false)
+const menuPos = ref<{ x: number; y: number }>({ x: 0, y: 0 })
+const menuItems = ref<ContextMenuItem[]>([])
+const menuDocId = ref<string | null>(null)
+
+function showMenu(e: MouseEvent, doc: DocDto) {
+  e.stopPropagation()
+  menuDocId.value = doc.id
+  menuPos.value = { x: e.clientX, y: e.clientY }
+  const items: ContextMenuItem[] = [
+    {
+      key: 'open',
+      label: '打开',
+      icon: '📄',
+      action: () => { if (menuDocId.value) openDoc(menuDocId.value) },
+    },
+    {
+      key: 'new-tab',
+      label: '在新标签页中打开',
+      icon: '🔗',
+      action: () => { if (menuDocId.value) window.open(`/office/docs/${menuDocId.value}`, '_blank') },
+    },
+    { divider: true },
+    {
+      key: 'copy-link',
+      label: '复制链接',
+      icon: '📋',
+      action: () => { if (menuDocId.value) navigator.clipboard.writeText(`${window.location.origin}/office/docs/${menuDocId.value}`) },
+    },
+  ]
+  if (activeTab.value === 'mine') {
+    items.push(
+      { divider: true },
+      {
+        key: 'delete',
+        label: '删除',
+        icon: '🗑',
+        danger: true,
+        action: async () => {
+          if (!menuDocId.value) return
+          await docsApi.trash(menuDocId.value)
+          store.personalTreeTick++
+          await loadTab(activeTab.value)
+        },
+      },
+    )
+  }
+  menuItems.value = items
+  menuOpen.value = true
+}
 
 onMounted(async () => {
-  await store.ensureRootNodeId()
   await loadTab('recent')
 })
 
@@ -85,12 +164,12 @@ async function loadTab(key: string) {
     switch (key) {
       case 'recent': {
         const { data } = await docsApi.recent(50)
-        items.value = data.map((r: any) => r.doc).filter((d: any) => d.id !== store.rootNodeId)
+        items.value = data.map((r: any) => ({ ...r.doc, visited_at: r.visited_at }))
         break
       }
       case 'mine': {
         const { data } = await docsApi.my()
-        items.value = data.filter(d => d.id !== store.rootNodeId)
+        items.value = data
         break
       }
       case 'shared': {
@@ -100,7 +179,7 @@ async function loadTab(key: string) {
       }
       case 'starred': {
         const { data } = await docsApi.starred()
-        items.value = data.filter(d => d.id !== store.rootNodeId)
+        items.value = data
         break
       }
     }
@@ -119,9 +198,10 @@ async function handleCreate() {
     showCreate.value = false
     await docsApi.createPersonal({
       title: newDocTitle.value.trim(),
-      parent_id: store.rootNodeId ?? undefined,
+      parent_id: authStore.user?.id,
     })
     newDocTitle.value = ''
+    store.personalTreeTick++
     await loadTab(activeTab.value)
   } catch {
     // ignore
@@ -129,11 +209,18 @@ async function handleCreate() {
 }
 
 function formatTime(iso: string): string {
+  if (!iso) return '—'
   const d = new Date(iso)
   const diff = Date.now() - d.getTime()
   if (diff < 60000) return '刚刚'
   if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`
   if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`
+  return d.toLocaleDateString('zh-CN')
+}
+
+function formatDate(iso: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
   return d.toLocaleDateString('zh-CN')
 }
 </script>
@@ -235,10 +322,21 @@ function formatTime(iso: string): string {
   text-align: center;
   font-size: 14px;
 }
-.hp-item {
-  display: flex;
-  align-items: center;
+.hp-table-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 40px;
   gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 2px solid #e5e7eb;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+}
+.hp-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 40px;
+  gap: 8px;
+  align-items: center;
   padding: 10px 12px;
   border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
@@ -247,20 +345,57 @@ function formatTime(iso: string): string {
 .hp-item:hover {
   background: #f5f5f5;
 }
+.col-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.col-location, .col-owner {
+  font-size: 12px;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.col-created, .col-visited {
+  font-size: 12px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
 .hp-item-icon {
   font-size: 15px;
+  flex-shrink: 0;
 }
 .hp-item-title {
-  flex: 1;
   font-size: 14px;
   color: #333;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.hp-item-time {
-  font-size: 12px;
+.col-action {
+  text-align: center;
+}
+.hp-item-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
   color: #9ca3af;
-  white-space: nowrap;
+  visibility: hidden;
+  user-select: none;
+  letter-spacing: 1px;
+}
+.hp-item:hover .hp-item-more {
+  visibility: visible;
+}
+.hp-item-more:hover {
+  background: #e5e7eb;
+  color: #374151;
 }
 </style>
