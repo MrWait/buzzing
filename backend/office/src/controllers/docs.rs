@@ -8,6 +8,7 @@ use crate::models::documents::DocumentModel;
 use crate::models::document_visits::DocumentVisitModel;
 use crate::permission::{require_role, Role};
 use common::{id_gen, model::UserBrief};
+use tracing::warn;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateDocParams {
@@ -43,6 +44,13 @@ pub struct DuplicateParams {
 }
 
 #[derive(Debug, Serialize)]
+pub struct WalkItem {
+    pub id: String,
+    pub title: String,
+    pub icon: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
 pub struct DocResponse {
     pub id: String,
     pub wiki_id: Option<String>,
@@ -55,6 +63,10 @@ pub struct DocResponse {
     pub trashed_at: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    #[serde(default)]
+    pub walk: Vec<WalkItem>,
+    pub role: i32,
+    pub role_label: String,
 }
 
 impl DocResponse {
@@ -71,6 +83,9 @@ impl DocResponse {
             trashed_at: d.trashed_at.map(|v| v.to_rfc3339()),
             created_at: d.created_at.to_rfc3339(),
             updated_at: d.updated_at.to_rfc3339(),
+            walk: vec![],
+            role: 0,
+            role_label: String::new(),
         }
     }
 }
@@ -137,10 +152,12 @@ pub async fn create_personal(
     Json(params): Json<CreatePersonalDocParams>,
 ) -> Result<Response> {
     let claim = UserBrief::from_string(&auth.claims.pid)?;
+    // 未指定 parent_id 时默认挂到用户个人空间（parent_id = user_id）
     let parent_id = params
         .parent_id
         .as_deref()
-        .and_then(|s| s.parse::<i64>().ok());
+        .and_then(|s| s.parse::<i64>().ok())
+        .or(Some(claim.id));
     let doc = DocumentModel::create(
         &ctx.db,
         base::models::_entities::documents::ActiveModel {
@@ -158,6 +175,7 @@ pub async fn create_personal(
         },
     )
     .await?;
+    warn!(creator = doc.creator, doc_id = doc.id, "created personal doc");
     format::json(DocResponse::from_model(doc))
 }
 
@@ -172,7 +190,17 @@ pub async fn get(
     let doc = DocumentModel::get_by_id(&ctx.db, id)
         .await?
         .ok_or(Error::NotFound)?;
-    format::json(DocResponse::from_model(doc))
+    let walk = DocumentModel::get_doc_path(&ctx.db, id, claim.id).await?;
+    let role = crate::permission::resolve_role(&ctx, claim.id, id)
+        .await?
+        .unwrap_or(Role::Viewer);
+    // 自动记录访问
+    let _ = DocumentVisitModel::upsert(&ctx.db, id_gen(None), claim.id, id).await;
+    let mut resp = DocResponse::from_model(doc);
+    resp.walk = walk;
+    resp.role = role as i32;
+    resp.role_label = role.label().to_string();
+    format::json(resp)
 }
 
 #[debug_handler]

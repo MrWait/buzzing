@@ -1,5 +1,11 @@
 import api from '@/services/api'
 
+export interface WalkItem {
+  id: string
+  title: string
+  icon: string | null
+}
+
 export interface DocDto {
   id: string
   wiki_id: string | null
@@ -12,6 +18,9 @@ export interface DocDto {
   trashed_at: string | null
   created_at: string
   updated_at: string
+  walk: WalkItem[]
+  role: number
+  role_label: string
 }
 
 export interface DocTreeNode {

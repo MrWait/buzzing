@@ -1,6 +1,14 @@
 -- Buzzing project build/management tasks
 -- xmake equivalent of justfile
 
+-- Cross-platform pnpm command (local upvalue accessible inside on_run sandbox)
+local _pnpm_cmd
+if is_host("windows") then
+    _pnpm_cmd = "cmd.exe /c pnpm "
+else
+    _pnpm_cmd = "pnpm "
+end
+
 -- Task: db reset
 task("dr")
     set_menu {
@@ -270,7 +278,7 @@ task("fw")
     }
     on_run(function ()
         os.cd(os.scriptdir() .. "/frontend")
-        os.exec("pnpm dev")
+        os.exec(_pnpm_cmd .. "dev")
     end)
 
 -- Task: frontend build
@@ -281,7 +289,7 @@ task("fb")
     }
     on_run(function ()
         os.cd(os.scriptdir() .. "/frontend")
-        os.exec("pnpm build")
+        os.exec(_pnpm_cmd .. "build")
     end)
 
 -- Task: frontend install deps
@@ -292,5 +300,16 @@ task("fi")
     }
     on_run(function ()
         os.cd(os.scriptdir() .. "/frontend")
-        os.exec("pnpm install")
+        os.exec(_pnpm_cmd .. "install")
+    end)
+
+-- Task: frontend build
+task("fd")
+    set_menu {
+        usage = "xmake fd",
+        description = "Start frontend dev"
+    }
+    on_run(function ()
+        os.cd(os.scriptdir() .. "/frontend")
+        os.exec(_pnpm_cmd .. "dev")
     end)

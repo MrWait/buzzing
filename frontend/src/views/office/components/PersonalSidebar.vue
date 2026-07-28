@@ -56,6 +56,7 @@
           :key="node.id"
           :node="node"
           :level="0"
+          :expanded="store.personalExpandedMap"
           @add-child="onAddChild"
           @open-menu="onOpenMenu"
         />
@@ -72,10 +73,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { docsApi, type DocTreeNode as DocTreeNodeDto } from '@/services/office/docs'
 import { useDocumentStore } from '@/stores/document'
+import { useAuthStore } from '@/stores/auth'
 import DocTreeNode from './DocTreeNode.vue'
 import ContextMenu, { type ContextMenuItem } from './ContextMenu.vue'
 
@@ -86,12 +88,12 @@ const emit = defineEmits<{
 }>()
 
 const store = useDocumentStore()
+const authStore = useAuthStore()
 const router = useRouter()
 
 const activeSection = ref('home')
 const tree = ref<DocTreeNodeDto[]>([])
 const treeLoading = ref(false)
-const rootNodeId = ref<string | null>(null)
 const showNewDoc = ref(false)
 const newDocTitle = ref('')
 const showChildForm = ref(false)
@@ -113,20 +115,15 @@ onMounted(async () => {
   await loadPersonalTree()
 })
 
+watch(() => store.personalTreeTick, () => {
+  loadPersonalTree()
+})
+
 async function loadPersonalTree() {
   treeLoading.value = true
   try {
     const { data } = await docsApi.personalTree()
-    const rootIdx = data.findIndex(n => n.parent_id !== null)
-    if (rootIdx !== -1) {
-      rootNodeId.value = data[rootIdx].id
-      store.rootNodeId = data[rootIdx].id
-      tree.value = data[rootIdx].children
-    } else {
-      rootNodeId.value = null
-      store.rootNodeId = null
-      tree.value = data
-    }
+    tree.value = data
   } finally {
     treeLoading.value = false
   }
@@ -183,7 +180,7 @@ async function handleCreateDoc() {
   try {
     await docsApi.createPersonal({
       title: newDocTitle.value.trim(),
-      parent_id: rootNodeId.value ?? undefined,
+      parent_id: authStore.user?.id,
     })
     newDocTitle.value = ''
     showNewDoc.value = false
@@ -252,8 +249,12 @@ function clearFloatTimer() {
 }
 .sidebar.collapsed {
   width: 0;
+  min-width: 0;
+  flex: 0 0 0;
   overflow: visible;
   border-right: none;
+  height: auto;
+  align-self: flex-start;
 }
 .sidebar.floating {
   position: absolute;

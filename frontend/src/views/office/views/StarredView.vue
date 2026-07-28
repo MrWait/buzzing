@@ -1,6 +1,9 @@
 <template>
   <div class="starred">
-    <h2>星标文档</h2>
+    <div class="starred-header">
+      <h2>星标文档</h2>
+      <TopRightBar />
+    </div>
     <div v-if="store.starred.length === 0" class="empty">尚无星标文档，在文档列表右键"添加星标"。</div>
     <ul v-else class="list">
       <li
@@ -20,6 +23,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import TopRightBar from '@/components/TopRightBar.vue'
 import { useDocumentStore } from '@/stores/document'
 
 const store = useDocumentStore()
@@ -43,11 +47,17 @@ function formatTime(iso: string): string {
 .starred {
   max-width: 900px;
 }
-.starred h2 {
+.starred-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.starred-header h2 {
   font-size: 20px;
   font-weight: 600;
   color: #1f2937;
-  margin-bottom: 12px;
+  margin: 0;
 }
 .empty {
   color: #9ca3af;
