@@ -109,4 +109,4 @@ Buzzing 是一个企业级协作平台（类飞书/钉钉/Slack），包含完�
 | [openapp 业务](docs/openapp/) | openapp 业务相关文档，包括 milestone，PRD，设计方案等 |
 
 ## 编译命令
-常用命令都在 justfile 中，大部分命令都可以通过 just 运行。如果新增命令或脚本，建议添加到 justfile。
+常用命令已迁移到 xmake，且支持 x alias，大部分命令都可以通过 xmake 运行。如果新增命令或脚本，建议添加到 xmake.lua。

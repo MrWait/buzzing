@@ -12,6 +12,7 @@
 //!   3. 否则 403
 
 use loco_rs::prelude::*;
+use tracing::warn;
 
 use crate::models::documents::DocumentModel;
 
@@ -85,10 +86,13 @@ pub async fn resolve_role(
 ) -> Result<Option<Role>> {
     let doc = DocumentModel::get_by_id(&ctx.db, doc_id).await?;
     let Some(doc) = doc else {
+        warn!(doc_id, user_id, "resolve_role: doc not found");
         return Ok(None);
     };
+    warn!(doc_id, user_id, doc.creator, "resolve_role: doc found");
     // 1. Owner: 文档创建者（个人文档仅创建者可访问）
     if doc.creator == user_id {
+        warn!(doc_id, user_id, "resolve_role: creator match -> Owner");
         return Ok(Some(Role::Owner));
     }
     // 2. 个人文档（wiki_id IS NULL）非创建者无权限

@@ -27,6 +27,7 @@
     "prosemirror-tables": "^1.8.5",
     "prosemirror-view": "^1.42.1",
     "protobufjs": "^7.4.0",
+    "qrcode": "^1.5.4",
     "vue": "^3.5.39",
     "vue-router": "^4.6.4",
     "y-indexeddb": "^9.0.12",
@@ -36,6 +37,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.13.2",
+    "@types/qrcode": "^1.5.6",
     "@vitejs/plugin-vue": "^6.0.7",
     "@vue/tsconfig": "^0.9.1",
     "typescript": "~6.0.2",

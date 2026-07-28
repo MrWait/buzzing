@@ -3,7 +3,7 @@
     <div
       class="doc-row"
       :class="{ active: isActive }"
-      :style="{ paddingLeft: `${8 + level * 12}px` }"
+      :style="{ paddingLeft: `${level * 12}px` }"
       @click="openDoc"
       @contextmenu.prevent="emitMenu"
     >
@@ -23,6 +23,8 @@
         :key="child.id"
         :node="child"
         :level="level + 1"
+        :wiki-id="wikiId"
+        :expanded="props.expanded"
         @add-child="(payload) => $emit('add-child', payload)"
         @open-menu="(payload) => $emit('open-menu', payload)"
       />
@@ -31,13 +33,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { DocTreeNode as DocTreeNodeDto } from '@/services/office/docs'
 
 const props = defineProps<{
   node: DocTreeNodeDto
   level: number
+  wikiId?: string
+  expanded: Map<string, boolean>
 }>()
 
 const emit = defineEmits<{
@@ -47,17 +51,23 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const route = useRoute()
-const expanded = ref(false)
 
 const hasChildren = computed(() => props.node.children.length > 0)
 const isActive = computed(() => String(route.params.docId ?? '') === props.node.id)
+const expanded = computed(() => props.expanded.get(props.node.id) ?? false)
 
 function openDoc() {
-  router.push({ name: 'OfficeEditor', params: { docId: props.node.id } })
+  if (props.wikiId) {
+    router.push({ name: 'WikiEditor', params: { wikiId: props.wikiId, docId: props.node.id } })
+  } else {
+    router.push({ name: 'OfficeEditor', params: { docId: props.node.id } })
+  }
 }
 
 function toggle() {
-  if (hasChildren.value) expanded.value = !expanded.value
+  if (hasChildren.value) {
+    props.expanded.set(props.node.id, !expanded.value)
+  }
 }
 
 function emitAddChild() {

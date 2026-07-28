@@ -273,4 +273,43 @@ impl DocumentModel {
         Self::trash(db, id).await?;
         Ok(())
     }
+
+    /// 追溯文档父链，返回 [root, ..., current] 顺序
+    /// 当遇到 parent_id == user_id 时，插入虚拟根节点（个人空间）并停止
+    pub async fn get_doc_path(
+        db: &DatabaseConnection,
+        doc_id: i64,
+        user_id: i64,
+    ) -> ModelResult<Vec<crate::controllers::docs::WalkItem>> {
+        use std::collections::HashSet;
+        let mut items = Vec::new();
+        let mut cursor = Some(doc_id);
+        let mut visited = HashSet::new();
+        while let Some(id) = cursor {
+            if !visited.insert(id) {
+                break;
+            }
+            // 虚拟根节点：parent_id 指向 user_id
+            if id == user_id {
+                items.push(crate::controllers::docs::WalkItem {
+                    id: user_id.to_string(),
+                    title: "个人空间".to_string(),
+                    icon: None,
+                });
+                break;
+            }
+            let doc = match Entity::find_by_id(id).one(db).await? {
+                Some(d) => d,
+                None => break,
+            };
+            items.push(crate::controllers::docs::WalkItem {
+                id: doc.id.to_string(),
+                title: doc.title,
+                icon: doc.icon.clone(),
+            });
+            cursor = doc.parent_id;
+        }
+        items.reverse();
+        Ok(items)
+    }
 }
