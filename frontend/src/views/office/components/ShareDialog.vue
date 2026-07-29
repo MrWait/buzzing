@@ -1,6 +1,7 @@
 <template>
-  <div v-if="open" class="share-panel" @mousedown.stop @click.stop>
-    <div class="sp-arrow"></div>
+  <Teleport to="body">
+    <div v-if="open" class="share-panel" :style="panelStyle" @mousedown.stop @click.stop>
+      <div class="sp-arrow"></div>
 
     <header class="sd-header">
       <div class="sd-header-left">
@@ -93,14 +94,18 @@
 
       <!-- Row 6: Copy + QR -->
       <div class="sd-row action-row">
-        <button class="action-btn copy-btn" @click="copyLink">
+        <button class="copy-btn" @click="copyLink">
           {{ copyTip || '复制链接' }}
         </button>
-        <button class="action-btn qr-btn" @click="showQR = !showQR">{{ showQR ? '关闭二维码' : '分享二维码' }}</button>
-      </div>
-      <div v-if="showQR && shareUrl" class="qr-area">
-        <img :src="qrDataUrl" v-if="qrDataUrl" class="qr-img" />
-        <div v-else class="qr-placeholder">生成中…</div>
+        <button class="qr-icon-btn" title="二维码分享" @click="goTo('qr')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <line x1="16" y1="14" x2="16" y2="14"/><circle cx="21" cy="17" r="1"/>
+            <circle cx="17" cy="21" r="1"/><line x1="14" y1="21" x2="21" y2="14"/>
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -159,7 +164,16 @@
         @click="confirmInvite"
       >{{ inviting ? '邀请中…' : '邀请' }}</button>
     </div>
+
+    <!-- =========== QR Page =========== -->
+    <div v-if="currentPage === 'qr'" class="sd-body qr-page">
+      <div class="qr-code-wrap">
+        <img v-if="qrDataUrl" :src="qrDataUrl" class="qr-code-img" />
+        <div v-else class="qr-placeholder">生成中…</div>
+      </div>
+    </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -167,12 +181,25 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue'
 
 import { sharesApi, type ShareInfoDto } from '@/services/office/shares'
 import { membersApi, type MemberDto } from '@/services/office/members'
-import api from '@/services/api'
+import { apiV1, encodeReq } from '@/services/api_v1'
+import { CMD } from '@/services/office/cmd'
 import { ROLE_COMMENTER, ROLE_EDITOR, ROLE_OWNER, ROLE_VIEWER } from '@/composables/usePermission'
 import QRCode from 'qrcode'
 
-const props = defineProps<{ open: boolean; docId: string }>()
+const props = withDefaults(defineProps<{ open: boolean; docId: string; triggerRect?: { top: number; bottom: number; left: number; right: number; width: number; height: number } }>(), {
+  triggerRect: () => ({ top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 }),
+})
 const emit = defineEmits<{ (e: 'update:open', v: boolean): void }>()
+
+const panelStyle = computed(() => {
+  const r = props.triggerRect
+  return {
+    position: 'fixed',
+    top: `${r.bottom + 8}px`,
+    right: `${Math.max(8, window.innerWidth - r.right)}px`,
+    zIndex: 1050,
+  }
+})
 
 const pageStack = ref<string[]>(['main'])
 const currentPage = computed(() => pageStack.value[pageStack.value.length - 1])
@@ -181,6 +208,7 @@ const pageTitle = computed(() => {
     case 'main': return '共享文档'
     case 'manage': return '管理协作者'
     case 'invite': return '邀请协作者'
+    case 'qr': return '二维码分享'
     default: return ''
   }
 })
@@ -248,8 +276,8 @@ async function doSearch(q: string) {
   searching.value = true
   showSuggestions.value = true
   try {
-    const { data } = await api.get<SearchUser[]>('/office/mentions/users', { params: { q } })
-    searchResults.value = data
+    const { data } = await apiV1(CMD.MENTION_USERS, encodeReq('office.MentionUsersRequest', { q }), 'office.MentionUsersResponse')
+    searchResults.value = (data.items ?? []).map((u: any) => ({ id: u.id?.toString() ?? '', name: u.name ?? '', avatar: u.avatar || null }))
     searchSelectedIndex.value = 0
   } catch { searchResults.value = [] }
   finally { searching.value = false }
@@ -304,7 +332,7 @@ async function confirmInvite() {
   if (!inviteTarget.value || inviting.value) return
   inviting.value = true
   try {
-    await membersApi.add(props.docId, inviteTarget.value.id, inviteRole.value)
+    await membersApi.add(props.docId, String(inviteTarget.value.id), inviteRole.value)
     await loadMembers()
     goBack()
   } catch { /* ignore */ }
@@ -382,19 +410,18 @@ async function copyLink() {
 }
 
 // QR
-const showQR = ref(false)
 const qrDataUrl = ref('')
 
-watch(shareUrl, async (url) => {
-  if (url && showQR.value) {
-    try { qrDataUrl.value = await QRCode.toDataURL(url, { width: 160, margin: 2 }) }
-    catch { qrDataUrl.value = '' }
+watch(currentPage, async (page) => {
+  if (page !== 'qr') return
+  if (!shareUrl.value) {
+    try {
+      await sharesApi.create(props.docId, { role: shareRole.value })
+      await loadShares()
+    } catch { return }
   }
-}, { immediate: true })
-
-watch(showQR, async (v) => {
-  if (v && shareUrl.value && !qrDataUrl.value) {
-    try { qrDataUrl.value = await QRCode.toDataURL(shareUrl.value, { width: 160, margin: 2 }) }
+  if (shareUrl.value && !qrDataUrl.value) {
+    try { qrDataUrl.value = await QRCode.toDataURL(shareUrl.value, { width: 200, margin: 2 }) }
     catch { qrDataUrl.value = '' }
   }
 })
@@ -404,7 +431,6 @@ watch(() => [props.open, props.docId], ([open]) => {
   if (open) {
     pageStack.value = ['main']
     showDocPermission.value = false
-    showQR.value = false
     qrDataUrl.value = ''
     copyTip.value = ''
     searchQuery.value = ''
@@ -426,10 +452,6 @@ function initials(name: string) {
 
 <style scoped>
 .share-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 200;
   background: #fff;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
@@ -603,23 +625,29 @@ function initials(name: string) {
 }
 .scope-select:focus, .role-select:focus { border-color: #1565c0; }
 
-.action-row { display: flex; gap: 10px; }
-.action-btn {
-  flex: 1; padding: 7px 0;
+.action-row { display: flex; align-items: center; gap: 8px; }
+.copy-btn {
+  padding: 7px 14px;
+  border: 1px solid #1565c0; border-radius: 5px;
+  background: #fff; cursor: pointer;
+  font-size: 12px; color: #1565c0; text-align: center;
+  white-space: nowrap;
+}
+.copy-btn:hover { background: #e3f2fd; }
+.qr-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
   border: 1px solid #d0d0d0; border-radius: 5px;
   background: #fff; cursor: pointer;
-  font-size: 12px; color: #333; text-align: center;
+  color: #555; flex-shrink: 0;
 }
-.action-btn:hover { background: #f5f5f5; }
-.copy-btn { border-color: #1565c0; color: #1565c0; }
-.copy-btn:hover { background: #e3f2fd; }
+.qr-icon-btn:hover { background: #f5f5f5; color: #333; }
 
-.qr-area {
-  display: flex; justify-content: center; margin-top: 6px;
-}
-.qr-img { width: 140px; height: 140px; }
+.qr-page { display: flex; justify-content: center; align-items: center; padding: 24px 16px; }
+.qr-code-wrap { display: flex; justify-content: center; }
+.qr-code-img { width: 200px; height: 200px; }
 .qr-placeholder {
-  width: 140px; height: 140px;
+  width: 200px; height: 200px;
   display: flex; align-items: center; justify-content: center;
   color: #999; font-size: 12px; background: #fafafa; border-radius: 6px;
 }

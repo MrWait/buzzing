@@ -1,4 +1,5 @@
-import api from '@/services/api'
+import { apiV1, encodeReq } from '@/services/api_v1'
+import { CMD } from './cmd'
 
 export interface VersionDto {
   id: string
@@ -12,7 +13,7 @@ export interface VersionDto {
 }
 
 export interface DiffLine {
-  type: 'equal' | 'insert' | 'delete'
+  type: string
   text: string
   pos: number
 }
@@ -27,27 +28,53 @@ export interface DiffResult {
   stats: DiffStats
 }
 
+function versionFromProto(p: any): VersionDto {
+  return {
+    id: p.id?.toString() ?? '',
+    document_id: p.document_id?.toString() ?? '',
+    version_number: p.version_number ?? 0,
+    title: p.title ?? '',
+    description: p.description || null,
+    creator_id: p.creator_id?.toString() ?? '',
+    is_minor: !!p.is_minor,
+    created_at: p.created_at ?? '',
+  }
+}
+
+function diffLineFromProto(p: any): DiffLine {
+  return {
+    type: p.type ?? '',
+    text: p.text ?? '',
+    pos: p.pos ?? 0,
+  }
+}
+
 export const versionsApi = {
-  list(docId: string, limit = 50, offset = 0) {
-    return api.get<VersionDto[]>(`/office/docs/${docId}/versions`, {
-      params: { limit, offset },
-    })
+  async list(docId: string, limit = 50, offset = 0) {
+    const { data } = await apiV1(CMD.VERSION_LIST, encodeReq('office.VersionListRequest', { doc_id: docId, limit, offset }), 'office.VersionListResponse')
+    return { data: (data.items ?? []).map(versionFromProto) as VersionDto[] }
   },
-  get(docId: string, versionId: string) {
-    return api.get<VersionDto>(`/office/docs/${docId}/versions/${versionId}`)
+  async get(docId: string, versionId: string) {
+    const { data } = await apiV1(CMD.VERSION_GET, encodeReq('office.VersionGetRequest', { doc_id: docId, version_id: versionId }), 'office.VersionGetResponse')
+    return { data: versionFromProto(data.item) }
   },
-  create(docId: string, payload: { title: string; description?: string }) {
-    return api.post<VersionDto>(`/office/docs/${docId}/versions`, payload)
+  async create(docId: string, payload: { title: string; description?: string }) {
+    const req: any = { doc_id: docId, title: payload.title }
+    if (payload.description) req.description = payload.description
+    const { data } = await apiV1(CMD.VERSION_CREATE, encodeReq('office.VersionCreateRequest', req), 'office.VersionCreateResponse')
+    return { data: versionFromProto(data.item) }
   },
-  diff(docId: string, v1Id: string, v2Id: string) {
-    return api.post<DiffResult>(`/office/docs/${docId}/versions/diff`, {
-      v1_id: v1Id,
-      v2_id: v2Id,
-    })
+  async diff(docId: string, v1Id: string, v2Id: string) {
+    const { data } = await apiV1(CMD.VERSION_DIFF, encodeReq('office.VersionDiffRequest', { doc_id: docId, v1_id: v1Id, v2_id: v2Id }), 'office.VersionDiffResponse')
+    return {
+      data: {
+        ops: (data.ops ?? []).map(diffLineFromProto) as DiffLine[],
+        stats: data.stats ?? { additions: 0, deletions: 0 },
+      } as DiffResult,
+    }
   },
-  restore(docId: string, versionId: string) {
-    return api.post<{ ok: boolean; new_version: number }>(
-      `/office/docs/${docId}/versions/${versionId}/restore`,
-    )
+  async restore(docId: string, versionId: string) {
+    const { data } = await apiV1(CMD.VERSION_RESTORE, encodeReq('office.VersionRestoreRequest', { doc_id: docId, version_id: versionId }), 'office.VersionRestoreResponse')
+    return { data: { ok: data.ok, new_version: data.new_version ?? 0 } }
   },
 }

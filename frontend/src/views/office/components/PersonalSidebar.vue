@@ -253,8 +253,9 @@ function clearFloatTimer() {
   flex: 0 0 0;
   overflow: visible;
   border-right: none;
-  height: auto;
+  height: 0;
   align-self: flex-start;
+  position: relative;
 }
 .sidebar.floating {
   position: absolute;
@@ -278,7 +279,18 @@ function clearFloatTimer() {
   position: absolute;
   left: 0;
   top: 0;
+  width: 40px;
+  height: auto;
   background: transparent;
+  z-index: 10;
+}
+.sidebar.collapsed .sidebar-header .toggle-btn {
+  background: #fafafa;
+  border: 1px solid #e5e7eb;
+  border-radius: 0 6px 6px 0;
+  border-left: none;
+  width: 28px;
+  height: 32px;
 }
 .toggle-btn {
   flex-shrink: 0;

@@ -1,0 +1,540 @@
+syntax = "proto3";
+package office;
+option go_package = "./proto";
+import "entity.proto";
+
+message WalkItem {
+    string id = 1;
+    string title = 2;
+    string icon = 3;
+}
+
+message DocTreeNode {
+    string id = 1;
+    string parent_id = 2;
+    string title = 3;
+    string icon = 4;
+    repeated DocTreeNode children = 5;
+}
+
+message CreateDocRequest {
+    string title = 1;
+    string parent_id = 2;
+    string wiki_id = 3;
+    string icon = 4;
+}
+message CreateDocResponse {
+    int64 id = 1;
+    entity.Entity entity = 2;
+}
+
+message GetDocRequest {
+    int64 doc_id = 1;
+}
+message GetDocResponse {
+    int64 id = 1;
+    string wiki_id = 2;
+    string parent_id = 3;
+    string title = 4;
+    string icon = 5;
+    string cover = 6;
+    int32 doc_type = 7;
+    int64 version = 8;
+    string trashed_at = 9;
+    string created_at = 10;
+    string updated_at = 11;
+    int32 role = 12;
+    string role_label = 13;
+    repeated WalkItem walk = 14;
+}
+
+message UpdateDocRequest {
+    int64 doc_id = 1;
+    string title = 2;
+    string icon = 3;
+    string cover = 4;
+}
+message UpdateDocResponse {
+    bool ok = 1;
+}
+
+message DeleteDocRequest {
+    int64 doc_id = 1;
+}
+message DeleteDocResponse {
+    bool ok = 1;
+}
+
+message PersonalTreeRequest {
+}
+message PersonalTreeResponse {
+    repeated DocTreeNode items = 1;
+}
+
+message ListDocsRequest {
+    string wiki_id = 1;
+}
+message ListDocsResponse {
+    repeated GetDocResponse items = 1;
+}
+
+message TreeDocsRequest {
+    string wiki_id = 1;
+}
+message TreeDocsResponse {
+    repeated DocTreeNode items = 1;
+}
+
+message RecentDocsRequest {
+    int32 limit = 1;
+}
+message RecentItem {
+    GetDocResponse doc = 1;
+    int64 visited_at = 2;
+}
+message RecentDocsResponse {
+    repeated RecentItem items = 1;
+}
+
+message TrashListResponse {
+    repeated TrashItem items = 1;
+}
+message TrashItem {
+    GetDocResponse doc = 1;
+    int32 remaining_days = 2;
+}
+
+message StarredDocsResponse {
+    repeated StarItem items = 1;
+}
+message StarItem {
+    GetDocResponse doc = 1;
+    string group_name = 2;
+}
+
+message StarDocRequest {
+    int64 doc_id = 1;
+    string group_name = 2;
+}
+message StarDocResponse {
+    bool ok = 1;
+}
+
+message UnstarDocRequest {
+    int64 doc_id = 1;
+}
+message UnstarDocResponse {
+    bool ok = 1;
+}
+
+message RestoreDocRequest {
+    int64 doc_id = 1;
+}
+message RestoreDocResponse {
+    bool ok = 1;
+}
+
+message PurgeDocRequest {
+    int64 doc_id = 1;
+}
+message PurgeDocResponse {
+    bool ok = 1;
+}
+
+message MoveDocRequest {
+    int64 doc_id = 1;
+    string parent_id = 2;
+}
+message MoveDocResponse {
+    bool ok = 1;
+}
+
+message DuplicateDocRequest {
+    int64 doc_id = 1;
+    bool include_children = 2;
+}
+message DuplicateDocResponse {
+    int64 id = 1;
+}
+
+message VisitDocRequest {
+    int64 doc_id = 1;
+}
+message VisitDocResponse {
+    bool ok = 1;
+}
+
+message MyDocsResponse {
+    repeated GetDocResponse items = 1;
+}
+
+message SharedDocsResponse {
+    repeated GetDocResponse items = 1;
+}
+
+message SearchDocsRequest {
+    string q = 1;
+    string wiki_id = 2;
+    int32 limit = 3;
+}
+message SearchResult {
+    string id = 1;
+    string title = 2;
+    string icon = 3;
+    string highlight = 4;
+    string matched_in = 5;
+    string updated_at = 6;
+}
+message SearchDocsResponse {
+    repeated SearchResult items = 1;
+}
+
+message PermissionRequest {
+    int64 doc_id = 1;
+}
+message PermissionResponse {
+    int32 role = 1;
+    string role_label = 2;
+}
+
+message EditUrlRequest {
+    int64 doc_id = 1;
+}
+message EditUrlResponse {
+    string edit_url = 1;
+    string title = 2;
+}
+
+// ---- Members ----
+
+message MemberItem {
+    string user_id = 1;
+    string name = 2;
+    string avatar = 3;
+    int32 role = 4;
+    string role_label = 5;
+    int64 joined_at = 6;
+}
+
+message MemberListRequest {
+    int64 doc_id = 1;
+}
+message MemberListResponse {
+    repeated MemberItem items = 1;
+}
+
+message MemberAddRequest {
+    int64 doc_id = 1;
+    string user_id = 2;
+    int32 role = 3;
+}
+message MemberAddResponse {
+    bool ok = 1;
+}
+
+message MemberUpdateRequest {
+    int64 doc_id = 1;
+    string user_id = 2;
+    int32 role = 3;
+}
+message MemberUpdateResponse {
+    bool ok = 1;
+}
+
+message MemberRemoveRequest {
+    int64 doc_id = 1;
+    string user_id = 2;
+}
+message MemberRemoveResponse {
+    bool ok = 1;
+}
+
+// ---- Versions ----
+
+message VersionItem {
+    string id = 1;
+    string document_id = 2;
+    int32 version_number = 3;
+    string title = 4;
+    string description = 5;
+    string creator_id = 6;
+    bool is_minor = 7;
+    string created_at = 8;
+}
+
+message VersionListRequest {
+    int64 doc_id = 1;
+    int32 limit = 2;
+    int32 offset = 3;
+}
+message VersionListResponse {
+    repeated VersionItem items = 1;
+}
+
+message VersionCreateRequest {
+    int64 doc_id = 1;
+    string title = 2;
+    string description = 3;
+}
+message VersionCreateResponse {
+    VersionItem item = 1;
+}
+
+message VersionGetRequest {
+    int64 doc_id = 1;
+    int64 version_id = 2;
+}
+message VersionGetResponse {
+    VersionItem item = 1;
+}
+
+message DiffLine {
+    string type = 1;
+    string text = 2;
+    int32 pos = 3;
+}
+message DiffStats {
+    int32 additions = 1;
+    int32 deletions = 2;
+}
+message VersionDiffRequest {
+    int64 doc_id = 1;
+    int64 v1_id = 2;
+    int64 v2_id = 3;
+}
+message VersionDiffResponse {
+    repeated DiffLine ops = 1;
+    DiffStats stats = 2;
+}
+
+message VersionRestoreRequest {
+    int64 doc_id = 1;
+    int64 version_id = 2;
+}
+message VersionRestoreResponse {
+    bool ok = 1;
+    int32 new_version = 2;
+}
+
+// ---- Shares ----
+
+message ShareItem {
+    string id = 1;
+    string token = 2;
+    string url = 3;
+    int32 role = 4;
+    string role_label = 5;
+    bool has_password = 6;
+    string expires_at = 7;
+    int32 max_visits = 8;
+    int32 visit_count = 9;
+    bool revoked = 10;
+    string created_at = 11;
+}
+
+message ShareCreateRequest {
+    int64 doc_id = 1;
+    int32 role = 2;
+    string password = 3;
+    string expires_at = 4;
+    int32 max_visits = 5;
+}
+message ShareCreateResponse {
+    ShareItem item = 1;
+}
+
+message ShareListRequest {
+    int64 doc_id = 1;
+}
+message ShareListResponse {
+    repeated ShareItem items = 1;
+}
+
+message ShareRevokeRequest {
+    int64 share_id = 1;
+}
+message ShareRevokeResponse {
+    bool ok = 1;
+}
+
+message ShareResolveRequest {
+    string token = 1;
+}
+message ShareResolveResponse {
+    string doc_id = 1;
+    string title = 2;
+    string icon = 3;
+    int32 role = 4;
+    string role_label = 5;
+    bool require_password = 6;
+    string token = 7;
+}
+
+message ShareVerifyRequest {
+    string token = 1;
+    string password = 2;
+}
+message ShareVerifyResponse {
+    string doc_id = 1;
+    string title = 2;
+    string icon = 3;
+    int32 role = 4;
+    string role_label = 5;
+    bool require_password = 6;
+    string token = 7;
+}
+
+// ---- Wikis ----
+
+message WikiItem {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    string icon = 4;
+    string cover = 5;
+    string creator_id = 6;
+    string home_doc_id = 7;
+    string created_at = 8;
+    string updated_at = 9;
+}
+
+message WikiDetailItem {
+    WikiItem wiki = 1;
+    int32 member_count = 2;
+}
+
+message WikiListResponse {
+    repeated WikiItem items = 1;
+}
+
+message WikiCreateRequest {
+    string name = 1;
+    string description = 2;
+    string icon = 3;
+    string cover = 4;
+}
+message WikiCreateResponse {
+    WikiItem item = 1;
+}
+
+message WikiGetRequest {
+    int64 wiki_id = 1;
+}
+message WikiGetResponse {
+    WikiDetailItem detail = 1;
+}
+
+message WikiUpdateRequest {
+    int64 wiki_id = 1;
+    string name = 2;
+    string description = 3;
+    string icon = 4;
+    string cover = 5;
+}
+message WikiUpdateResponse {
+    WikiItem item = 1;
+}
+
+message WikiDeleteRequest {
+    int64 wiki_id = 1;
+}
+message WikiDeleteResponse {
+    bool ok = 1;
+}
+
+message WikiMemberItem {
+    string wiki_id = 1;
+    string user_id = 2;
+    int32 role = 3;
+    int64 joined_at = 4;
+}
+
+message WikiMemberListRequest {
+    int64 wiki_id = 1;
+}
+message WikiMemberListResponse {
+    repeated WikiMemberItem items = 1;
+}
+
+message WikiMemberAddRequest {
+    int64 wiki_id = 1;
+    string user_id = 2;
+    int32 role = 3;
+}
+message WikiMemberAddResponse {
+    WikiMemberItem item = 1;
+}
+
+message WikiMemberRemoveRequest {
+    int64 wiki_id = 1;
+    string user_id = 2;
+}
+message WikiMemberRemoveResponse {
+    bool ok = 1;
+}
+
+message WikiPinItem {
+    int64 doc_id = 1;
+    string title = 2;
+}
+
+message WikiPinListRequest {
+    int64 wiki_id = 1;
+}
+message WikiPinListResponse {
+    repeated WikiPinItem items = 1;
+}
+
+message WikiPinAddRequest {
+    int64 wiki_id = 1;
+    int64 doc_id = 2;
+}
+message WikiPinAddResponse {
+    bool ok = 1;
+}
+
+message WikiPinRemoveRequest {
+    int64 wiki_id = 1;
+    int64 doc_id = 2;
+}
+message WikiPinRemoveResponse {
+    bool ok = 1;
+}
+
+message WikiRecentListRequest {
+    int64 wiki_id = 1;
+}
+message WikiRecentListResponse {
+    repeated GetDocResponse items = 1;
+}
+
+// ---- Mentions ----
+
+message MentionUserItem {
+    string id = 1;
+    string name = 2;
+    string avatar = 3;
+}
+
+message MentionUsersRequest {
+    string q = 1;
+}
+message MentionUsersResponse {
+    repeated MentionUserItem items = 1;
+}
+
+message MentionDocItem {
+    string id = 1;
+    string wiki_id = 2;
+    string title = 3;
+    string icon = 4;
+    string updated_at = 5;
+}
+
+message MentionDocsRequest {
+    string q = 1;
+    string wiki_id = 2;
+}
+message MentionDocsResponse {
+    repeated MentionDocItem items = 1;
+}
