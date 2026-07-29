@@ -7,6 +7,7 @@ use axum::body::Body;
 use axum::debug_handler;
 use axum::extract::Multipart;
 use axum::http::HeaderMap;
+use axum::body::Bytes;
 use loco_rs::{Error, Result, app::AppContext, prelude::*};
 use prost::Message;
 use std::collections::HashMap;
@@ -26,6 +27,7 @@ impl ExternApp for AppGateway {
             Routes::new()
                 .prefix("/api/v1")
                 .add("/", post(handle_gateway))
+                .add("/raw", post(handle_gateway_raw))
                 .add("/test", get(handle_id_gen)),
         ]
     }
@@ -153,10 +155,38 @@ pub(crate) async fn handle_gateway(
     }
 }
 
+#[debug_handler]
+pub(crate) async fn handle_gateway_raw(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    body: Bytes,
+) -> Result<impl IntoResponse> {
+    let claim = UserBrief::from_string(&auth.claims.pid)?;
+    let packet = entity::Packet::decode(body.as_ref())
+        .map_err(|_| Error::BadRequest("invalid packet".to_string()))?;
+    let (code, data) = handle_client_packet(0, packet.cmd, &ctx, &claim, &packet, false)
+        .await
+        .map_err(|e| {
+            tracing::error!("handle client packet error: {:?}", e);
+            Error::BadRequest("handle error".to_string())
+        })?;
+    let res_packet = entity::Packet {
+        rid: packet.rid,
+        cmd: packet.cmd,
+        code,
+        payload: data,
+        ..Default::default()
+    };
+    let encoded = res_packet.encode_to_vec();
+    let headers = [("rid", packet.rid.to_string()), ("code", code.to_string())];
+    Ok((headers, Body::from(encoded)))
+}
+
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api/v1")
         .add("/", post(handle_gateway))
+        .add("/raw", post(handle_gateway_raw))
 }
 
 #[allow(dead_code)]

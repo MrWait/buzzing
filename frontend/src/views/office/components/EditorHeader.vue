@@ -9,7 +9,6 @@
             :last-saved-at="lastSavedAt"
             :connected="connected"
           />
-          <Collaborators :users="editingUsers" />
         </div>
       </div>
       <div class="header-actions">
@@ -22,7 +21,6 @@
 <script setup lang="ts">
 import Breadcrumb, { type BreadcrumbItem } from './Breadcrumb.vue'
 import SyncStatus from './SyncStatus.vue'
-import Collaborators from './Collaborators.vue'
 import type { SaveState } from '@/composables/useYjs'
 
 defineProps<{
@@ -30,7 +28,6 @@ defineProps<{
   saveState: SaveState
   lastSavedAt: number | null
   connected: boolean
-  editingUsers: Array<{ clientId: number; name: string; color: string }>
 }>()
 </script>
 

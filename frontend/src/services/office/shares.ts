@@ -1,7 +1,7 @@
 import axios from 'axios'
-import api from '@/services/api'
+import { apiV1, encodeReq } from '@/services/api_v1'
+import { CMD } from './cmd'
 
-// 公开分享接口用独立 axios 实例，避免 401 时误触发全局登出
 const publicClient = axios.create({
   baseURL: '/api',
   timeout: 15000,
@@ -39,22 +39,40 @@ export interface ShareResolveDto {
   token: string | null
 }
 
+function shareFromProto(p: any): ShareInfoDto {
+  return {
+    id: p.id?.toString() ?? '',
+    token: p.token ?? '',
+    url: p.url ?? '',
+    role: p.role ?? 0,
+    role_label: p.role_label ?? '',
+    has_password: !!p.has_password,
+    expires_at: p.expires_at || null,
+    max_visits: p.max_visits ?? null,
+    visit_count: p.visit_count ?? 0,
+    revoked: !!p.revoked,
+    created_at: p.created_at ?? '',
+  }
+}
+
 export const sharesApi = {
-  create(docId: string, params: CreateShareParams) {
-    return api.post<ShareInfoDto>(`/office/docs/${docId}/share`, params).then((r) => r.data)
+  async create(docId: string, params: CreateShareParams) {
+    const { data } = await apiV1(CMD.SHARE_CREATE, encodeReq('office.ShareCreateRequest', { doc_id: docId, ...params }), 'office.ShareCreateResponse')
+    return shareFromProto(data.item) as ShareInfoDto
   },
-  list(docId: string) {
-    return api.get<ShareInfoDto[]>(`/office/docs/${docId}/shares`).then((r) => r.data)
+  async list(docId: string) {
+    const { data } = await apiV1(CMD.SHARE_LIST, encodeReq('office.ShareListRequest', { doc_id: docId }), 'office.ShareListResponse')
+    return (data.items ?? []).map(shareFromProto) as ShareInfoDto[]
   },
-  revoke(shareId: string) {
-    return api.delete(`/office/docs/shares/${shareId}`).then((r) => r.data)
+  async revoke(shareId: string) {
+    await apiV1(CMD.SHARE_REVOKE, encodeReq('office.ShareRevokeRequest', { share_id: shareId }))
   },
-  resolve(token: string) {
-    return publicClient.get<ShareResolveDto>(`/share/${token}`).then((r) => r.data)
+  async resolve(token: string) {
+    const r = await publicClient.get<ShareResolveDto>(`/share/${token}`)
+    return r.data
   },
-  verify(token: string, password: string) {
-    return publicClient
-      .post<ShareResolveDto>(`/share/${token}/verify`, { password })
-      .then((r) => r.data)
+  async verify(token: string, password: string) {
+    const r = await publicClient.post<ShareResolveDto>(`/share/${token}/verify`, { password })
+    return r.data
   },
 }

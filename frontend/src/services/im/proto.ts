@@ -10,6 +10,7 @@ import userProto from '../../../../proto/user.proto?raw'
 import presenceProto from '../../../../proto/presence.proto?raw'
 import typingProto from '../../../../proto/typing.proto?raw'
 import threadProto from '../../../../proto/thread.proto?raw'
+import officeProto from '../../../../proto/office.proto?raw'
 
 let protoRoot: protobuf.Root | null = null
 
@@ -28,6 +29,7 @@ export function getProto(): protobuf.Root {
     { name: 'presence.proto', content: presenceProto },
     { name: 'typing.proto', content: typingProto },
     { name: 'thread.proto', content: threadProto },
+    { name: 'office.proto', content: officeProto },
   ]
   for (const { content } of files) {
     const parsed = protobuf.parse(content, { keepCase: true })

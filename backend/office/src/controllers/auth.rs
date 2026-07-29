@@ -5,6 +5,13 @@ use serde::{Deserialize, Serialize};
 use base::models::_entities::accounts;
 use common::model::UserBrief;
 
+fn fmt_i64<S>(v: &i64, s: S) -> std::result::Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    s.collect_str(&v.to_string())
+}
+
 #[derive(Debug, Deserialize)]
 pub struct LoginParams {
     pub phone: String,
@@ -19,6 +26,7 @@ pub struct LoginResponse {
 
 #[derive(Debug, Serialize)]
 pub struct UserInfo {
+    #[serde(serialize_with = "fmt_i64")]
     pub id: i64,
     pub name: String,
     pub avatar: String,

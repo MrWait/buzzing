@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import api from '@/services/api'
+import { docsApi } from '@/services/office/docs'
 
 const props = defineProps<{ docId: string; modelValue?: string; readonly?: boolean }>()
 
@@ -28,7 +28,7 @@ function onInput() {
   if (debounceTimer) clearTimeout(debounceTimer)
   debounceTimer = setTimeout(async () => {
     try {
-      await api.patch(`/office/docs/${props.docId}`, { title: title.value })
+      await docsApi.update(props.docId, { title: title.value })
     } catch {
       // silently fail; title will be refetched on next mount
     }

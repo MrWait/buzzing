@@ -16,6 +16,8 @@ mime_guess = { workspace = true }
 
 common = { workspace = true }
 base = { workspace = true }
+proto = { workspace = true }
+prost = { workspace = true }
 sea-orm = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -1,7 +1,8 @@
 import { type EditorView } from 'prosemirror-view'
 import { Plugin, PluginKey } from 'prosemirror-state'
 import { reactive } from 'vue'
-import api from '@/services/api'
+import { apiV1, encodeReq } from '@/services/api_v1'
+import { CMD } from '@/services/office/cmd'
 import { useDocumentStore } from '@/stores/document'
 
 export interface MentionSuggestion {
@@ -41,13 +42,13 @@ export function createMentionPlugin(state: MentionState, docId?: string) {
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
   function searchUsers(q: string) {
-    api.get<Array<{ id: string; name: string; avatar: string | null }>>('/office/mentions/users', { params: { q } })
+    apiV1(CMD.MENTION_USERS, encodeReq('office.MentionUsersRequest', { q }), 'office.MentionUsersResponse')
       .then(({ data }) => {
-        state.items = data.map(u => ({
-          id: u.id,
+        state.items = (data.items ?? []).map((u: any) => ({
+          id: u.id?.toString() ?? '',
           type: 'user' as const,
-          label: u.name,
-          avatar: u.avatar ?? undefined,
+          label: u.name ?? '',
+          avatar: u.avatar || undefined,
         }))
         state.loading = false
         state.selectedIndex = 0
@@ -56,16 +57,16 @@ export function createMentionPlugin(state: MentionState, docId?: string) {
   }
 
   function searchDocs(q: string) {
-    const params: Record<string, string> = { q }
+    const req: any = { q }
     const wikiId = docId ? useDocumentStore().currentWikiId ?? undefined : undefined
-    if (wikiId) params.wiki_id = wikiId
-    api.get<Array<{ id: string; title: string; icon: string | null }>>('/office/mentions/docs', { params })
+    if (wikiId) req.wiki_id = wikiId
+    apiV1(CMD.MENTION_DOCS, encodeReq('office.MentionDocsRequest', req), 'office.MentionDocsResponse')
       .then(({ data }) => {
-        state.items = data.map(d => ({
-          id: d.id,
+        state.items = (data.items ?? []).map((d: any) => ({
+          id: d.id?.toString() ?? '',
           type: 'doc' as const,
           label: d.title || '未命名',
-          avatar: d.icon ?? undefined,
+          avatar: d.icon || undefined,
         }))
         state.loading = false
         state.selectedIndex = 0
