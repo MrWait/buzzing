@@ -245,6 +245,9 @@ pub(crate) async fn message_send(
     let mut message = req.message.take().ok_or(Error::string("bad request"))?;
     message.id = id;
     message.from_id = brief.id;
+    let now_ms = current_ms() as i64;
+    message.create_time_ms = now_ms;
+    message.update_time_ms = now_ms;
 
     // ─── Step 2: @Mention parsing + @all validation ─────────────────
     if !message.content.is_empty() {

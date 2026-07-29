@@ -176,14 +176,12 @@ class ContactPanel extends StatelessWidget {
         color: selected ? bt.mentionBg : null,
         child: Row(
           children: [
-            enabled
-                ? Checkbox(
-                    value: selected,
-                    onChanged: (_) => ctl.toggleSelect(user),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    visualDensity: VisualDensity.compact,
-                  )
-                : SizedBox(width: 40),
+            Checkbox(
+              value: enabled ? selected : true,
+              onChanged: enabled ? (_) => ctl.toggleSelect(user) : null,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
             _buildAvatar(cs, tt, user),
             SizedBox(width: 8),
             Expanded(

@@ -2,11 +2,13 @@ use std::path::PathBuf;
 use std::sync::OnceLock;
 use tracing_appender::{non_blocking, non_blocking::WorkerGuard, rolling};
 use tracing_subscriber::filter::LevelFilter;
-// use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::{fmt, Registry};
 
 mod ulog;
 
-// use ulog::LogLayer;
 static LOG: OnceLock<WorkerGuard> = OnceLock::new();
 const LOG_PREFIX: &str = "buzzing.sdk.log";
 
@@ -15,25 +17,31 @@ pub fn init_log(path: &str) {
         return;
     }
 
-    // let formatting_layer = fmt::layer().pretty().with_writer(std::io::stderr);
     let file_appender = rolling::daily(path, LOG_PREFIX);
     let (non_blocking_appender, _guard) = non_blocking(file_appender);
-    // let file_layer = fmt::layer()
-    //     .with_ansi(false)
-    //     .with_writer(non_blocking_appender);
-
     let _ = LOG.get_or_init(|| _guard);
 
-    // Registry::default()
-    //     .with(formatting_layer)
-    //     .with(file_layer)
-    //     .init();
-    let _ = tracing_subscriber::fmt()
-        .with_max_level(LevelFilter::DEBUG)
-        .with_writer(non_blocking_appender)
-        // .with_writer(std::io::stderr)
+    let file_layer = fmt::layer()
         .with_ansi(false)
-        .try_init();
+        .with_writer(non_blocking_appender)
+        .with_filter(LevelFilter::DEBUG);
+
+    #[cfg(target_os = "android")]
+    {
+        if let Ok(layer) = tracing_android::layer("buzzing_sdk") {
+            let _ = Registry::default()
+                .with(file_layer)
+                .with(layer.with_filter(LevelFilter::DEBUG))
+                .try_init();
+        }
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = Registry::default()
+            .with(file_layer)
+            .try_init();
+    }
 
     log::set_max_level(log::LevelFilter::Debug);
 

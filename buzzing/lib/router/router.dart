@@ -5,6 +5,7 @@ import 'package:buzzing/page/chat/invite_links_page.dart';
 import 'package:buzzing/page/chat/join_requests_page.dart';
 import 'package:buzzing/page/chat/member_list_page.dart';
 import 'package:buzzing/page/contact/contact_view.dart';
+import 'package:buzzing/page/im/contact_picker_page.dart';
 import 'package:buzzing/page/devices/devices_page.dart';
 import 'package:buzzing/page/im/im_view.dart';
 import 'package:buzzing/page/login/login_view.dart';
@@ -85,6 +86,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     GoRoute(
       path: AppRoute.SEARCH,
       pageBuilder: (ctx, state) => _pageBuilder(ctx, state, SearchPage()),
+    ),
+    GoRoute(
+      path: AppRoute.CONTACT_PICKER,
+      pageBuilder: (ctx, state) => _pageBuilder(ctx, state, const ContactPickerPage()),
     ),
     GoRoute(
       path: AppRoute.OPEN_PLATFORM,
