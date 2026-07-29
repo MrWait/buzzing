@@ -41,6 +41,9 @@ pub mod idl {
     pub mod mute {
         include!(concat!("./idl/mute.rs"));
     }
+    pub mod office {
+        include!(concat!("./idl/office.rs"));
+    }
     pub mod invite {
         include!(concat!("./idl/invite.rs"));
     }

@@ -3895,6 +3895,8 @@ dependencies = [
  "futures-util",
  "loco-rs",
  "mime_guess",
+ "prost",
+ "proto",
  "rand 0.8.5",
  "rust-embed",
  "sea-orm",

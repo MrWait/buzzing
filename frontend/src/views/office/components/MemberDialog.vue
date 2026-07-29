@@ -92,7 +92,8 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import { membersApi, type MemberDto } from '@/services/office/members'
-import api from '@/services/api'
+import { apiV1, encodeReq } from '@/services/api_v1'
+import { CMD } from '@/services/office/cmd'
 import {
   ROLE_COMMENTER,
   ROLE_EDITOR,
@@ -137,8 +138,8 @@ async function doSearch(q: string) {
   searching.value = true
   showSuggestions.value = true
   try {
-    const { data } = await api.get<SearchUser[]>('/office/mentions/users', { params: { q } })
-    searchResults.value = data
+    const { data } = await apiV1(CMD.MENTION_USERS, encodeReq('office.MentionUsersRequest', { q }), 'office.MentionUsersResponse')
+    searchResults.value = (data.items ?? []).map((u: any) => ({ id: u.id?.toString() ?? '', name: u.name ?? '', avatar: u.avatar || null }))
     searchSelectedIndex.value = 0
   } catch {
     searchResults.value = []
@@ -213,7 +214,7 @@ async function addMember() {
   submitting.value = true
   errMsg.value = null
   try {
-    await membersApi.add(props.docId, selectedUser.value.id, newRole.value)
+    await membersApi.add(props.docId, String(selectedUser.value.id), newRole.value)
     selectedUser.value = null
     searchQuery.value = ''
     await refresh()

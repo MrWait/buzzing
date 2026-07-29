@@ -1,8 +1,8 @@
-import api from '@/services/api'
+import { apiV1, encodeReq } from '@/services/api_v1'
+import { CMD } from './cmd'
 
 export interface WikiDto {
   id: string
-  tenant_id: string
   name: string
   description: string | null
   icon: string | null
@@ -24,41 +24,74 @@ export interface WikiMemberDto {
   joined_at: number
 }
 
+function wikiFromProto(p: any): WikiDto {
+  return {
+    id: p.id?.toString() ?? '',
+    name: p.name ?? '',
+    description: p.description || null,
+    icon: p.icon || null,
+    cover: p.cover || null,
+    creator_id: p.creator_id?.toString() ?? '',
+    home_doc_id: p.home_doc_id ? p.home_doc_id.toString() : null,
+    created_at: p.created_at ?? '',
+    updated_at: p.updated_at ?? '',
+  }
+}
+
+function wikiMemberFromProto(p: any): WikiMemberDto {
+  return {
+    wiki_id: p.wiki_id?.toString() ?? '',
+    user_id: p.user_id?.toString() ?? '',
+    role: p.role ?? 0,
+    joined_at: Number(p.joined_at ?? 0),
+  }
+}
+
 export const wikisApi = {
-  list() {
-    return api.get<WikiDto[]>('/office/wikis')
+  async list() {
+    const { data } = await apiV1(CMD.WIKI_LIST, encodeReq('office.PersonalTreeRequest', {}), 'office.WikiListResponse')
+    return { data: (data.items ?? []).map(wikiFromProto) as WikiDto[] }
   },
-  get(id: string) {
-    return api.get<WikiDetailDto>(`/office/wikis/${id}`)
+  async get(id: string) {
+    const { data } = await apiV1(CMD.WIKI_GET, encodeReq('office.WikiGetRequest', { wiki_id: id }), 'office.WikiGetResponse')
+    const wiki = data.detail?.wiki ? wikiFromProto(data.detail.wiki) : ({} as WikiDto)
+    const detail: WikiDetailDto = { ...wiki, member_count: data.detail?.member_count ?? 0 }
+    return { data: detail }
   },
-  create(payload: { name: string; description?: string; icon?: string; cover?: string }) {
-    return api.post<WikiDto>('/office/wikis', payload)
+  async create(payload: { name: string; description?: string; icon?: string; cover?: string }) {
+    const { data } = await apiV1(CMD.WIKI_CREATE, encodeReq('office.WikiCreateRequest', payload), 'office.WikiCreateResponse')
+    return { data: wikiFromProto(data.item) as WikiDto }
   },
-  update(id: string, payload: { name?: string; description?: string; icon?: string; cover?: string }) {
-    return api.patch<WikiDto>(`/office/wikis/${id}`, payload)
+  async update(id: string, payload: { name?: string; description?: string; icon?: string; cover?: string }) {
+    const { data } = await apiV1(CMD.WIKI_UPDATE, encodeReq('office.WikiUpdateRequest', { wiki_id: id, ...payload }), 'office.WikiUpdateResponse')
+    return { data: wikiFromProto(data.item) as WikiDto }
   },
-  remove(id: string) {
-    return api.delete(`/office/wikis/${id}`)
+  async remove(id: string) {
+    await apiV1(CMD.WIKI_DELETE, encodeReq('office.WikiDeleteRequest', { wiki_id: id }))
   },
-  listMembers(id: string) {
-    return api.get<WikiMemberDto[]>(`/office/wikis/${id}/members`)
+  async listMembers(id: string) {
+    const { data } = await apiV1(CMD.WIKI_MEMBER_LIST, encodeReq('office.WikiMemberListRequest', { wiki_id: id }), 'office.WikiMemberListResponse')
+    return { data: (data.items ?? []).map(wikiMemberFromProto) as WikiMemberDto[] }
   },
-  addMember(id: string, userId: string, role?: number) {
-    return api.post<WikiMemberDto>(`/office/wikis/${id}/members`, { user_id: userId, role })
+  async addMember(id: string, userId: string, role?: number) {
+    const { data } = await apiV1(CMD.WIKI_MEMBER_ADD, encodeReq('office.WikiMemberAddRequest', { wiki_id: id, user_id: userId, role: role ?? 1 }), 'office.WikiMemberAddResponse')
+    return { data: wikiMemberFromProto(data.item) as WikiMemberDto }
   },
-  removeMember(id: string, userId: string) {
-    return api.delete(`/office/wikis/${id}/members/${userId}`)
+  async removeMember(id: string, userId: string) {
+    await apiV1(CMD.WIKI_MEMBER_REMOVE, encodeReq('office.WikiMemberRemoveRequest', { wiki_id: id, user_id: userId }))
   },
-  recent(id: string) {
-    return api.get(`/office/wikis/${id}/recent`)
+  async recent(id: string) {
+    const { data } = await apiV1(CMD.WIKI_RECENT, encodeReq('office.WikiRecentListRequest', { wiki_id: id }), 'office.WikiRecentListResponse')
+    return { data: data.items ?? [] }
   },
-  listPins(id: string) {
-    return api.get(`/office/wikis/${id}/pins`)
+  async listPins(id: string) {
+    const { data } = await apiV1(CMD.WIKI_PIN_LIST, encodeReq('office.WikiPinListRequest', { wiki_id: id }), 'office.WikiPinListResponse')
+    return { data: (data.items ?? []) as any[] }
   },
-  addPin(id: string, docId: string) {
-    return api.post(`/office/wikis/${id}/pins`, { doc_id: docId })
+  async addPin(id: string, docId: string) {
+    await apiV1(CMD.WIKI_PIN_ADD, encodeReq('office.WikiPinAddRequest', { wiki_id: id, doc_id: docId }))
   },
-  removePin(id: string, docId: string) {
-    return api.delete(`/office/wikis/${id}/pins/${docId}`)
+  async removePin(id: string, docId: string) {
+    await apiV1(CMD.WIKI_PIN_REMOVE, encodeReq('office.WikiPinRemoveRequest', { wiki_id: id, doc_id: docId }))
   },
 }

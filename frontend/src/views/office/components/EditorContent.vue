@@ -6,22 +6,24 @@
         :save-state="saveState"
         :last-saved-at="lastSavedAt"
         :connected="connected"
-        :editing-users="editingUsers"
       >
         <span v-if="!canEdit" class="readonly-tag">只读</span>
+        <Collaborators :users="editingUsers" />
         <div v-if="canEdit" class="panel-trigger" ref="shareTriggerRef">
           <button class="header-btn header-btn-primary" @click="toggleShare">
             共享
           </button>
-          <ShareDialog v-model:open="showShare" :doc-id="docId" />
+          <ShareDialog v-model:open="showShare" :doc-id="docId" :trigger-rect="triggerRect" />
+          <PageMenu v-model:open="showMenu" :doc-id="docId" :trigger-rect="menuTriggerRect" />
+          <CreateMenu v-model:open="showCreate" :doc-id="docId" :parent-id="parentId" :wiki-id="wikiId" :trigger-rect="createTriggerRect" />
         </div>
         <button v-if="canEdit" class="header-btn" @click="toggleEditMode">
           {{ isPreview ? '预览' : '编辑' }}
         </button>
         <span class="icon-group">
-          <span class="icon-btn" title="页面设置">⋯</span>
+          <span ref="menuTriggerRef" class="icon-btn" title="页面设置" @click="toggleMenu">⋯</span>
           <span class="icon-btn" title="搜索" @click="searchOpen = true">🔍</span>
-          <span class="icon-btn" title="新建文档" @click="handleCreateDoc">+</span>
+          <span ref="createTriggerRef" class="icon-btn" title="新建文档" @click="toggleCreate">+</span>
         </span>
         <TopRightBar />
       </EditorHeader>
@@ -42,11 +44,14 @@ import { docsApi } from '@/services/office/docs'
 import { ROLE_VIEWER, ROLE_EDITOR } from '@/composables/usePermission'
 import TitleBar from './TitleBar.vue'
 import ProseEditor from './ProseEditor.vue'
+import Collaborators from './Collaborators.vue'
 import SearchBar from './SearchBar.vue'
 import EditorHeader from './EditorHeader.vue'
 import type { BreadcrumbItem } from './Breadcrumb.vue'
 import type { WalkItem } from '@/services/office/docs'
 import ShareDialog from './ShareDialog.vue'
+import PageMenu from './PageMenu.vue'
+import CreateMenu from './CreateMenu.vue'
 import TopRightBar from '@/components/TopRightBar.vue'
 
 const props = defineProps<{ docId: string; searchOpen?: boolean }>()
@@ -77,10 +82,49 @@ watch(searchOpen, (v) => {
 })
 const showShare = ref(false)
 const shareTriggerRef = ref<HTMLElement | null>(null)
+const showMenu = ref(false)
+const menuTriggerRef = ref<HTMLElement | null>(null)
+const showCreate = ref(false)
+const createTriggerRef = ref<HTMLElement | null>(null)
+const triggerRect = ref({ top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 })
+const menuTriggerRect = ref({ top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 })
+const createTriggerRect = ref({ top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 })
+const parentId = ref<string | null>(null)
+const wikiId = ref<string | null>(null)
+
+function updateTriggerRect() {
+  if (shareTriggerRef.value) {
+    const r = shareTriggerRef.value.getBoundingClientRect()
+    triggerRect.value = { top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width, height: r.height }
+  }
+}
 
 function toggleShare() {
+  updateTriggerRect()
   showShare.value = !showShare.value
 }
+
+function toggleMenu() {
+  if (menuTriggerRef.value) {
+    const r = menuTriggerRef.value.getBoundingClientRect()
+    menuTriggerRect.value = { top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width, height: r.height }
+  }
+  showMenu.value = !showMenu.value
+}
+
+function toggleCreate() {
+  if (createTriggerRef.value) {
+    const r = createTriggerRef.value.getBoundingClientRect()
+    createTriggerRect.value = { top: r.top, bottom: r.bottom, left: r.left, right: r.right, width: r.width, height: r.height }
+  }
+  showCreate.value = !showCreate.value
+}
+
+function onResize() {
+  if (showShare.value) updateTriggerRect()
+}
+onMounted(() => window.addEventListener('resize', onResize))
+onBeforeUnmount(() => window.removeEventListener('resize', onResize))
 
 function onOutsideClick(e: MouseEvent) {
   const t = e.target as Node
@@ -95,13 +139,6 @@ const isPreview = ref(false)
 function toggleEditMode() {
   isPreview.value = !isPreview.value
 }
-
-async function handleCreateDoc() {
-  try {
-    const { data } = await docsApi.createPersonal({ title: '未命名' })
-    router.push({ name: 'OfficeEditor', params: { docId: data.id } })
-  } catch { /* ignore */ }
-}
 const chain = ref<WalkItem[]>([])
 const docTitle = ref('')
 
@@ -114,6 +151,8 @@ onMounted(async () => {
   role.value = data.role
   docTitle.value = data.title
   chain.value = data.walk
+  parentId.value = data.parent_id
+  wikiId.value = data.wiki_id
   if (data.wiki_id) {
     wikiStore.setCurrentWiki(data.wiki_id)
   }
