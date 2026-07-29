@@ -25,6 +25,7 @@ abstract class AppRoute {
   static const DEVICES = "/devices";
   static const VC = "/vc";
   static const WEBVIEW = "/webview";
+  static const CONTACT_PICKER = "/contact_picker";
 }
 
 extension RoutesExtention on String {

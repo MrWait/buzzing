@@ -697,11 +697,29 @@ class ImController extends ChangeNotifier {
     if (result.data != null) {
       var resp = CreateChatResponse.fromBuffer(result.data!);
       L.d("create chat success, ${resp}");
+      if (resp.hasEntities()) {
+        mergeEntity(resp.entities);
+      }
       return resp.chatId;
     } else {
       L.e("create chat error");
       return null;
     }
+  }
+
+  Future<void> topFeed(Int64 feedId) async {
+    var req = SetFeedTopRequest(id: feedId, top: true);
+    await sdk.invokeAsync(Command.FEED_SET_TOP, req.writeToBuffer());
+  }
+
+  Future<void> markFeedRead(Int64 feedId) async {
+    var req = ActiveFeedRequest(id: feedId);
+    await sdk.invokeAsync(Command.FEED_ACTIVE, req.writeToBuffer());
+  }
+
+  Future<void> muteFeed(Int64 feedId) async {
+    var req = SetFeedMuteRequest(id: feedId, mute: true);
+    await sdk.invokeAsync(Command.FEED_SET_MUTE, req.writeToBuffer());
   }
 
   // ─── M3: Pin ─────────────────────────────────────────────────

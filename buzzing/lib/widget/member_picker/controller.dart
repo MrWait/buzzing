@@ -52,6 +52,7 @@ class MemberPickerController extends ChangeNotifier {
   }
 
   void enterOrgRoot() {
+    if (!atRoot) return;
     loading = true;
     notifyListeners();
     Future.delayed(Duration.zero, () async {

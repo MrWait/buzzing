@@ -5,12 +5,13 @@ import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/routes/app_routes.dart';
 import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/utils/platform.dart';
+import 'package:go_router/go_router.dart';
 import 'package:buzzing/widget/header_bar.dart';
+import 'package:buzzing/widget/mobile_drawer.dart';
 import 'package:buzzing/widget/navigate_bar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 class ContactPage extends ConsumerWidget {
   @override
@@ -54,83 +55,20 @@ class _ContactDesktop extends ConsumerWidget {
   }
 }
 
-/// Mobile: full-screen contact list (org tree + users)
+/// Mobile: entry list (组织架构 / 星标联系人 / 外部联系人 / 新朋友申请)
 class _ContactMobile extends ConsumerWidget {
   const _ContactMobile();
-
-  Widget _buildLeftDrawer(BuildContext context, WidgetRef ref, ColorScheme cs, TextTheme tt,
-      String avatarUrl, String userName) {
-    return Drawer(
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => context.push(AppRoute.PERSONAL),
-                    child: CircleAvatar(
-                      radius: 28,
-                      backgroundImage: avatarUrl.isNotEmpty
-                          ? CachedNetworkImageProvider(avatarUrl)
-                          : null,
-                      child: avatarUrl.isEmpty
-                          ? Text(userName[0], style: tt.titleMedium)
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(userName, style: tt.titleMedium),
-                        const SizedBox(height: 2),
-                        Text(
-                          ref.watch(imProvider).loginUser.tenant.name,
-                          style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.person_outline),
-              title: const Text('个人名片'),
-              onTap: () { Navigator.of(context).pop(); context.push(AppRoute.PERSONAL); },
-            ),
-            ListTile(
-              leading: const Icon(Icons.devices_outlined),
-              title: const Text('登录设备'),
-              onTap: () { Navigator.of(context).pop(); context.push(AppRoute.DEVICES); },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings_outlined),
-              title: const Text('设置'),
-              onTap: () { Navigator.of(context).pop(); context.push(AppRoute.SETTINGS); },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final ctl = ref.watch(contactLogicProvider);
     final im = ref.watch(imProvider);
     final user = im.loginUser.user;
     final avatarUrl = CommonUtils.fixResourceUrl(user.avatar);
     final userName = user.name.isNotEmpty ? user.name : "?";
 
-    final drawer = _buildLeftDrawer(context, ref, cs, tt, avatarUrl, userName);
+    final drawer = buildMobileDrawer(context, ref);
 
     return Scaffold(
       drawer: drawer,
@@ -144,73 +82,83 @@ class _ContactMobile extends ConsumerWidget {
                   bottom: BorderSide(color: cs.outlineVariant, width: 0.5),
                 ),
               ),
-              child: GestureDetector(
-                onTap: () => Scaffold.of(context).openDrawer(),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 16,
-                      backgroundImage: avatarUrl.isNotEmpty
-                          ? CachedNetworkImageProvider(avatarUrl)
-                          : null,
-                      child: avatarUrl.isEmpty
-                          ? Text(userName[0], style: tt.bodySmall)
-                          : null,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(t.contacts, style: tt.titleSmall),
-                  ],
-                ),
-              ),
-            ),
-            // Search
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-              child: TextField(
-                onChanged: (v) => ctl.search(v),
-                decoration: InputDecoration(
-                  hintText: t.search,
-                  hintStyle: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
-                  prefixIcon: Icon(Icons.search, color: cs.onSurfaceVariant, size: 18),
-                  filled: true,
-                  fillColor: cs.surfaceVariant.withOpacity(0.5),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  isDense: true,
-                ),
-              ),
-            ),
-            // Category tabs
-            Container(
-              height: 36,
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: cs.outlineVariant, width: 0.5),
-                ),
-              ),
               child: Row(
                 children: [
-                  Expanded(child: _ContactCategoryTab(label: t.contacts, selected: ctl.mode == 0, onTap: () { if (ctl.mode != 0) { ctl.setMode(0); ctl.enterOrgRoot(); } })),
-                  Expanded(child: _ContactCategoryTab(label: t.starContacts, selected: ctl.mode == 1, onTap: () => ctl.setMode(1))),
-                  Expanded(child: _ContactCategoryTab(label: t.externalContacts, selected: ctl.mode == 2, onTap: () => ctl.setMode(2))),
+                  GestureDetector(
+                    onTap: () => Scaffold.of(context).openDrawer(),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundImage: avatarUrl.isNotEmpty
+                              ? CachedNetworkImageProvider(avatarUrl)
+                              : null,
+                          child: avatarUrl.isEmpty
+                              ? Text(userName[0], style: tt.bodySmall)
+                              : null,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(t.contacts, style: tt.titleSmall),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.search, size: 20),
+                    onPressed: () => context.push(AppRoute.SEARCH),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size(36, 36),
+                    ),
+                  ),
                 ],
               ),
             ),
-            // Content
             Expanded(
-              child: ListenableBuilder(
-                listenable: ctl,
-                builder: (ctx, _) {
-                  switch (ctl.mode) {
-                    case 0:
-                      return OrganizationView();
-                    default:
-                      return _PlaceholderView();
-                  }
-                },
+              child: ListView(
+                children: [
+                  _EntryItem(
+                    icon: Icons.account_tree_outlined,
+                    title: t.contacts,
+                    onTap: () {
+                      final ctl = ref.read(contactLogicProvider);
+                      ctl.setMode(0);
+                      ctl.enterOrgRoot();
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const ContactOrgPage(),
+                      ));
+                    },
+                  ),
+                  _EntryItem(
+                    icon: Icons.star_border,
+                    title: t.starContacts,
+                    onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => _SimplePlaceholder(title: t.starContacts),
+                      ));
+                    },
+                  ),
+                  _EntryItem(
+                    icon: Icons.contacts_outlined,
+                    title: t.externalContacts,
+                    onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => _SimplePlaceholder(title: t.externalContacts),
+                      ));
+                    },
+                  ),
+                  _EntryItem(
+                    icon: Icons.person_add_outlined,
+                    title: t.newFriendApplication,
+                    onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => _SimplePlaceholder(title: t.newFriendApplication),
+                      ));
+                    },
+                  ),
+                ],
               ),
             ),
           ],
@@ -220,27 +168,196 @@ class _ContactMobile extends ConsumerWidget {
   }
 }
 
-class _ContactCategoryTab extends StatelessWidget {
-  final String label;
-  final bool selected;
+class _EntryItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
   final VoidCallback onTap;
 
-  const _ContactCategoryTab({required this.label, required this.selected, required this.onTap});
+  const _EntryItem({required this.icon, required this.title, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
+    return ListTile(
+      leading: Icon(icon, size: 24, color: cs.primary),
+      title: Text(title),
+      trailing: Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
       onTap: onTap,
-      child: Container(
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: selected ? cs.primary : Colors.transparent, width: 2),
-          ),
+    );
+  }
+}
+
+/// Full-screen org tree page for mobile (push navigation)
+class ContactOrgPage extends ConsumerWidget {
+  const ContactOrgPage({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final ctl = ref.watch(contactLogicProvider);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(t.contacts),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        child: Text(label, style: TextStyle(fontSize: 13, color: selected ? cs.primary : cs.onSurfaceVariant, fontWeight: selected ? FontWeight.w600 : FontWeight.normal)),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: TextField(
+              onChanged: (v) => ctl.search(v),
+              decoration: InputDecoration(
+                hintText: t.search,
+                hintStyle: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                prefixIcon: Icon(Icons.search, color: cs.onSurfaceVariant, size: 18),
+                filled: true,
+                fillColor: cs.surfaceContainerHighest,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                isDense: true,
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListenableBuilder(
+              listenable: ctl,
+              builder: (ctx, _) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _BreadcrumbBar(),
+                    const Divider(height: 1),
+                    Expanded(
+                      child: ctl.currentDepts.isEmpty && ctl.currentUsers.isEmpty
+                          ? Center(
+                              child: Text('暂无数据',
+                                  style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant)))
+                          : ListView.separated(
+                              padding: EdgeInsets.zero,
+                              itemCount: ctl.currentDepts.length + ctl.filteredUsers.length,
+                              itemBuilder: (context, index) {
+                                if (index < ctl.currentDepts.length) {
+                                  return _DeptItem(dept: ctl.currentDepts[index]);
+                                }
+                                return _UserItem(
+                                    user: ctl.filteredUsers[index - ctl.currentDepts.length]);
+                              },
+                              separatorBuilder: (_, __) => Divider(height: 1, indent: 60),
+                            ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SimplePlaceholder extends StatelessWidget {
+  final String title;
+  const _SimplePlaceholder({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: Center(
+        child: Text('敬请期待',
+            style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+      ),
+    );
+  }
+}
+
+class ContactUserProfilePage extends ConsumerWidget {
+  final User user;
+  const ContactUserProfilePage({super.key, required this.user});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final im = ref.read(imProvider);
+
+    Widget buildAvatar() {
+      if (user.avatar.isEmpty) {
+        return Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            color: cs.primary,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+            style: tt.headlineSmall?.copyWith(color: cs.onPrimary),
+          ),
+        );
+      }
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: CachedNetworkImage(
+          width: 64,
+          height: 64,
+          imageUrl: CommonUtils.fixResourceUrl(user.avatar),
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('用户信息'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: Column(
+        children: [
+          const SizedBox(height: 32),
+          buildAvatar(),
+          const SizedBox(height: 16),
+          Text(user.name, style: tt.titleLarge),
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.chat_outlined, size: 18),
+                label: Text(t.sendMessage),
+                onPressed: () async {
+                  var chatId = await im.createP2PChat(user.id);
+                  if (chatId != null && context.mounted) {
+                    im.enterChat(chatId);
+                    context.go('/im');
+                  }
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -575,6 +692,12 @@ class _UserItem extends ConsumerWidget {
   }
 
   void _showUserProfile(BuildContext context, WidgetRef ref) {
+    if (isMobile) {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => ContactUserProfilePage(user: user),
+      ));
+      return;
+    }
     final im = ref.read(imProvider);
     showDialog(
       context: context,
