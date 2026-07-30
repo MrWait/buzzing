@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:buzzing/widget/header_bar.dart';
 import 'package:buzzing/widget/mobile_drawer.dart';
 import 'package:buzzing/widget/navigate_bar.dart';
+import 'package:buzzing/widget/user_list_item.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -617,70 +618,21 @@ class _UserItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
 
-    return GestureDetector(
+    return UserListItem(
+      name: user.name,
+      avatar: user.avatar,
+      subtitle: _deptName(ref),
       onTap: () => _showUserProfile(context, ref),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Row(
-          children: [
-            _buildAvatar(cs, tt),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(user.name, style: tt.bodyMedium),
-                  const SizedBox(height: 2),
-                  Text(
-                    _deptName(ref),
-                    style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: user.status == 1
-                    ? const Color(0xFF10CC64)
-                    : cs.onSurfaceVariant.withValues(alpha: 0.4),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAvatar(ColorScheme cs, TextTheme tt) {
-    if (user.avatar.isEmpty) {
-      return Container(
-        width: 32,
-        height: 32,
+      trailing: Container(
+        width: 8,
+        height: 8,
         decoration: BoxDecoration(
-          color: cs.primary,
-          borderRadius: BorderRadius.circular(4),
+          color: user.status == 1
+              ? const Color(0xFF10CC64)
+              : cs.onSurfaceVariant.withValues(alpha: 0.4),
+          shape: BoxShape.circle,
         ),
-        alignment: Alignment.center,
-        child: Text(
-          user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-          style: tt.bodySmall?.copyWith(color: cs.onPrimary),
-        ),
-      );
-    }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: Image(
-        width: 32,
-        height: 32,
-        image: CachedNetworkImageProvider(
-          CommonUtils.fixResourceUrl(user.avatar),
-        ),
-        fit: BoxFit.cover,
       ),
     );
   }
@@ -712,9 +664,11 @@ class _UserItem extends ConsumerWidget {
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    _buildAvatar(
-                        Theme.of(context).colorScheme,
-                        Theme.of(context).textTheme),
+                    UserAvatar(
+                        name: user.name,
+                        avatar: user.avatar,
+                        size: 56,
+                        radius: 8),
                     const SizedBox(height: 12),
                     Text(user.name,
                         style: Theme.of(context).textTheme.titleSmall),

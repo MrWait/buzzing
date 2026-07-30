@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/i18n/strings.g.dart';
+import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/entity.pbenum.dart';
@@ -11,6 +13,7 @@ import 'package:buzzing/models/idl/meeting.pb.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/widget/forward_picker.dart';
+import 'package:buzzing/utils/logger_util.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -31,8 +34,6 @@ class MessageBox extends ConsumerStatefulWidget {
 }
 
 class _MessageBoxState extends ConsumerState<MessageBox> {
-  var _hovering = false;
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -41,9 +42,9 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
     final msg = widget.msg;
     final user = widget.user;
     final isSelf = msg.fromId == im.userId;
-    final showAvatar = !isSelf;
     final isSystem = msg.tpy == MessageType.SYSTEM.value;
     final isDeleted = msg.status == EntityStatus.DELETED.value || msg.status == 5;
+    final isGroupChat = im.entity.chats[msg.chatId]?.chatType == 2;
 
     if (isDeleted) {
       return _DeletedMessage(msg: msg, cs: cs, tt: tt);
@@ -53,50 +54,55 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
       return _SystemContent(msg: msg, tt: tt, cs: cs);
     }
 
-    final bubbleColor = isSelf ? cs.primary : cs.surfaceContainerHigh;
-    final textColor = isSelf ? cs.onPrimary : cs.onSurface;
-
     final bubble = Column(
-      crossAxisAlignment: isSelf ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (showAvatar)
-          Padding(
+        Padding(
             padding: const EdgeInsets.only(bottom: 2),
-            child: Text(
-              user.name,
-              style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  user.name,
+                  style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _formatTime(msg.createTimeMs),
+                  style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                ),
+              ],
             ),
           ),
         if (msg.hasRefData() || msg.refMessageId != Int64(0))
           _ReplyDecorator(msg: msg, cs: cs, tt: tt),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: bubbleColor,
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: DefaultTextStyle(
-            style: tt.bodyMedium!.copyWith(color: textColor),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildContent(im),
-                // M5-F: translation result
-                if (im.translationCache[msg.id]?.containsKey('zh') == true) ...[
-                  const SizedBox(height: 6),
-                  Divider(height: 1, color: cs.outlineVariant.withOpacity(0.3)),
-                  const SizedBox(height: 4),
-                  Text(
-                    im.translationCache[msg.id]!['zh']!,
-                    style: tt.bodySmall?.copyWith(
-                      color: isSelf ? cs.onPrimary.withOpacity(0.85) : cs.onSurfaceVariant,
-                      fontStyle: FontStyle.italic,
-                    ),
+        _BubbleWithMenu(
+          isSelf: isSelf,
+          showRead: isSelf && isGroupChat,
+          onReadTap: () => _showReadDetail(context, im, msg),
+          hoverMenuBuilder: () => _buildHoverActions(context, cs, tt, im, isSelf),
+          cs: cs,
+          tt: tt,
+          msg: msg,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildContent(im),
+              if (im.translationCache[msg.id]?.containsKey('zh') == true) ...[
+                const SizedBox(height: 6),
+                Divider(height: 1, color: cs.outlineVariant.withOpacity(0.3)),
+                const SizedBox(height: 4),
+                Text(
+                  im.translationCache[msg.id]!['zh']!,
+                  style: tt.bodySmall?.copyWith(
+                    color: isSelf ? cs.onPrimaryContainer.withOpacity(0.85) : cs.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
                   ),
-                ],
+                ),
               ],
-            ),
+            ],
           ),
         ),
         Padding(
@@ -104,17 +110,6 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (msg.hasReadState() && !isSelf)
-                GestureDetector(
-                  onTap: () => _showReadDetail(context, im, msg),
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Text(
-                      '${msg.readState.readCount}/${msg.readState.total} 已读',
-                      style: tt.labelSmall?.copyWith(color: cs.primary),
-                    ),
-                  ),
-                ),
               if (im.pinnedMessages.any((m) => m.id == msg.id))
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
@@ -127,10 +122,6 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
                     ],
                   ),
                 ),
-              Text(
-                _formatTime(msg.createTimeMs),
-                style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-              ),
             ],
           ),
         ),
@@ -143,21 +134,23 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: desktop
           ? _buildDesktopMessage(context, cs, tt, im, isSelf, bubble)
-          : _buildMobileMessage(isSelf, bubble),
+          : _buildMobileMessage(bubble),
     );
   }
 
-  Widget _buildMobileMessage(bool isSelf, Widget bubble) {
+  Widget _buildMobileMessage(Widget bubble) {
     return Row(
-      mainAxisAlignment: isSelf ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (!isSelf) ...[
-          _buildAvatar(),
-          const SizedBox(width: 8),
-        ],
-        Flexible(child: bubble),
-        if (isSelf) const SizedBox(width: 8),
+        _buildAvatar(),
+        const SizedBox(width: 8),
+        Flexible(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: bubble,
+          ),
+        ),
       ],
     );
   }
@@ -170,26 +163,26 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
     bool isSelf,
     Widget bubble,
   ) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovering = true),
-      onExit: (_) => setState(() => _hovering = false),
-      child: GestureDetector(
-        onSecondaryTap: () => _showContextMenu(context, cs, tt, im),
-        child: Row(
-          mainAxisAlignment: isSelf ? MainAxisAlignment.end : MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!isSelf) ...[
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return GestureDetector(
+          onSecondaryTap: () => _showContextMenu(context, cs, tt, im),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               _buildAvatar(),
               const SizedBox(width: 8),
+              Flexible(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: constraints.maxWidth - 36),
+                  child: bubble,
+                ),
+              ),
             ],
-            Flexible(child: bubble),
-            if (isSelf) const SizedBox(width: 8),
-            if (_hovering)
-              _buildHoverActions(context, cs, tt, im, isSelf),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -201,55 +194,135 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
     bool isSelf,
   ) {
     final msg = widget.msg;
-    return FittedBox(
-      child: Container(
-        height: 28,
-        decoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: cs.outlineVariant),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _actionBtn(Icons.reply_rounded, '回复', () {
-              im.setReplyTarget(msg);
-            }, cs),
-            _actionBtn(Icons.forum_outlined, 'Thread', () {
+    return Container(
+      height: 30,
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: cs.outlineVariant),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _actionBtn(Icons.emoji_emotions_outlined, '反应', () {
+            _showReactionPicker(context, im);
+          }, cs),
+          _actionBtn(Icons.reply_rounded, '回复', () {
+            im.setReplyTarget(msg);
+          }, cs),
+          _actionBtn(Icons.forward_rounded, '转发', () {
+            _showForwardDialog(context, im);
+          }, cs),
+          _moreBtn(context, cs, tt, im),
+        ],
+      ),
+    );
+  }
+
+  Widget _moreBtn(BuildContext context, ColorScheme cs, TextTheme tt, ImController im) {
+    final msg = widget.msg;
+    return Tooltip(
+      message: '更多',
+      child: InkWell(
+        onTap: () {
+          final btn = context.findRenderObject() as RenderBox?;
+          final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+          if (btn == null || overlay == null) return;
+          final offset = btn.localToGlobal(Offset.zero, ancestor: overlay);
+          showMenu<String>(
+            context: context,
+            position: RelativeRect.fromLTRB(offset.dx, offset.dy - 120, offset.dx + 40, offset.dy),
+            items: [
+              PopupMenuItem(value: 'thread', child: ListTile(
+                leading: Icon(Icons.forum_outlined, size: 18),
+                title: Text('Thread', style: tt.bodySmall),
+                dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero,
+              )),
+              PopupMenuItem(value: 'favorite', child: ListTile(
+                leading: Icon(Icons.star_outline, size: 18),
+                title: Text('收藏', style: tt.bodySmall),
+                dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero,
+              )),
+              if (im.pinnedMessages.any((m) => m.id == msg.id))
+                PopupMenuItem(value: 'unpin', child: ListTile(
+                  leading: Icon(Icons.push_pin, size: 18),
+                  title: Text('取消置顶', style: tt.bodySmall),
+                  dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero,
+                ))
+              else
+                PopupMenuItem(value: 'pin', child: ListTile(
+                  leading: Icon(Icons.push_pin_outlined, size: 18),
+                  title: Text('置顶', style: tt.bodySmall),
+                  dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero,
+                )),
+              if (msg.tpy == 4)
+                PopupMenuItem(value: 'transcribe', child: ListTile(
+                  leading: Icon(Icons.notes, size: 18),
+                  title: Text(t.transcribe, style: tt.bodySmall),
+                  dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero,
+                )),
+              if ([1, 11, 13].contains(msg.tpy))
+                PopupMenuItem(value: 'translate', child: ListTile(
+                  leading: Icon(Icons.translate, size: 18),
+                  title: Text('翻译', style: tt.bodySmall),
+                  dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero,
+                )),
+              PopupMenuItem(value: 'delete', child: ListTile(
+                leading: Icon(Icons.delete_outline, size: 18),
+                title: Text('删除', style: tt.bodySmall),
+                dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero,
+              )),
+            ],
+          ).then((value) {
+            if (value == 'thread') {
               im.openThread(msg);
-            }, cs),
-            _actionBtn(Icons.forward_rounded, '转发', () {
-              _showForwardDialog(context, im);
-            }, cs),
-            _actionBtn(Icons.star_outline, '收藏', () {
+            } else if (value == 'favorite') {
               im.favoriteMessage(msg);
-            }, cs),
-            // 检查消息是否已被置顶（通过 pinnedMessages 列表判断）
-            if (im.pinnedMessages.any((m) => m.id == msg.id))
-              _actionBtn(Icons.push_pin, '取消置顶', () {
-                im.unpinMessage(msg.chatId, msg.id);
-              }, cs)
-            else
-              _actionBtn(Icons.push_pin_outlined, '置顶', () {
-                im.pinMessage(msg.chatId, msg.id);
-              }, cs),
-            // M5-A: voice transcribe
-            if (msg.tpy == 4)
-              _actionBtn(Icons.notes, t.transcribe, () {
-                im.transcribeVoice(msg.id, msg.chatId);
-              }, cs),
-            // M5-F: translate (for text/richtext/markdown)
-            if ([1, 11, 13].contains(msg.tpy))
-              _actionBtn(Icons.translate, '翻译', () {
-                im.translateMessage(msg.id, msg.chatId, 'zh');
-              }, cs),
-            _actionBtn(Icons.delete_outline, '删除', () {
+            } else if (value == 'pin') {
+              im.pinMessage(msg.chatId, msg.id);
+            } else if (value == 'unpin') {
+              im.unpinMessage(msg.chatId, msg.id);
+            } else if (value == 'transcribe') {
+              im.transcribeVoice(msg.id, msg.chatId);
+            } else if (value == 'translate') {
+              im.translateMessage(msg.id, msg.chatId, 'zh');
+            } else if (value == 'delete') {
               _confirmDelete(context, im, msg);
-            }, cs),
-          ],
+            }
+          });
+        },
+        child: Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          child: Icon(Icons.more_horiz, size: 16, color: cs.onSurfaceVariant),
         ),
       ),
     );
+  }
+
+  void _showReactionPicker(BuildContext context, ImController im) {
+    final msg = widget.msg;
+    showMenu<int>(
+      context: context,
+      position: RelativeRect.fromLTRB(100, 100, 100, 100),
+      items: const [
+        PopupMenuItem(value: 1, child: Text('👍')),
+        PopupMenuItem(value: 2, child: Text('❤️')),
+        PopupMenuItem(value: 3, child: Text('😄')),
+        PopupMenuItem(value: 4, child: Text('😮')),
+        PopupMenuItem(value: 5, child: Text('😢')),
+        PopupMenuItem(value: 6, child: Text('🙏')),
+      ],
+    ).then((value) {
+      if (value != null) {
+        // TODO: implement reaction via SDK
+        L.d("reaction: $value on message ${msg.id}");
+      }
+    });
   }
 
   Widget _actionBtn(IconData icon, String tooltip, VoidCallback onTap, ColorScheme cs) {
@@ -460,7 +533,6 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
 
   Widget _buildAvatar() {
     final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
     final u = widget.user;
     final im = ref.watch(imProvider);
     final presence = im.presenceMap[u.id];
@@ -469,19 +541,7 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
       onTap: () {},
       child: Stack(
         children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: cs.primary,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              u.name.isNotEmpty ? u.name[0].toUpperCase() : '?',
-              style: tt.bodySmall?.copyWith(color: cs.onPrimary),
-            ),
-          ),
+          _MessageAvatar(user: u),
           if (presence != null)
             Positioned(
               right: 0, bottom: 0,
@@ -502,11 +562,19 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
   void _showReadDetail(BuildContext context, ImController im, Message msg) async {
     final resp = await im.getReadMembers(msg.chatId, msg.id);
     if (resp == null || context.mounted == false) return;
+    if (isDesktop) {
+      _showReadDetailDesktop(context, msg, resp);
+    } else {
+      _showReadDetailMobile(context, msg, resp);
+    }
+  }
+
+  void _showReadDetailMobile(BuildContext context, Message msg, dynamic resp) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     showModalBottomSheet(
       context: context,
       builder: (ctx) {
-        final cs = Theme.of(context).colorScheme;
-        final tt = Theme.of(context).textTheme;
         return Container(
           padding: const EdgeInsets.all(16),
           constraints: BoxConstraints(maxHeight: 400),
@@ -550,10 +618,326 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
     );
   }
 
+  void _showReadDetailDesktop(BuildContext context, Message msg, dynamic resp) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final readMembers = resp.members.where((m) => m.isRead).toList();
+    final unreadMembers = resp.members.where((m) => !m.isRead).toList();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          contentPadding: EdgeInsets.zero,
+          content: SizedBox(
+            width: 420,
+            height: 400,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text('${readMembers.length} 已读', style: tt.titleSmall),
+                      ),
+                      const Divider(height: 1),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: readMembers.length,
+                          itemBuilder: (ctx, i) => _memberItem(readMembers[i], cs, tt),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const VerticalDivider(width: 1),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text('${unreadMembers.length} 未读', style: tt.titleSmall),
+                      ),
+                      const Divider(height: 1),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: unreadMembers.length,
+                          itemBuilder: (ctx, i) => _memberItem(unreadMembers[i], cs, tt),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _memberItem(dynamic m, ColorScheme cs, TextTheme tt) {
+    return ListTile(
+      dense: true,
+      leading: Container(
+        width: 28, height: 28,
+        decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(4)),
+        alignment: Alignment.center,
+        child: Text(
+          (m.name.isNotEmpty ? m.name : '?')[0].toUpperCase(),
+          style: tt.bodySmall?.copyWith(color: cs.onPrimary),
+        ),
+      ),
+      title: Text(m.name, style: tt.bodySmall),
+    );
+  }
+
   String _formatTime(Int64 ms) {
     var dt = DateTime.fromMillisecondsSinceEpoch(ms.toInt());
     return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
+}
+
+/// 消息气泡 + 已读标记 + hover 菜单的合并组件。
+/// hover 菜单仅在鼠标悬停时挂载，位置基于布局后测量的气泡宽度计算，
+/// 不在 build 期读取 RenderBox size，避免 "could not get size during build"。
+class _BubbleWithMenu extends StatefulWidget {
+  final Widget child;
+  final bool isSelf;
+  final bool showRead;
+  final VoidCallback onReadTap;
+  final Widget Function() hoverMenuBuilder;
+  final ColorScheme cs;
+  final TextTheme tt;
+  final Message msg;
+
+  const _BubbleWithMenu({
+    required this.child,
+    required this.isSelf,
+    required this.showRead,
+    required this.onReadTap,
+    required this.hoverMenuBuilder,
+    required this.cs,
+    required this.tt,
+    required this.msg,
+  });
+
+  @override
+  State<_BubbleWithMenu> createState() => _BubbleWithMenuState();
+}
+
+class _BubbleWithMenuState extends State<_BubbleWithMenu> {
+  var _hovering = false;
+  final _bubbleKey = GlobalKey();
+  double _bubbleW = 0;
+  // 记录 _bubbleW 对应测量的是哪条消息。ListView 会复用 State，
+  // 避免用上一条较宽消息的残留宽度导致短消息的 hover 菜单误翻转。
+  int _measuredMsgId = -1;
+  // hover 令牌：每次进入 hover 自增。菜单只有在“本次 hover 的测量”完成后
+  // （_measureToken 与该次 hover 令牌一致）才渲染，从根上杜绝用旧测量结果
+  // 定位菜单导致的误翻转。
+  int _hoverToken = 0;
+  int _measureToken = -1;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+  }
+
+  @override
+  void didUpdateWidget(covariant _BubbleWithMenu oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 消息/列宽变化（含 State 被 ListView 复用到新消息）时，立即作废上一条
+    // 消息的测量结果，避免用旧气泡宽度误判位置；随后重新测量。
+    if (oldWidget.msg.id != widget.msg.id) {
+      if (_measuredMsgId != widget.msg.id.toInt()) {
+        _measuredMsgId = -1;
+        _bubbleW = 0;
+        _measureToken = -1;
+      }
+      _scheduleMeasure();
+    }
+  }
+
+  void _scheduleMeasure() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+  }
+
+  /// 布局完成后测量气泡实际宽度，供 hover 菜单位置使用。
+  void _measure() {
+    if (!mounted) return;
+    final w = _bubbleKey.currentContext?.size?.width;
+    if (w == null) return;
+    final mid = widget.msg.id.toInt();
+    if (w != _bubbleW ||
+        _measuredMsgId != mid ||
+        _measureToken != _hoverToken) {
+      setState(() {
+        _bubbleW = w;
+        _measuredMsgId = mid;
+        _measureToken = _hoverToken;
+      });
+    }
+  }
+
+  void _onHoverEnter() {
+    setState(() {
+      _hovering = true;
+      // 本次 hover 尚未完成测量，先失效旧测量结果，隐藏菜单直到重新测量。
+      _hoverToken += 1;
+      _measureToken = -1;
+    });
+    _scheduleMeasure();
+  }
+
+  void _onHoverExit() {
+    setState(() => _hovering = false);
+  }
+
+  /// hover 菜单是否放在气泡右侧；右侧空间不足时放在左侧。
+  /// maxW 来自布局时的可用宽度（Flexible 的约束上限），换算后
+  /// 右侧可用空间 = maxW - 气泡宽，无需依赖外部缓存的行宽。
+  bool _showOnRight(double maxW) {
+    const menuW = 116.0;
+    return maxW - _bubbleW >= menuW;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = widget.cs;
+    final tt = widget.tt;
+    final isSelf = widget.isSelf;
+    final bubbleColor = isSelf ? cs.primaryContainer : cs.surfaceContainerHigh;
+    final textColor = isSelf ? cs.onPrimaryContainer : cs.onSurface;
+
+    return MouseRegion(
+      onEnter: (_) => _onHoverEnter(),
+      onExit: (_) => _onHoverExit(),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      key: _bubbleKey,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: bubbleColor,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: DefaultTextStyle(
+                        style: tt.bodyMedium!.copyWith(color: textColor),
+                        child: widget.child,
+                      ),
+                    ),
+                    if (isDesktop &&
+                        _hovering &&
+                        _measureToken == _hoverToken &&
+                        _measuredMsgId == widget.msg.id.toInt() &&
+                        _bubbleW > 0)
+                      Positioned(
+                        left: _showOnRight(constraints.maxWidth)
+                            ? _bubbleW + 4
+                            : null,
+                        right: _showOnRight(constraints.maxWidth) ? null : 4,
+                        top: 0,
+                        child: widget.hoverMenuBuilder(),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+          if (widget.showRead)
+            _ReadCircle(
+              readState: widget.msg.hasReadState() ? widget.msg.readState : ReadState.create(),
+              onTap: widget.onReadTap,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+int _readPercent(ReadState rs) {
+  if (rs.total <= 0) return 0;
+  final pct = (rs.readCount / rs.total * 100).round();
+  if (pct >= 100) return 100;
+  return ((pct / 10).floor() * 10).clamp(10, 90);
+}
+
+class _ReadCircle extends StatelessWidget {
+  final ReadState readState;
+  final VoidCallback onTap;
+
+  const _ReadCircle({
+    required this.readState,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = _readPercent(readState);
+    const green = Color(0xFF4ADE80);
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 4),
+        child: SizedBox(
+          width: 16,
+          height: 16,
+          child: CustomPaint(
+            painter: _CirclePainter(percent: pct, color: green),
+            child: pct >= 100
+                ? Center(
+                    child: Text('✓', style: TextStyle(color: green, fontSize: 11, fontWeight: FontWeight.w700)),
+                  )
+                : null,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CirclePainter extends CustomPainter {
+  final int percent;
+  final Color color;
+
+  _CirclePainter({required this.percent, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(2, 2, size.width - 4, size.height - 4);
+
+    final bgPaint = Paint()
+      ..color = color.withValues(alpha: 0.8)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawOval(rect, bgPaint);
+
+    if (percent > 0) {
+      final fillPaint = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round;
+      canvas.drawArc(rect, -math.pi / 2, (percent / 100) * 2 * math.pi, false, fillPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _CirclePainter old) => old.percent != percent;
 }
 
 class _ReplyDecorator extends StatelessWidget {
@@ -614,29 +998,47 @@ class _ImageContent extends StatelessWidget {
         child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
-    return GestureDetector(
-      onTap: () => _previewImage(context, url),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: CachedNetworkImage(
-          imageUrl: url,
-          width: img.width > 0 ? img.width.toDouble() : 200,
-          height: img.height > 0 ? img.height.toDouble() : 200,
-          fit: BoxFit.cover,
-          placeholder: (_, __) => Container(
-            width: 200,
-            height: 200,
-            color: cs.surfaceContainerLow,
-            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 限制最大展示尺寸：宽不超过可用区域，高不超过 maxH，超限按比例缩放
+        const maxH = 360.0;
+        final maxW = constraints.hasBoundedWidth ? constraints.maxWidth : 360.0;
+        final ow = img.width.toDouble();
+        final oh = img.height.toDouble();
+        var w = ow > 0 ? ow : 200.0;
+        var h = oh > 0 ? oh : 200.0;
+        if (w > maxW || h > maxH) {
+          final scale = math.min(maxW / w, maxH / h);
+          if (scale < 1) {
+            w *= scale;
+            h *= scale;
+          }
+        }
+        return GestureDetector(
+          onTap: () => _previewImage(context, url),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: CachedNetworkImage(
+              imageUrl: url,
+              width: w,
+              height: h,
+              fit: BoxFit.cover,
+              placeholder: (_, __) => Container(
+                width: w,
+                height: h,
+                color: cs.surfaceContainerLow,
+                child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              ),
+              errorWidget: (_, __, ___) => Container(
+                width: w,
+                height: h,
+                color: cs.errorContainer,
+                child: Icon(Icons.broken_image, color: cs.onErrorContainer),
+              ),
+            ),
           ),
-          errorWidget: (_, __, ___) => Container(
-            width: 200,
-            height: 200,
-            color: cs.errorContainer,
-            child: Icon(Icons.broken_image, color: cs.onErrorContainer),
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -1345,6 +1747,72 @@ class _MeetingInviteCard extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 消息发送者头像：优先展示真实头像，头像为空或加载失败时 fallback 到首字母默认头像
+class _MessageAvatar extends StatefulWidget {
+  final User user;
+
+  const _MessageAvatar({required this.user});
+
+  @override
+  State<_MessageAvatar> createState() => _MessageAvatarState();
+}
+
+class _MessageAvatarState extends State<_MessageAvatar> {
+  bool _failed = false;
+
+  @override
+  void didUpdateWidget(_MessageAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user.avatar != widget.user.avatar) {
+      _failed = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final u = widget.user;
+    final avatarUrl = CommonUtils.fixResourceUrl(u.avatar);
+    final showImage = avatarUrl.isNotEmpty && !_failed;
+
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: cs.primary,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: showImage
+          ? Image(
+              image: CachedNetworkImageProvider(avatarUrl),
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) {
+                if (!_failed) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) setState(() => _failed = true);
+                  });
+                }
+                return _buildFallback();
+              },
+            )
+          : _buildFallback(),
+    );
+  }
+
+  Widget _buildFallback() {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final u = widget.user;
+    return Center(
+      child: Text(
+        u.name.isNotEmpty ? u.name[0].toUpperCase() : '?',
+        style: tt.bodySmall?.copyWith(color: cs.onPrimary),
       ),
     );
   }

@@ -3,13 +3,19 @@ import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/const.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/entity.pbenum.dart';
-
 import 'package:buzzing/models/model.dart';
+import 'package:buzzing/page/chat/group_edit_page.dart';
+import 'package:buzzing/page/chat/group_manage_page.dart';
+import 'package:buzzing/page/chat/group_profile_page.dart';
+import 'package:buzzing/page/chat/member_list_page.dart';
 import 'package:buzzing/provider/im_provider.dart';
+import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/routes/app_routes.dart';
 import 'package:buzzing/res/theme.dart';
+import 'package:buzzing/utils/data_persistence.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:buzzing/utils/platform.dart';
+import 'package:buzzing/widget/announcement_dialog.dart';
 import 'package:buzzing/widget/message.dart';
 import 'package:buzzing/widget/message_input.dart';
 import 'package:fixnum/fixnum.dart';
@@ -48,21 +54,62 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     }
   }
 
+  void _startMeeting(BuildContext context) {
+    final im = ref.read(imProvider);
+    if (im.chatId == Int64(0)) return;
+
+    final meetingHome = ref.read(meetingHomeLogicProvider);
+    final account = DataPersistence.getAccount();
+    final hostName = account?.loginUser?.user.name ?? '';
+
+    meetingHome.createMeeting(title: '群聊会议').then((resp) {
+      if (resp == null || !resp.hasMeeting()) return;
+      meetingHome.shareMeetingToChat(
+        im: im,
+        chatId: im.chatId,
+        roomId: resp.meeting.roomId,
+        title: resp.meeting.title,
+        hostName: hostName,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已发送会议邀请'), duration: Duration(seconds: 2)),
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final bt = Theme.of(context).extension<BuzzingTheme>()!;
     final im = ref.watch(imProvider);
 
     if (isMobile && widget.routeChatId != null) {
+      final cs = Theme.of(context).colorScheme;
       return Scaffold(
         appBar: AppBar(
+          backgroundColor: cs.surface,
+          foregroundColor: cs.onSurface,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => context.pop(),
           ),
           title: Text(im.getChat(im.chatId)?.name ?? ''),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.videocam),
+              onPressed: () => _startMeeting(context),
+            ),
+            IconButton(
+              icon: const Icon(Icons.more_horiz),
+              onPressed: () => context.push('${AppRoute.GROUP_PROFILE}/${im.chatId}'),
+            ),
+          ],
         ),
-        body: _ChatBody(bt: bt, im: im),
+        body: ListenableBuilder(
+          listenable: im,
+          builder: (ctx, _) => _ChatBody(bt: bt, im: im, showHeader: false),
+        ),
       );
     }
 
@@ -79,8 +126,9 @@ class _ChatPageState extends ConsumerState<ChatPage> {
 class _ChatBody extends StatelessWidget {
   final BuzzingTheme bt;
   final ImController im;
+  final bool showHeader;
 
-  const _ChatBody({required this.bt, required this.im});
+  const _ChatBody({required this.bt, required this.im, this.showHeader = true});
 
   @override
   Widget build(BuildContext context) {
@@ -99,32 +147,127 @@ class _ChatBody extends StatelessWidget {
     final announcement = chat?.chatType == 2
         ? im.entity.messages[chatId]
         : null;
-    return Column(
+    if (announcement != null) {
+      L.d(
+        "chat body announcement, id=${announcement.id} tpy=${announcement.tpy} "
+        "status=${announcement.status} summary=${announcement.summary}",
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _ChatHeader(chat: chat, chatId: chatId, im: im),
-        if (announcement != null &&
-            announcement.tpy == MessageType.ANNOUNCEMENT.value)
-          _AnnouncementBanner(
-            message: announcement,
-            isOwner: im.userId == chat?.ownerId,
-            isAdmin: chat?.adminIds.contains(im.userId) ?? false,
-            im: im,
-            chatId: chatId,
-          ),
-        if (im.pinnedMessages.isNotEmpty)
-          _PinnedBanner(
-            pinnedMessages: im.pinnedMessages,
-            im: im,
-          ),
-        if (im.chatSearchVisible)
-          _ChatSearchBar(im: im, chatId: chatId),
         Expanded(
-          child: im.isThreadPanelOpen && im.threadRootMessage != null
-              ? _ThreadPanel(im: im)
-              : const MessageView(),
+          child: Column(
+            children: [
+              if (showHeader)
+                _ChatHeader(chat: chat, chatId: chatId, im: im),
+              if (announcement != null &&
+                  announcement.tpy == MessageType.ANNOUNCEMENT.value &&
+                  announcement.status != EntityStatus.DELETED.value)
+                _AnnouncementBanner(
+                  message: announcement,
+                  isOwner: im.userId == chat?.ownerId,
+                  isAdmin: chat?.adminIds.contains(im.userId) ?? false,
+                  im: im,
+                  chatId: chatId,
+                ),
+              if (im.pinnedMessages.isNotEmpty)
+                _PinnedBanner(
+                  pinnedMessages: im.pinnedMessages,
+                  im: im,
+                ),
+              if (im.chatSearchVisible)
+                _ChatSearchBar(im: im, chatId: chatId),
+              Expanded(
+                child: im.isThreadPanelOpen && im.threadRootMessage != null
+                    ? _ThreadPanel(im: im)
+                    : const MessageView(),
+              ),
+              if (!im.isThreadPanelOpen) MessageInput(),
+            ],
+          ),
         ),
-        if (!im.isThreadPanelOpen) MessageInput(),
+        if (isDesktop && im.isGroupProfileOpen)
+          _GroupProfilePanel(im: im, chatId: chatId),
       ],
+    );
+  }
+}
+
+class _GroupProfilePanel extends ConsumerWidget {
+  final ImController im;
+  final Int64 chatId;
+
+  const _GroupProfilePanel({required this.im, required this.chatId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final inMemberList = im.isGroupMemberListOpen;
+    final inGroupEdit = im.isGroupEditOpen;
+    final inGroupManage = im.isGroupManageOpen;
+    final subTitle = inMemberList
+        ? '群成员'
+        : (inGroupEdit
+            ? '群信息'
+            : (inGroupManage ? '群管理' : '设置'));
+    final titleStyle = (inMemberList || inGroupEdit || inGroupManage)
+        ? tt.titleSmall
+        : tt.titleMedium;
+    final onBack = inMemberList
+        ? im.closeGroupMemberList
+        : (inGroupEdit ? im.closeGroupEdit : im.closeGroupManage);
+    return Container(
+      width: 320,
+      decoration: BoxDecoration(
+        border: Border(left: BorderSide(color: cs.outlineVariant)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: cs.outlineVariant)),
+            ),
+            child: Row(
+              children: [
+                if (inMemberList || inGroupEdit || inGroupManage) ...[
+                  IconButton(
+                    icon: Icon(Icons.arrow_back,
+                        size: 18, color: cs.onSurfaceVariant),
+                    onPressed: onBack,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                Text(subTitle, style: titleStyle),
+                const Spacer(),
+                IconButton(
+                  icon: Icon(Icons.close, size: 18, color: cs.onSurfaceVariant),
+                  onPressed: im.closeGroupProfile,
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: inMemberList
+                ? MemberListView(chatId: chatId)
+                : inGroupEdit
+                    ? GroupEditView(chatId: chatId)
+                    : inGroupManage
+                        ? GroupManageView(chatId: chatId)
+                        : GroupProfileContent(chatId: chatId),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -231,7 +374,11 @@ class _ChatHeader extends StatelessWidget {
             IconButton(
               icon: Icon(Icons.more_horiz, size: 20, color: cs.onSurfaceVariant),
               onPressed: () {
-                context.push('${AppRoute.GROUP_PROFILE}/$chatId');
+                if (isDesktop) {
+                  im.openGroupProfile();
+                } else {
+                  context.push('${AppRoute.GROUP_PROFILE}/$chatId');
+                }
               },
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
@@ -245,7 +392,7 @@ class _ChatHeader extends StatelessWidget {
 }
 
 class _AnnouncementBanner extends ConsumerWidget {
-  final dynamic message;
+  final Message message;
   final bool isOwner;
   final bool isAdmin;
   final ImController im;
@@ -263,11 +410,12 @@ class _AnnouncementBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final msg = message as dynamic;
+    final title = announcementTitle(message);
+    final body = announcementBodyText(message);
     return GestureDetector(
-      onTap: () => _showAnnouncementDetail(context, msg),
+      onTap: () => showAnnouncementViewer(context, message, im: im),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: cs.primaryContainer.withValues(alpha: 0.3),
           border: Border(bottom: BorderSide(color: cs.outlineVariant)),
@@ -282,14 +430,14 @@ class _AnnouncementBanner extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    msg.summary.isNotEmpty ? msg.summary : '群公告',
+                    title.isNotEmpty ? title : '群公告',
                     style: tt.bodySmall?.copyWith(fontWeight: FontWeight.w600),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (msg.summary.isNotEmpty)
+                  if (body.isNotEmpty)
                     Text(
-                      msg.summary,
+                      body,
                       style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -297,32 +445,52 @@ class _AnnouncementBanner extends ConsumerWidget {
                 ],
               ),
             ),
-            if (isOwner || isAdmin)
-              GestureDetector(
-                onTap: () async {
-                  await im.deleteAnnouncement(chatId);
-                },
-                child: Icon(Icons.close, size: 16, color: cs.onSurfaceVariant),
+            if (isOwner || isAdmin) ...[
+              IconButton(
+                icon: Icon(Icons.edit_outlined,
+                    size: 16, color: cs.onSurfaceVariant),
+                tooltip: '编辑公告',
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                onPressed: () =>
+                    showAnnouncementEditor(context, im, chatId, message),
               ),
+              IconButton(
+                icon: Icon(Icons.delete_outline,
+                    size: 16, color: cs.onSurfaceVariant),
+                tooltip: '删除公告',
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                onPressed: () => _confirmDelete(context),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  void _showAnnouncementDetail(BuildContext context, dynamic msg) {
+  void _confirmDelete(BuildContext context) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(msg.summary.isNotEmpty ? msg.summary : '群公告'),
-        content: Text(
-          msg.content.toString(),
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+        title: const Text('删除公告'),
+        content: const Text('确定要删除该群公告吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('关闭'),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              im.deleteAnnouncement(chatId);
+              Navigator.pop(ctx);
+            },
+            child: Text('删除',
+                style:
+                    TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ],
       ),

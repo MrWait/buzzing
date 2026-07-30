@@ -52,10 +52,32 @@ impl PipelineModel {
         tracing::debug!("save packets ok: {res:?}");
         Ok(())
     }
+    pub async fn delete_le_sid(
+        db: &DatabaseConnection,
+        user_id: i64,
+        sid: i64,
+    ) -> ModelResult<()> {
+        Entity::delete_many()
+            .filter(
+                model::query::condition()
+                    .eq(pipelines::Column::UserId, user_id)
+                    .lte(pipelines::Column::Sid, sid)
+                    .build(),
+            )
+            .exec(db)
+            .await?;
+        Ok(())
+    }
 }
 
 impl Into<entity::Packet> for PipelineModel {
     fn into(self) -> entity::Packet {
-        entity::Packet::default()
+        entity::Packet {
+            rid: self.0.sid,
+            code: 0,
+            cmd: self.0.command,
+            http: false,
+            payload: self.0.data,
+        }
     }
 }

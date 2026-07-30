@@ -10,3 +10,4 @@ cargo.log
 *.db
 local/
 .xmake/
+docs/

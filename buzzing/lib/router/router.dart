@@ -1,7 +1,9 @@
 import 'package:buzzing/page/calendar/calendar_view.dart';
 import 'package:buzzing/page/chat/chat_view.dart';
+import 'package:buzzing/page/chat/group_edit_page.dart';
+import 'package:buzzing/page/chat/group_manage_page.dart';
 import 'package:buzzing/page/chat/group_profile_page.dart';
-import 'package:buzzing/page/chat/invite_links_page.dart';
+import 'package:buzzing/page/chat/group_share.dart';
 import 'package:buzzing/page/chat/join_requests_page.dart';
 import 'package:buzzing/page/chat/member_list_page.dart';
 import 'package:buzzing/page/contact/contact_view.dart';
@@ -112,6 +114,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ),
     GoRoute(
+      path: '${AppRoute.GROUP_EDIT}/:chatId',
+      pageBuilder: (ctx, state) => _pageBuilder(
+        ctx,
+        state,
+        GroupEditPage(chatId: Int64(int.parse(state.pathParameters['chatId']!))),
+      ),
+    ),
+    GoRoute(
+      path: '${AppRoute.GROUP_SHARE}/:chatId',
+      pageBuilder: (ctx, state) => _pageBuilder(
+        ctx,
+        state,
+        GroupSharePage(chatId: Int64(int.parse(state.pathParameters['chatId']!))),
+      ),
+    ),
+    GoRoute(
       path: '${AppRoute.JOIN_REQUESTS}/:chatId',
       pageBuilder: (ctx, state) => _pageBuilder(
         ctx,
@@ -120,11 +138,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ),
     GoRoute(
-      path: '${AppRoute.INVITE_LINKS}/:chatId',
+      path: '${AppRoute.GROUP_MANAGE}/:chatId',
       pageBuilder: (ctx, state) => _pageBuilder(
         ctx,
         state,
-        InviteLinksPage(chatId: Int64(int.parse(state.pathParameters['chatId']!))),
+        GroupManagePage(chatId: Int64(int.parse(state.pathParameters['chatId']!))),
       ),
     ),
     GoRoute(

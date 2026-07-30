@@ -5,12 +5,13 @@ use std::sync::{Arc, LazyLock};
 use tokio::sync::RwLock;
 use tracing::debug;
 
+use loco_rs::prelude::DateTimeWithTimeZone;
 use super::{ChatContext, VecBool};
-use sea_orm::{ConnectionTrait, EntityTrait, DbBackend, Statement};
+use sea_orm::{ActiveValue, EntityTrait};
 use crate::models::{Cmv, chats::{ChatModel, ActiveModel, Entity as ChatEntity}, cmvs, feeds::FeedModel, messages};
 use common::{BizHub, CacheLoader, CommonCache, EntityIds, EntityStatus, UserBrief};
-use common::{common_error, pb_decode, time::current_ms};
-use proto::idl::{chat, entity, error::ErrorCode};
+use common::{common_error, pb_decode, rid, time::current_ms};
+use proto::idl::{chat, command::Command, entity, error::ErrorCode, message};
 
 type CacheChat = Arc<RwLock<ChatContext>>;
 static CACHE_CHAT: LazyLock<CommonCache<i64, CacheChat>> =
@@ -471,7 +472,6 @@ pub(crate) async fn chat_update(
         }
 
         if changed {
-            use sea_orm::ActiveValue;
             let active = ActiveModel {
                 id: ActiveValue::set(c.chat.id),
                 name: ActiveValue::set(c.chat.name.clone()),
@@ -646,37 +646,61 @@ pub(crate) async fn chat_set_announcement(
         body: req.body.clone(),
     };
     let content_bytes = content.encode_to_vec();
-    let now = current_ms() as i64;
-
-    let stmt = Statement::from_sql_and_values(
-        DbBackend::Postgres,
-        r#"
-        INSERT INTO messages (id, chat_id, r#type, from_id, content, summary, version, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, 0, NOW(), NOW())
-        ON CONFLICT (id) DO UPDATE SET
-            r#type = EXCLUDED.r#type,
-            content = EXCLUDED.content,
-            summary = EXCLUDED.summary,
-            updated_at = NOW()
-        "#,
-        vec![
-            req.chat_id.into(),
-            req.chat_id.into(),
-            (entity::MessageType::Announcement as i32).into(),
-            brief.id.into(),
-            content_bytes.clone().into(),
-            req.summary.clone().into(),
-        ],
+    let now_ms = current_ms() as i64;
+    let now = DateTimeWithTimeZone::from(
+        chrono::DateTime::<chrono::Utc>::from_timestamp_millis(now_ms).unwrap(),
     );
-    ctx.db.execute(stmt).await.map_err(|e| common_error(&format!("upsert announcement error: {e}")))?;
+
+    // 公告消息存 messages 表（id == chat_id）。messages 全部业务列为 NOT NULL，
+    // 此处通过 ORM 全量填充后 upsert，避免原生 SQL 遗漏 NOT NULL 列。
+    let active = messages::ActiveModel {
+        id: ActiveValue::set(req.chat_id),
+        chat_id: ActiveValue::set(req.chat_id),
+        r#type: ActiveValue::set(entity::MessageType::Announcement as i16),
+        from_id: ActiveValue::set(brief.id),
+        content: ActiveValue::set(content_bytes.clone()),
+        summary: ActiveValue::set(req.summary.clone()),
+        pos: ActiveValue::set(0),
+        badge: ActiveValue::set(0),
+        status: ActiveValue::set(EntityStatus::Normal as i16),
+        client_id: ActiveValue::set(0),
+        at_user_ids: ActiveValue::set(vec![]),
+        version: ActiveValue::set(now_ms),
+        cmv_id: ActiveValue::set(0),
+        cmv_count: ActiveValue::set(0),
+        read_count: ActiveValue::set(0),
+        read_states: ActiveValue::set(vec![]),
+        reactions: ActiveValue::set(vec![]),
+        extra: ActiveValue::set(vec![]),
+        thread_root_id: ActiveValue::set(0),
+        created_at: ActiveValue::set(now.clone()),
+        updated_at: ActiveValue::set(now),
+        ..Default::default()
+    };
+    let on_conflict = sea_orm::sea_query::OnConflict::column(messages::Column::Id)
+        .update_columns([
+            messages::Column::Type,
+            messages::Column::FromId,
+            messages::Column::Content,
+            messages::Column::Summary,
+            messages::Column::Status,
+            messages::Column::Version,
+            messages::Column::UpdatedAt,
+        ])
+        .to_owned();
+    messages::Entity::insert(active)
+        .on_conflict(on_conflict)
+        .exec(&ctx.db)
+        .await
+        .map_err(|e| common_error(&format!("upsert announcement error: {e}")))?;
 
     let announcement_entity = entity::Message {
         tpy: entity::MessageType::Announcement as i32,
         id: req.chat_id,
         chat_id: req.chat_id,
         from_id: brief.id,
-        create_time_ms: now,
-        update_time_ms: now,
+        create_time_ms: now_ms,
+        update_time_ms: now_ms,
         content: content_bytes,
         summary: req.summary,
         ..Default::default()
@@ -689,12 +713,46 @@ pub(crate) async fn chat_set_announcement(
         e.chats.insert(req.chat_id, c.get_entity());
     }
 
-    let mut push_entity = entity::Entity::default();
-    push_entity.messages.insert(req.chat_id, announcement_entity);
-    let _ = crate::feed::push_entity(ctx, &member_ids, push_entity).await;
+    // 公告走消息 pipeline（PushMessages）+ pipeline 持久化广播给所有成员
+    let _ = push_announcement(ctx, &member_ids, req.chat_id).await;
 
     debug!("set announcement done");
     Ok((0, resp.encode_to_vec()))
+}
+
+// 公告消息批量广播（含离线 pipeline 持久化）：
+// 公告载荷对全体成员一致（无已读/回执），一次编码、一次调用广播给所有成员，
+// pipe=true 将包写入 pipelines 表，离线成员重连后经 PIPELINE_PULL_PACKET 回放。
+pub(crate) async fn push_announcement(
+    ctx: &AppContext,
+    member_ids: &[i64],
+    chat_id: i64,
+) -> Result<()> {
+    let Some(model) = messages::Entity::find_by_id(chat_id)
+        .one(&ctx.db)
+        .await
+        .map_err(|e| common_error(&format!("push announcement error: {e}")))? else {
+        debug!("push announcement skipped, message not found: {chat_id}");
+        return Ok(());
+    };
+    let msg: entity::Message = messages::MessageModel(model).into();
+    let mut push = message::PushMessages::default();
+    push.entity
+        .get_or_insert_default()
+        .messages
+        .insert(chat_id, msg);
+    let hub = BizHub::get()?;
+    hub.gateway
+        .send_packet_to_user(
+            ctx,
+            member_ids,
+            rid(),
+            Command::PushMessages,
+            push.encode_to_vec(),
+            true,
+        )
+        .await?;
+    Ok(())
 }
 
 pub(crate) async fn chat_delete_announcement(
@@ -722,14 +780,13 @@ pub(crate) async fn chat_delete_announcement(
         member_ids = c.cmv.ids();
     }
 
-    let stmt = Statement::from_sql_and_values(
-        DbBackend::Postgres,
-        "DELETE FROM messages WHERE id = $1",
-        vec![req.chat_id.into()],
-    );
-    ctx.db.execute(stmt).await.map_err(|e| common_error(&format!("delete announcement error: {e}")))?;
+        // 软删除公告：置 status = Deleted，保留 row 以便消息 pipeline 广播删除状态
+    let now = current_ms() as i64;
+    messages::MessageModel::set_status(&ctx.db, req.chat_id, now, EntityStatus::Deleted as i16)
+        .await
+        .map_err(|e| common_error(&format!("delete announcement error: {e}")))?;
 
-    let _ = crate::feed::push_entity(ctx, &member_ids, entity::Entity::default()).await;
+    let _ = push_announcement(ctx, &member_ids, req.chat_id).await;
 
     debug!("delete announcement done");
     Ok((0, resp.encode_to_vec()))

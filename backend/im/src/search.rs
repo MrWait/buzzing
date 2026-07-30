@@ -77,7 +77,7 @@ pub(crate) async fn search_messages(
           AND m.chat_id IN (SELECT entity_id FROM feeds WHERE user_id = $2 AND entity_type = 2 AND status = 0)
           AND ($3 = 0 OR m.chat_id = $3)
           AND ($4 = 0 OR m.from_id = $4)
-          AND ($5 = 0 OR m.r#type = $5)
+          AND ($5 = 0 OR m."type" = $5)
           AND ($6 = 0 OR m.created_at >= to_timestamp($6::double precision / 1000))
           AND ($7 = 0 OR m.created_at <= to_timestamp($7::double precision / 1000))
         "#
@@ -101,7 +101,7 @@ pub(crate) async fn search_messages(
     // Data query
     let data_sql = format!(
         r#"
-        SELECT m.id, m.chat_id, m.from_id, m.r#type AS msg_type, m.content, m.summary,
+        SELECT m.id, m.chat_id, m.from_id, m."type" AS msg_type, m.content, m.summary,
                m.status, m.created_at, m.updated_at, m.at_user_ids, m.thread_root_id,
                similarity(m.summary, $1) AS sim
         FROM messages m
@@ -109,7 +109,7 @@ pub(crate) async fn search_messages(
           AND m.chat_id IN (SELECT entity_id FROM feeds WHERE user_id = $2 AND entity_type = 2 AND status = 0)
           AND ($3 = 0 OR m.chat_id = $3)
           AND ($4 = 0 OR m.from_id = $4)
-          AND ($5 = 0 OR m.r#type = $5)
+          AND ($5 = 0 OR m."type" = $5)
           AND ($6 = 0 OR m.created_at >= to_timestamp($6::double precision / 1000))
           AND ($7 = 0 OR m.created_at <= to_timestamp($7::double precision / 1000))
         ORDER BY sim DESC, m.id DESC
@@ -194,7 +194,7 @@ pub(crate) async fn search_chats(
     let total: i32 = total_row.try_get_by::<i64, _>("total").unwrap_or(0) as i32;
 
     let data_sql = r#"
-        SELECT c.id, c.r#type, c.status, c.name, c.owner_id, c.peer_a_id, c.peer_b_id,
+        SELECT c.id, c."type", c.status, c.name, c.owner_id, c.peer_a_id, c.peer_b_id,
                c.cmv, c.last_message_id, c.last_message_pos, c.last_message_badge,
                c.admin_ids, c.created_at, c.updated_at, c.description, c.join_mode,
                c.global_mute_until,
@@ -227,7 +227,7 @@ pub(crate) async fn search_chats(
 
         let chat = entity::Chat {
             id: row.try_get("", "id").unwrap_or(0),
-            chat_type: row.try_get::<i16>("", "r#type").unwrap_or(0) as i32,
+            chat_type: row.try_get::<i16>("", "type").unwrap_or(0) as i32,
             status: row.try_get::<i16>("", "status").unwrap_or(0) as i32,
             name,
             owner_id: row.try_get("", "owner_id").unwrap_or(0),

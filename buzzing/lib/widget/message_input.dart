@@ -31,6 +31,7 @@ class MessageInput extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final im = ref.watch(imProvider);
+    final chatName = im.getChat(im.chatId)?.name ?? '';
     return Container(
       margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
       decoration: BoxDecoration(
@@ -66,8 +67,18 @@ class MessageInput extends ConsumerWidget {
                 controller: im.quillController,
                 focusNode: im.focusNode,
                 config: QuillEditorConfig(
-                  minHeight: 80,
+                  placeholder: '发送到 $chatName',
                   maxHeight: 120,
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  customStyles: DefaultStyles(
+                    placeHolder: DefaultTextBlockStyle(
+                      tt.bodyMedium!.copyWith(color: cs.onSurfaceVariant),
+                      const HorizontalSpacing(0, 0),
+                      VerticalSpacing.zero,
+                      VerticalSpacing.zero,
+                      null,
+                    ),
+                  ),
                   embedBuilders: [
                     ...FlutterQuillEmbeds.editorBuilders(),
                     MentionEmbedBuilder(),
@@ -285,9 +296,25 @@ class MessageInput extends ConsumerWidget {
       return;
     }
 
+    // 非文本消息使用固定文案（content 的 altText 与 summary），不使用文件名
+    const imgText = '[图片]';
+    const fileText = '[文件]';
+    const mediaText = '[视频]';
+    final isImage = msgType == MessageType.IMAGE.value;
+    final String summaryText;
+    if (msgType == MessageType.IMAGE.value) {
+      summaryText = imgText;
+    } else if (msgType == MessageType.FILE.value) {
+      summaryText = fileText;
+    } else if (msgType == MessageType.MEDIA.value) {
+      summaryText = mediaText;
+    } else {
+      summaryText = fileName;
+    }
+
     // 1. Create draft message
-    final draftContent = msgType == MessageType.IMAGE.value
-        ? MessageImage(altText: fileName).writeToBuffer()
+    final draftContent = isImage
+        ? MessageImage(altText: imgText).writeToBuffer()
         : msgType == MessageType.MEDIA.value
         ? MediaContent(mimeType: mime(fileName) ?? 'video/mp4').writeToBuffer()
         : MessageFile(name: fileName, size: Int64(fileSize)).writeToBuffer();
@@ -296,7 +323,7 @@ class MessageInput extends ConsumerWidget {
       ..tpy = msgType
       ..fromId = im.userId
       ..content = draftContent
-      ..summary = fileName
+      ..summary = summaryText
       ..chatId = im.chatId;
     final stashId = await im.preSendMessage(im.chatId, draftMsg);
     if (stashId == null) return;
@@ -325,28 +352,32 @@ class MessageInput extends ConsumerWidget {
       final formData = FormData.fromMap({
         'file': MultipartFile.fromBytes(bytes, filename: fileName, contentType: DioMediaType.parse(mimeType)),
       });
-      final resp = await Dio(BaseOptions(baseUrl: baseUrl))
-          .post('/api/files/upload', data: formData);
+      final dio = Dio(BaseOptions(baseUrl: baseUrl));
+      final token = im.sdk.token;
+      if (token != null && token.isNotEmpty) {
+        dio.options.headers['Authorization'] = 'Bearer $token';
+      }
+      final resp = await dio.post('/api/files/upload', data: formData);
 
       if (resp.statusCode != 200) {
         L.e("upload failed: ${resp.statusCode}");
         return;
       }
 
-      final fileId = resp.data['id'] as int;
+      final fileId = int.parse(resp.data['id'].toString());
       final downloadUrl = '$baseUrl/api/files/$fileId';
       final thumbnailUrl = resp.data['thumbnail_url'] as String?;
       final width = resp.data['width'] as int? ?? 0;
       final height = resp.data['height'] as int? ?? 0;
 
       // 4. Update message with real URLs and send
-      final content = msgType == MessageType.IMAGE.value
+      final content = isImage
           ? MessageImage(
               url: downloadUrl,
               thumbnailUrl: thumbnailUrl ?? '',
               width: width,
               height: height,
-              altText: fileName,
+              altText: imgText,
             ).writeToBuffer()
           : msgType == MessageType.MEDIA.value
           ? MediaContent(
@@ -364,7 +395,7 @@ class MessageInput extends ConsumerWidget {
         ..tpy = msgType
         ..fromId = im.userId
         ..content = content
-        ..summary = fileName
+        ..summary = summaryText
         ..chatId = im.chatId;
       await im.sendMessage(stashId, sendMsg);
 
