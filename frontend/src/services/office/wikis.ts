@@ -11,6 +11,9 @@ export interface WikiDto {
   home_doc_id: string | null
   created_at: string
   updated_at: string
+  visibility: number
+  allow_external_share: boolean
+  reader_permission: number
 }
 
 export interface WikiDetailDto extends WikiDto {
@@ -22,6 +25,8 @@ export interface WikiMemberDto {
   user_id: string
   role: number
   joined_at: number
+  name: string
+  avatar: string
 }
 
 function wikiFromProto(p: any): WikiDto {
@@ -35,6 +40,9 @@ function wikiFromProto(p: any): WikiDto {
     home_doc_id: p.home_doc_id ? p.home_doc_id.toString() : null,
     created_at: p.created_at ?? '',
     updated_at: p.updated_at ?? '',
+    visibility: p.visibility ?? 0,
+    allow_external_share: p.allow_external_share ?? true,
+    reader_permission: p.reader_permission ?? 0,
   }
 }
 
@@ -44,6 +52,8 @@ function wikiMemberFromProto(p: any): WikiMemberDto {
     user_id: p.user_id?.toString() ?? '',
     role: p.role ?? 0,
     joined_at: Number(p.joined_at ?? 0),
+    name: p.name ?? '',
+    avatar: p.avatar ?? '',
   }
 }
 
@@ -64,6 +74,10 @@ export const wikisApi = {
   },
   async update(id: string, payload: { name?: string; description?: string; icon?: string; cover?: string }) {
     const { data } = await apiV1(CMD.WIKI_UPDATE, encodeReq('office.WikiUpdateRequest', { wiki_id: id, ...payload }), 'office.WikiUpdateResponse')
+    return { data: wikiFromProto(data.item) as WikiDto }
+  },
+  async updateSecurity(id: string, payload: { visibility: number; allow_external_share: boolean; reader_permission: number }) {
+    const { data } = await apiV1(CMD.WIKI_UPDATE_SECURITY, encodeReq('office.WikiUpdateSecurityRequest', { wiki_id: id, ...payload }), 'office.WikiUpdateResponse')
     return { data: wikiFromProto(data.item) as WikiDto }
   },
   async remove(id: string) {

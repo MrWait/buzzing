@@ -70,6 +70,7 @@ pub async fn dispatch(
         Command::OfficeWikiPinAdd => wikis::pin_add(ctx, brief, packet, ws).await,
         Command::OfficeWikiPinRemove => wikis::pin_remove(ctx, brief, packet, ws).await,
         Command::OfficeWikiRecent => wikis::recent(ctx, brief, packet, ws).await,
+        Command::OfficeWikiUpdateSecurity => wikis::update_security(ctx, brief, packet, ws).await,
         // Mentions
         Command::OfficeMentionUsers => mentions::search_users(ctx, brief, packet, ws).await,
         Command::OfficeMentionDocs => mentions::search_docs(ctx, brief, packet, ws).await,

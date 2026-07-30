@@ -44,6 +44,7 @@ mod m20260730_100001_office_m8;
 mod m20260731_100001_office_wiki_home_doc;
 mod m20260731_100002_office_wiki_is_default;
 mod m20260731_100003_office_personal_docs;
+mod m20260731_100004_office_wiki_security;
 mod m20260722_100001_open_apps;
 mod m20260722_100002_open_app_bots;
 mod m20260722_100003_users_bot_app_id;
@@ -106,6 +107,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260731_100001_office_wiki_home_doc::Migration),
             Box::new(m20260731_100002_office_wiki_is_default::Migration),
             Box::new(m20260731_100003_office_personal_docs::Migration),
+            Box::new(m20260731_100004_office_wiki_security::Migration),
             Box::new(m20260722_100001_open_apps::Migration),
             Box::new(m20260722_100002_open_app_bots::Migration),
             Box::new(m20260722_100003_users_bot_app_id::Migration),

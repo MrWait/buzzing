@@ -9,19 +9,22 @@
       <button class="toggle-btn" @click="toggleSidebar">
         <span class="toggle-icon">{{ sidebarCollapsed ? '▶' : '◀' }}</span>
       </button>
+      <button class="home-btn" title="个人空间主页" @click="goHome">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </button>
       <span v-show="!sidebarCollapsed || sidebarFloating" class="sidebar-title">知识库</span>
     </div>
 
     <div v-show="!sidebarCollapsed || sidebarFloating" class="sidebar-body">
-      <!-- 返回 office 主页 -->
-      <button class="nav-btn back-btn" @click="goHome">
-        <span>←</span><span>返回文档库</span>
-      </button>
 
       <!-- 当前 wiki 信息 -->
       <div v-if="wiki" class="wiki-header">
         <span class="wiki-icon">{{ wiki.icon || '📚' }}</span>
-        <span class="wiki-name">{{ wiki.name }}</span>
+        <span class="wiki-name">{{ wiki.name || '知识库' }}</span>
+        <button v-if="isAdmin" class="wiki-settings-btn" title="知识库设置" @click="showSettings = true">⚙</button>
       </div>
 
       <!-- 置顶文档 -->
@@ -74,18 +77,27 @@
       :y="menuPos.y"
       :items="menuItems"
     />
+
+    <WikiSettingsDialog
+      :open="showSettings"
+      :wiki="wiki ?? null"
+      @close="showSettings = false"
+      @saved="onSettingsSaved"
+    />
   </aside>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import { useWikiStore } from '@/stores/wiki'
 import { useDocumentStore } from '@/stores/document'
 import { docsApi, type DocTreeNode as DocTreeNodeDto } from '@/services/office/docs'
 import { wikisApi } from '@/services/office/wikis'
 import DocTreeNode from './DocTreeNode.vue'
 import ContextMenu, { type ContextMenuItem } from './ContextMenu.vue'
+import WikiSettingsDialog from './WikiSettingsDialog.vue'
 
 const props = defineProps<{
   wikiId: string
@@ -94,6 +106,7 @@ const props = defineProps<{
 const router = useRouter()
 const wikiStore = useWikiStore()
 const store = useDocumentStore()
+const authStore = useAuthStore()
 
 const tree = ref<DocTreeNodeDto[]>([])
 const treeLoading = ref(false)
@@ -105,6 +118,8 @@ const childDocTitle = ref('')
 const childParentId = ref('')
 const pinnedDocs = ref<DocTreeNodeDto[]>([])
 
+const showSettings = ref(false)
+
 const menuOpen = ref(false)
 const menuPos = ref<{ x: number; y: number }>({ x: 0, y: 0 })
 const menuItems = ref<ContextMenuItem[]>([])
@@ -115,6 +130,10 @@ const sidebarFloating = ref(false)
 let floatTimer: ReturnType<typeof setTimeout> | null = null
 
 const wiki = computed(() => wikiStore.wikis.find(w => w.id === props.wikiId))
+const currentUserId = computed(() => authStore.user?.id ?? '')
+const userWikiRole = ref(0)
+// Admin=3, Owner=4
+const isAdmin = computed(() => userWikiRole.value >= 3)
 
 const displayTree = computed(() => {
   if (!wiki.value?.home_doc_id) return tree.value
@@ -123,11 +142,34 @@ const displayTree = computed(() => {
   )
 })
 
+async function loadUserRole(wikiId: string) {
+  if (!wiki.value) return
+  if (wiki.value.creator_id === currentUserId.value) {
+    userWikiRole.value = 4 // Owner
+    return
+  }
+  try {
+    const { data } = await wikisApi.listMembers(wikiId)
+    const me = data.find(m => m.user_id === currentUserId.value)
+    userWikiRole.value = me?.role ?? 0
+  } catch {
+    userWikiRole.value = 0
+  }
+}
+
 onMounted(async () => {
   await wikiStore.loadWikis()
   wikiStore.setCurrentWiki(props.wikiId)
   await loadTree(props.wikiId)
   await loadPins(props.wikiId)
+  await loadUserRole(props.wikiId)
+})
+
+watch(() => props.wikiId, async (id) => {
+  wikiStore.setCurrentWiki(id)
+  await loadTree(id)
+  await loadPins(id)
+  await loadUserRole(id)
 })
 
 watch(() => props.wikiId, async (id) => {
@@ -153,6 +195,10 @@ async function loadPins(wikiId: string) {
   } catch {
     pinnedDocs.value = []
   }
+}
+
+function onSettingsSaved() {
+  showSettings.value = false
 }
 
 function goHome() {
@@ -300,6 +346,23 @@ function clearFloatTimer() {
 .toggle-btn:hover {
   background: #e5e7eb;
 }
+.home-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #6b7280;
+}
+.home-btn:hover {
+  background: #e5e7eb;
+  color: #1565c0;
+}
 .sidebar-body {
   flex: 1;
   overflow-y: auto;
@@ -309,32 +372,6 @@ function clearFloatTimer() {
   font-size: 14px;
   font-weight: 600;
   color: #333;
-}
-.nav-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  margin-bottom: 4px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: #374151;
-  text-align: left;
-}
-.nav-btn:hover {
-  background: #f3f4f6;
-}
-.back-btn {
-  color: #1565c0;
-  font-weight: 500;
-  margin-bottom: 8px;
-}
-.back-btn:hover {
-  background: #e3f2fd;
 }
 .wiki-header {
   display: flex;
@@ -348,12 +385,33 @@ function clearFloatTimer() {
   font-size: 18px;
 }
 .wiki-name {
+  flex: 1;
   font-size: 14px;
   font-weight: 600;
   color: #333;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.wiki-settings-btn {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 14px;
+  opacity: 0.6;
+}
+.wiki-settings-btn:hover {
+  opacity: 1;
+  background: #e5e7eb;
+  color: #374151;
 }
 .section {
   margin-top: 12px;

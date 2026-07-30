@@ -396,6 +396,9 @@ message WikiItem {
     string home_doc_id = 7;
     string created_at = 8;
     string updated_at = 9;
+    int32 visibility = 10;
+    bool allow_external_share = 11;
+    int32 reader_permission = 12;
 }
 
 message WikiDetailItem {
@@ -435,6 +438,16 @@ message WikiUpdateResponse {
     WikiItem item = 1;
 }
 
+message WikiUpdateSecurityRequest {
+    int64 wiki_id = 1;
+    int32 visibility = 2;
+    bool allow_external_share = 3;
+    int32 reader_permission = 4;
+}
+message WikiUpdateSecurityResponse {
+    WikiItem item = 1;
+}
+
 message WikiDeleteRequest {
     int64 wiki_id = 1;
 }
@@ -447,6 +460,8 @@ message WikiMemberItem {
     string user_id = 2;
     int32 role = 3;
     int64 joined_at = 4;
+    string name = 5;
+    string avatar = 6;
 }
 
 message WikiMemberListRequest {
