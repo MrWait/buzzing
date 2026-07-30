@@ -51,6 +51,17 @@ pub(crate) async fn pipe_pull_entity(
     .map_err(|_| anyhow!("feet get list error"))
 }
 
+pub(crate) async fn pipe_pull_packet(
+    req: &pipeline::PullPipelineRequest,
+) -> Result<pipeline::PullPipelineResponse> {
+    common_request(
+        command::Command::PipelinePullPacket as i32,
+        req.encode_to_vec(),
+    )
+    .await
+    .map_err(|_| anyhow!("pipeline pull packet error"))
+}
+
 pub(crate) async fn message_send(
     req: &idl::message::SendMessageRequest,
 ) -> Result<idl::message::SendMessageResponse> {

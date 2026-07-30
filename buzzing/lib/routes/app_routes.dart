@@ -17,8 +17,10 @@ abstract class AppRoute {
   static const OFFICE = "/office";
   static const GROUP_PROFILE = "/group_profile";
   static const MEMBER_LIST = "/member_list";
+  static const GROUP_EDIT = "/group_edit";
+  static const GROUP_SHARE = "/group_share";
+  static const GROUP_MANAGE = "/group_manage";
   static const JOIN_REQUESTS = "/join_requests";
-  static const INVITE_LINKS = "/invite_links";
   static const SEARCH = "/search";
   static const OPEN_PLATFORM = "/open-platform";
   static const PERSONAL = "/personal";

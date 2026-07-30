@@ -10,6 +10,7 @@ mod message;
 mod message_database;
 mod mute;
 mod pin;
+mod pipeline;
 mod presence;
 mod scheduler;
 mod search;
@@ -41,6 +42,7 @@ use service::{AppTrait, BizHub, Event, InitRequest, LoginRequest};
 
 mod constant {
     pub const FLAG_FEED_CURSOR: &str = "flag_feed_cursor";
+    pub const FLAG_PIPE_CURSOR: &str = "flag_pipe_cursor";
 }
 
 #[derive(Debug, Clone)]
@@ -52,6 +54,7 @@ pub struct AppChat {
     // feed
     feed_sync_flag: Arc<AtomicBool>,
     feed_reentrant_flag: Arc<AtomicBool>,
+    pipeline_sync_flag: Arc<AtomicBool>,
 
     // message
     stash_ids: Arc<RwLock<HashSet<i64>>>,
@@ -68,6 +71,7 @@ impl AppChat {
 
             feed_sync_flag: Arc::new(AtomicBool::new(false)),
             feed_reentrant_flag: Arc::new(AtomicBool::new(false)),
+            pipeline_sync_flag: Arc::new(AtomicBool::new(false)),
 
             stash_ids: Arc::new(RwLock::new(HashSet::new())),
             task_tx: Arc::new(tx),
@@ -319,6 +323,7 @@ impl AppTrait for AppChat {
                     if let Ok(hub) = BizHub::get() {
                         if let Some(chat) = hub.chat.downcast_ref::<AppChat>() {
                             chat.feed_sync().await;
+                            chat.pipeline_sync().await;
                         }
                     }
                 });

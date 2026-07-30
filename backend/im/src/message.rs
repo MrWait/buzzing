@@ -184,7 +184,11 @@ pub(crate) async fn push_messages(
         .collect();
     let _ = fill_messages(ctx, &entity_ids, &mut user_entity).await;
 
-    for (id, push) in pushs.iter() {
+    for (id, push) in pushs.iter_mut() {
+        // 将 fill_messages 为每个用户填好的 entity 写入 push 载荷
+        if let Some(ue) = user_entity.get(id) {
+            push.entity = Some(ue.entity.clone());
+        }
         let hub = BizHub::get()?;
         let sid = id_gen(None);
         let _ = hub

@@ -390,6 +390,12 @@ class ImController extends ChangeNotifier {
   void enterChat(Int64 id) {
     L.d("enter chat ${id}, cur: ${chatId}");
     if (chatId != id) {
+      isGroupProfileOpen = false;
+      isGroupMemberListOpen = false;
+      isGroupEditOpen = false;
+      isGroupManageOpen = false;
+      isThreadPanelOpen = false;
+      threadRootMessage = null;
       messagePosList.clear();
       chatId = id;
       var chat = entity.chats[id];
@@ -410,7 +416,14 @@ class ImController extends ChangeNotifier {
 
   void onPushMessages(List<int> data) {
     var push = PushMessages.fromBuffer(data);
-    L.d("sdk push message list, ${push}");
+    var entity = push.entity;
+    var annDetail = entity?.messages.values
+        .where((m) => m.tpy == MessageType.ANNOUNCEMENT.value)
+        .map((m) => "id=${m.id} status=${m.status} chatId=${m.chatId}")
+        .toList();
+    L.d(
+        "sdk push message list, chatId=${chatId}, msgCnt=${entity?.messages.length}, "
+        "announcement=${annDetail}, all=${push}");
     mergeEntity(push.entity);
   }
 
@@ -518,6 +531,9 @@ class ImController extends ChangeNotifier {
     if (result.data != null) {
       var resp = SendMessageResponse.fromBuffer(result.data!);
       L.d("send message success: ${resp}");
+      if (resp.hasEntity()) {
+        mergeEntity(resp.entity);
+      }
     }
   }
 
@@ -620,6 +636,7 @@ class ImController extends ChangeNotifier {
         clearReply();
       });
       imInputCtrl.clear();
+      quillController.clear();
     } else {
       L.w("chat not exists");
     }
@@ -836,6 +853,61 @@ class ImController extends ChangeNotifier {
   Message? threadRootMessage;
   List<Message> threadReplies = [];
   var isThreadPanelOpen = false;
+
+  // 群设置侧边面板（桌面端从右侧展开）
+  var isGroupProfileOpen = false;
+
+  // 群成员列表作为群资料面板的二级页面（仅桌面端）
+  var isGroupMemberListOpen = false;
+
+  // 群信息编辑作为群资料面板的二级页面（仅桌面端）
+  var isGroupEditOpen = false;
+
+  // 群管理作为群资料面板的二级页面（仅桌面端）
+  var isGroupManageOpen = false;
+
+  void openGroupProfile() {
+    isGroupProfileOpen = true;
+    notifyListeners();
+  }
+
+  void closeGroupProfile() {
+    isGroupProfileOpen = false;
+    isGroupMemberListOpen = false;
+    isGroupEditOpen = false;
+    isGroupManageOpen = false;
+    notifyListeners();
+  }
+
+  void openGroupMemberList() {
+    isGroupMemberListOpen = true;
+    notifyListeners();
+  }
+
+  void closeGroupMemberList() {
+    isGroupMemberListOpen = false;
+    notifyListeners();
+  }
+
+  void openGroupEdit() {
+    isGroupEditOpen = true;
+    notifyListeners();
+  }
+
+  void closeGroupEdit() {
+    isGroupEditOpen = false;
+    notifyListeners();
+  }
+
+  void openGroupManage() {
+    isGroupManageOpen = true;
+    notifyListeners();
+  }
+
+  void closeGroupManage() {
+    isGroupManageOpen = false;
+    notifyListeners();
+  }
 
   void openThread(Message rootMsg) {
     threadRootMessage = rootMsg;
@@ -1230,6 +1302,30 @@ class ImController extends ChangeNotifier {
       return GetMembersResponse.fromBuffer(result.data!);
     }
     return null;
+  }
+
+  // ─── M2: 成员添加/移除 ───────────────────────────────────────────
+
+  Future<void> addChatters(Int64 chatId, List<Int64> userIds) async {
+    var req = AddChatChatterRequest.create();
+    req.chatId = chatId;
+    req.ids.addAll(userIds);
+    L.d("add chatters: chat=$chatId ids=$userIds");
+    await sdk.invokeAsync(
+      Command.CHAT_ADD_CHATTERS,
+      req.writeToBuffer(),
+    );
+  }
+
+  Future<void> removeChatters(Int64 chatId, List<Int64> userIds) async {
+    var req = RemoveChatChatterRequest.create();
+    req.chatId = chatId;
+    req.ids.addAll(userIds);
+    L.d("remove chatters: chat=$chatId ids=$userIds");
+    await sdk.invokeAsync(
+      Command.CHAT_DELETE_CHATTERS,
+      req.writeToBuffer(),
+    );
   }
 
   void logout(GoRouter router) {

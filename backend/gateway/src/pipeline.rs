@@ -72,23 +72,28 @@ pub(crate) async fn send_packet_to_chat(
     Ok(())
 }
 
-#[allow(dead_code)]
 #[allow(unused_variables)]
 pub(crate) async fn pipeline_pull_packet(
     ctx: &AppContext,
     brief: &UserBrief,
     packet: &entity::Packet,
-    ws: bool,
+    _ws: bool,
 ) -> Result<(i32, Vec<u8>)> {
     let req = pb_decode::<pipeline::PullPipelineRequest>(&packet.payload)?;
     debug!("pipeline pull packets, req: {req:?}");
     let mut resp = pipeline::PullPipelineResponse::default();
-    resp.packets = PipelineModel::find_by_sid(&ctx.db, brief.id, req.sid, req.count as u64)
-        .await?
-        .drain(..)
-        .map(|p| p.into())
-        .collect();
+    let rows = PipelineModel::find_by_sid(&ctx.db, brief.id, req.sid, req.count as u64).await?;
+    resp.packets = rows.into_iter().map(|p| p.into()).collect();
     resp.has_more = resp.packets.len() == (req.count as usize);
+    resp.sid = resp
+        .packets
+        .last()
+        .map(|p| p.rid)
+        .unwrap_or(req.sid);
+    // 已返回的 pipeline 包（sid <= 最新 cursor）删除，防止表无限增长
+    if resp.sid > req.sid {
+        let _ = PipelineModel::delete_le_sid(&ctx.db, brief.id, resp.sid).await;
+    }
     debug!("pipeline pull packets, resp: {resp:?}");
     Ok((0, resp.encode_to_vec()))
 }

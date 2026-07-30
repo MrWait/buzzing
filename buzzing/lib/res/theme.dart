@@ -96,7 +96,7 @@ class AppTheme {
       textTheme: _textTheme(scheme),
       appBarTheme: AppBarTheme(
         backgroundColor: BuzzingTheme.light.headerBg,
-        foregroundColor: scheme.onPrimary,
+        foregroundColor: scheme.onSurface,
         elevation: 0,
       ),
       cardTheme: CardThemeData(
@@ -121,7 +121,7 @@ class AppTheme {
       textTheme: _textTheme(scheme),
       appBarTheme: AppBarTheme(
         backgroundColor: BuzzingTheme.dark.headerBg,
-        foregroundColor: scheme.onPrimary,
+        foregroundColor: scheme.onSurface,
         elevation: 0,
       ),
       cardTheme: CardThemeData(
