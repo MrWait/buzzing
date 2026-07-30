@@ -31,7 +31,7 @@ impl WikiModel {
     ) -> ModelResult<Vec<Model>> {
         use base::models::_entities::wiki_members::Column as WmCol;
         use sea_orm::Condition;
-        // 返回用户创建的 + 被添加为成员的知识库
+        // 返回用户创建的 + 被添加为成员 + 组织内全员可见的知识库
         Ok(Entity::find()
             .filter(Column::TenantId.eq(tenant_id))
             .filter(
@@ -45,7 +45,8 @@ impl WikiModel {
                                 .and_where(WmCol::UserId.eq(user_id))
                                 .take(),
                         ),
-                    ),
+                    )
+                    .add(Column::Visibility.eq(1)),
             )
             .order_by_desc(Column::CreatedAt)
             .all(db)
@@ -73,6 +74,15 @@ impl WikiModel {
         }
         if let ActiveValue::Set(v) = params.cover {
             model.cover = ActiveValue::Set(v);
+        }
+        if let ActiveValue::Set(v) = params.visibility {
+            model.visibility = ActiveValue::Set(v);
+        }
+        if let ActiveValue::Set(v) = params.allow_external_share {
+            model.allow_external_share = ActiveValue::Set(v);
+        }
+        if let ActiveValue::Set(v) = params.reader_permission {
+            model.reader_permission = ActiveValue::Set(v);
         }
         Ok(model.update(db).await?)
     }

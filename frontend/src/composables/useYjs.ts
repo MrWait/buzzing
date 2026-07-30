@@ -30,9 +30,10 @@ export interface UseYjsReturn {
   lastSavedAt: Ref<number | null>
   localLoaded: Ref<boolean>
   editingUsers: ShallowRef<Array<{ clientId: number; name: string; color: string }>>
+  connect: () => void
 }
 
-export function useYjs(docId: string, options: { token?: string; enableIndexedDb?: boolean } = {}): UseYjsReturn {
+export function useYjs(docId: string, options: { token?: string; enableIndexedDb?: boolean; skipConnect?: boolean } = {}): UseYjsReturn {
   const auth = useAuthStore()
   const ydoc = new Y.Doc()
   const type = ydoc.getXmlFragment('prosemirror')
@@ -59,6 +60,10 @@ export function useYjs(docId: string, options: { token?: string; enableIndexedDb
   const provider = new WebsocketProvider(url, docId, ydoc, {
     protocols: [wsToken],
   })
+  if (options.skipConnect) {
+    provider.shouldConnect = false
+    provider.disconnect()
+  }
 
   // ---- 用户 awareness ----
   const userId = Number(auth.user?.id ?? 0) || 0
@@ -142,6 +147,12 @@ export function useYjs(docId: string, options: { token?: string; enableIndexedDb
   }
   ydoc.on('update', localUpdateHandler)
 
+  // 连接 WebSocket（skipConnect=true 时需外部调用此方法）
+  const connect = () => {
+    provider.shouldConnect = true
+    provider.connect()
+  }
+
   onUnmounted(async () => {
     ydoc.off('update', localUpdateHandler)
     provider.awareness.off('change', updateEditingUsers)
@@ -163,6 +174,7 @@ export function useYjs(docId: string, options: { token?: string; enableIndexedDb
     lastSavedAt,
     localLoaded,
     editingUsers,
+    connect,
   }
 }
 

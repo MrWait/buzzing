@@ -1,7 +1,13 @@
 import { useAuthStore } from '@/stores/auth'
 import { encode, decode, nextRid } from './im/proto'
+import { CMD } from '@/services/office/cmd'
 
 const PACKET_TYPE = 'entity.Packet'
+
+const CMD_NAME: Record<number, string> = {}
+for (const [k, v] of Object.entries(CMD)) {
+  CMD_NAME[v as number] = k
+}
 
 function authHeader(): Record<string, string> {
   const token = useAuthStore().token
@@ -16,7 +22,8 @@ export async function apiV1<T>(
   const rid = parseInt(nextRid(), 10)
 
   const packet = encode(PACKET_TYPE, { rid, cmd, payload })
-  const res = await fetch('/api/v1/raw', {
+  const cs = CMD_NAME[cmd] || ''
+  const res = await fetch(`/api/v1/raw?cmd=${cmd}&rid=${rid}&cs=${cs}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-protobuf',

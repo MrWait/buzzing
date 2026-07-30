@@ -204,11 +204,14 @@ function buildPlugins(
   provider: WebsocketProvider,
   callbacks: EditorCallbacks,
   extraPlugins?: PluginType[],
+  editable?: Ref<boolean>,
 ): PluginType[] {
   const { marks, nodes } = schema
   return [
     ySyncPlugin(type),
-    yCursorPlugin(provider.awareness),
+    yCursorPlugin(provider.awareness, {
+      awarenessStateFilter: () => editable?.value ?? true,
+    }),
     yUndoPlugin(),
     keymap({ 'Mod-z': undo, 'Mod-y': redo, 'Shift-Mod-z': redo }),
     keymap({
@@ -289,7 +292,7 @@ export function useEditorSchema(
 
   function mount() {
     if (!editorContainer.value || editorView.value) return
-    const plugins = buildPlugins(schema, type, provider, callbacks, options.extraPlugins)
+    const plugins = buildPlugins(schema, type, provider, callbacks, options.extraPlugins, options.editable)
     const state = EditorState.create({ schema, plugins })
     editorView.value = new EditorView(editorContainer.value, {
       state,

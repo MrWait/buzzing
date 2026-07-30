@@ -159,11 +159,26 @@ pub(crate) async fn handle_gateway(
 pub(crate) async fn handle_gateway_raw(
     auth: auth::JWT,
     State(ctx): State<AppContext>,
+    Query(params): Query<HashMap<String, String>>,
     body: Bytes,
 ) -> Result<impl IntoResponse> {
     let claim = UserBrief::from_string(&auth.claims.pid)?;
-    let packet = entity::Packet::decode(body.as_ref())
+    let mut packet = entity::Packet::decode(body.as_ref())
         .map_err(|_| Error::BadRequest("invalid packet".to_string()))?;
+    // 允许通过查询参数覆盖 cmd / rid，方便浏览器调试
+    // cmd 支持数字或 PB 枚举名（如 "OfficeWikiGet"）
+    if let Some(cmd_str) = params.get("cmd") {
+        if let Ok(cmd) = cmd_str.parse::<i32>() {
+            packet.cmd = cmd;
+        } else if let Some(v) = Command::from_str_name(cmd_str) {
+            packet.cmd = v as i32;
+        }
+    }
+    if let Some(rid_str) = params.get("rid") {
+        if let Ok(rid) = rid_str.parse::<i64>() {
+            packet.rid = rid;
+        }
+    }
     let (code, data) = handle_client_packet(0, packet.cmd, &ctx, &claim, &packet, false)
         .await
         .map_err(|e| {
