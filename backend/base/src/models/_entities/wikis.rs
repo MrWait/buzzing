@@ -15,6 +15,9 @@ pub struct Model {
     pub cover: Option<String>,
     pub creator_id: i64,
     pub home_doc_id: Option<i64>,
+    pub visibility: i32,
+    pub allow_external_share: bool,
+    pub reader_permission: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

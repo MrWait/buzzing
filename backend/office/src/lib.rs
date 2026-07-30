@@ -71,6 +71,7 @@ impl ExternApp for AppOffice {
             Command::OfficeWikiPinAdd as i32,
             Command::OfficeWikiPinRemove as i32,
             Command::OfficeWikiRecent as i32,
+            Command::OfficeWikiUpdateSecurity as i32,
             Command::OfficeMentionUsers as i32,
             Command::OfficeMentionDocs as i32,
         ]

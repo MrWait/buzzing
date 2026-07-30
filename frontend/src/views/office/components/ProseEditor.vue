@@ -79,10 +79,12 @@ provide('triggerImageUpload', () => imageUploadRef.value?.trigger())
 provide('triggerLinkDialog', () => { if (!props.readonly) showLinkDialog.value = true })
 provide('mouseInEditor', mouseInEditor)
 
-// editable 变化时同步 ProseMirror DOM contentEditable
+// editable 变化时同步 ProseMirror DOM contentEditable，并刷新远端光标显示
 watch(editable, (val) => {
   if (editorView.value) {
     editorView.value.dom.contentEditable = val ? 'true' : 'false'
+    const tr = editorView.value.state.tr
+    editorView.value.dispatch(tr)
   }
 })
 

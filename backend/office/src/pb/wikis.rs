@@ -1,6 +1,7 @@
 use loco_rs::{Error, Result, app::AppContext};
 use prost::Message;
 use sea_orm::{ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait};
+use std::collections::HashMap;
 use tracing::instrument;
 use yrs::{Doc, ReadTxn, Transact};
 
@@ -24,6 +25,9 @@ fn wiki_to_item(m: crate::models::wikis::Model) -> office::WikiItem {
         home_doc_id: m.home_doc_id.map(|v| v.to_string()).unwrap_or_default(),
         created_at: m.created_at.to_rfc3339(),
         updated_at: m.updated_at.to_rfc3339(),
+        visibility: m.visibility,
+        allow_external_share: m.allow_external_share,
+        reader_permission: m.reader_permission,
     }
 }
 
@@ -84,6 +88,9 @@ pub(crate) async fn create(
             home_doc_id: ActiveValue::Set(None),
             created_at: ActiveValue::Set(now_chrono.into()),
             updated_at: ActiveValue::Set(now_chrono.into()),
+            visibility: ActiveValue::Set(0),
+            allow_external_share: ActiveValue::Set(true),
+            reader_permission: ActiveValue::Set(0),
         },
     )
     .await?;
@@ -193,10 +200,48 @@ pub(crate) async fn update(
             home_doc_id: sea_orm::ActiveValue::NotSet,
             created_at: sea_orm::ActiveValue::NotSet,
             updated_at: sea_orm::ActiveValue::NotSet,
+            visibility: sea_orm::ActiveValue::NotSet,
+            allow_external_share: sea_orm::ActiveValue::NotSet,
+            reader_permission: sea_orm::ActiveValue::NotSet,
         },
     )
     .await?;
     let resp = office::WikiUpdateResponse {
+        item: Some(wiki_to_item(model)),
+    };
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
+}
+
+#[instrument(skip(ctx, brief, packet))]
+pub(crate) async fn update_security(
+    ctx: &AppContext,
+    brief: &UserBrief,
+    packet: &proto::idl::entity::Packet,
+    _ws: bool,
+) -> Result<(i32, Vec<u8>)> {
+    let req = common::pb_decode::<office::WikiUpdateSecurityRequest>(&packet.payload)?;
+    require_wiki_role(ctx, brief.id, req.wiki_id, WikiRole::Admin).await?;
+    let model = WikiModel::update(
+        &ctx.db,
+        req.wiki_id,
+        crate::models::wikis::ActiveModel {
+            id: sea_orm::ActiveValue::NotSet,
+            tenant_id: sea_orm::ActiveValue::NotSet,
+            name: sea_orm::ActiveValue::NotSet,
+            description: sea_orm::ActiveValue::NotSet,
+            icon: sea_orm::ActiveValue::NotSet,
+            cover: sea_orm::ActiveValue::NotSet,
+            creator_id: sea_orm::ActiveValue::NotSet,
+            home_doc_id: sea_orm::ActiveValue::NotSet,
+            created_at: sea_orm::ActiveValue::NotSet,
+            updated_at: sea_orm::ActiveValue::NotSet,
+            visibility: sea_orm::ActiveValue::Set(req.visibility),
+            allow_external_share: sea_orm::ActiveValue::Set(req.allow_external_share),
+            reader_permission: sea_orm::ActiveValue::Set(req.reader_permission),
+        },
+    )
+    .await?;
+    let resp = office::WikiUpdateSecurityResponse {
         item: Some(wiki_to_item(model)),
     };
     Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
@@ -232,13 +277,33 @@ pub(crate) async fn member_list(
     let req = common::pb_decode::<office::WikiMemberListRequest>(&packet.payload)?;
     require_wiki_role(ctx, brief.id, req.wiki_id, WikiRole::Viewer).await?;
     let members = WikiMemberModel::list_by_wiki(&ctx.db, req.wiki_id).await?;
+    let user_ids: Vec<i64> = members.iter().map(|m| m.user_id).collect();
+    let users = if user_ids.is_empty() {
+        HashMap::new()
+    } else {
+        use base::models::_entities::users::{Column as UCol, Entity as UsersEntity};
+        UsersEntity::find()
+            .filter(UCol::Id.is_in(user_ids.clone()))
+            .all(&ctx.db)
+            .await?
+            .into_iter()
+            .map(|u| (u.id, u))
+            .collect()
+    };
     let items: Vec<office::WikiMemberItem> = members
         .into_iter()
-        .map(|m| office::WikiMemberItem {
-            wiki_id: m.wiki_id.to_string(),
-            user_id: m.user_id.to_string(),
-            role: m.role as i32,
-            joined_at: m.joined_at,
+        .map(|m| {
+            let user = users.get(&m.user_id);
+            office::WikiMemberItem {
+                wiki_id: m.wiki_id.to_string(),
+                user_id: m.user_id.to_string(),
+                role: m.role as i32,
+                joined_at: m.joined_at,
+                name: user
+                    .map(|u| u.name.clone())
+                    .unwrap_or_else(|| String::from("未知用户")),
+                avatar: user.and_then(|u| u.avatar.clone()).unwrap_or_default(),
+            }
         })
         .collect();
     let resp = office::WikiMemberListResponse { items };
@@ -260,12 +325,26 @@ pub(crate) async fn member_add(
         .map_err(|_| Error::string("invalid user_id"))?;
     let now = common::time::current_ms() as i64;
     let m = WikiMemberModel::add_member(&ctx.db, req.wiki_id, user_id, req.role as i16, now).await?;
+    let user = if user_id > 0 {
+        use base::models::_entities::users::{Column as UCol, Entity as UsersEntity};
+        UsersEntity::find()
+            .filter(UCol::Id.eq(user_id))
+            .one(&ctx.db)
+            .await?
+    } else {
+        None
+    };
     let resp = office::WikiMemberAddResponse {
         item: Some(office::WikiMemberItem {
             wiki_id: m.wiki_id.to_string(),
             user_id: m.user_id.to_string(),
             role: m.role as i32,
             joined_at: m.joined_at,
+            name: user
+                .as_ref()
+                .map(|u| u.name.clone())
+                .unwrap_or_else(|| String::from("未知用户")),
+            avatar: user.and_then(|u| u.avatar.clone()).unwrap_or_default(),
         }),
     };
     Ok((ErrorCode::Success as i32, resp.encode_to_vec()))

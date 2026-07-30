@@ -1,5 +1,9 @@
 <template>
-  <div class="editor-content">
+  <div v-if="accessDenied" class="access-denied">
+    <div class="access-denied-icon">🚫</div>
+    <p class="access-denied-text">你对该文档没有访问权限</p>
+  </div>
+  <div v-else class="editor-content">
     <div class="editor-header-sticky">
       <EditorHeader
         :crumbs="crumbs"
@@ -36,7 +40,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+
 import { useYjs } from '@/composables/useYjs'
 import { useAuthStore } from '@/stores/auth'
 import { useWikiStore } from '@/stores/wiki'
@@ -64,11 +68,11 @@ const {
   saveState,
   lastSavedAt,
   editingUsers,
-} = useYjs(props.docId)
+  connect,
+} = useYjs(props.docId, { skipConnect: true })
 provide('yjs-type', type)
 provide('yjs-provider', provider)
 
-const router = useRouter()
 const authStore = useAuthStore()
 const wikiStore = useWikiStore()
 const currentUserId = computed(() => authStore.user?.id ?? '')
@@ -142,19 +146,25 @@ function toggleEditMode() {
 const chain = ref<WalkItem[]>([])
 const docTitle = ref('')
 
+const accessDenied = ref(false)
 const role = ref(ROLE_VIEWER)
 const canEdit = computed(() => role.value >= ROLE_EDITOR)
 const isReadonly = computed(() => role.value < ROLE_EDITOR || isPreview.value)
 
 onMounted(async () => {
-  const { data } = await docsApi.get(props.docId)
-  role.value = data.role
-  docTitle.value = data.title
-  chain.value = data.walk
-  parentId.value = data.parent_id
-  wikiId.value = data.wiki_id
-  if (data.wiki_id) {
-    wikiStore.setCurrentWiki(data.wiki_id)
+  try {
+    const { data } = await docsApi.get(props.docId)
+    role.value = data.role
+    docTitle.value = data.title
+    chain.value = data.walk
+    parentId.value = data.parent_id
+    wikiId.value = data.wiki_id
+    if (data.wiki_id) {
+      wikiStore.setCurrentWiki(data.wiki_id)
+    }
+    connect()
+  } catch {
+    accessDenied.value = true
   }
 })
 
@@ -247,5 +257,22 @@ const crumbs = computed<BreadcrumbItem[]>(() => {
 }
 .panel-trigger {
   position: relative;
+}
+.access-denied {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px;
+}
+.access-denied-icon {
+  font-size: 48px;
+  opacity: 0.6;
+}
+.access-denied-text {
+  font-size: 16px;
+  color: #6b7280;
 }
 </style>
