@@ -16,6 +16,8 @@ export interface MentionState {
   open: boolean
   top: number
   left: number
+  anchorTop: number
+  anchorBottom: number
   items: MentionSuggestion[]
   loading: boolean
   selectedIndex: number
@@ -29,6 +31,8 @@ export function createMentionState() {
     open: false,
     top: 0,
     left: 0,
+    anchorTop: 0,
+    anchorBottom: 0,
     items: [],
     loading: false,
     selectedIndex: 0,
@@ -87,11 +91,15 @@ export function createMentionPlugin(state: MentionState, docId?: string) {
   }
 
   function updatePopupPosition(view: EditorView) {
+    // coordsAtPos 返回视口坐标，popup 通过 Teleport 挂在 body 且使用 position:fixed，
+    // 因此直接用视口坐标即可定位在 @ 符号处（无需减去编辑器偏移）。
+    // 默认向下弹出，具体是否向上翻转由 MentionPopup 按实际高度测量后调整。
     const coords = view.coordsAtPos(view.state.selection.from)
     if (coords) {
-      const editorRect = (view.dom as HTMLElement).getBoundingClientRect()
-      state.top = coords.bottom - editorRect.top + 4
-      state.left = coords.left - editorRect.left
+      state.anchorTop = coords.top
+      state.anchorBottom = coords.bottom
+      state.top = coords.bottom + 4
+      state.left = coords.left
       state.open = true
     }
   }

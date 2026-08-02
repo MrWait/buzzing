@@ -94,7 +94,7 @@ export function useSlashMenu(
   const visible = ref(false)
   const filter = ref('')
   const selectedIndex = ref(0)
-  const position = ref({ left: 0, top: 0 })
+  const position = ref({ left: 0, top: 0, anchorTop: 0, anchorBottom: 0 })
 
   const filteredItems = computed(() => {
     if (!filter.value) return items.value
@@ -105,12 +105,16 @@ export function useSlashMenu(
   })
 
   function updatePosition(view: EditorView) {
+    // coordsAtPos 返回视口坐标，菜单通过 Teleport 挂在 body 且使用 position:fixed，
+    // 因此直接用视口坐标定位在触发符处（无需减去编辑器偏移）。
+    // 默认向下弹出，具体是否向上翻转由 SlashMenu 按实际高度测量后调整。
     const coords = view.coordsAtPos(view.state.selection.from)
     if (coords) {
-      const editorRect = view.dom.getBoundingClientRect()
       position.value = {
-        left: coords.left - editorRect.left,
-        top: coords.bottom - editorRect.top + 4,
+        left: coords.left,
+        top: coords.bottom + 4,
+        anchorTop: coords.top,
+        anchorBottom: coords.bottom,
       }
     }
   }

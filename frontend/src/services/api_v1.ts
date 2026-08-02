@@ -14,7 +14,7 @@ function authHeader(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
-export async function apiV1<T>(
+export async function apiV1<T = any>(
   cmd: number,
   payload: Uint8Array,
   resType?: string,
@@ -31,7 +31,7 @@ export async function apiV1<T>(
       'X-Rid': String(rid),
       ...authHeader(),
     },
-    body: packet,
+    body: packet as unknown as BodyInit,
   })
   if (!res.ok) {
     throw new Error(`api_v1 error: ${res.status}`)

@@ -1,5 +1,5 @@
 <template>
-  <div class="collaborators" ref="elRef">
+  <div class="collaborators">
     <div
       v-for="user in visibleUsers"
       :key="user.clientId"
@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps<{
   users: Array<{ clientId: number; name: string; color: string }>
@@ -39,7 +39,6 @@ const visibleUsers = computed(() => props.users.slice(0, MAX_VISIBLE))
 const extraUsers = computed(() => props.users.slice(MAX_VISIBLE))
 const moreCount = computed(() => extraUsers.value.length)
 
-const elRef = ref<HTMLElement | null>(null)
 const moreRef = ref<HTMLElement | null>(null)
 const showMore = ref(false)
 const dropdownStyle = ref({})
