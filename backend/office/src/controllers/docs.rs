@@ -10,6 +10,8 @@ pub struct WalkItem {
     pub id: String,
     pub title: String,
     pub icon: Option<String>,
+    /// 节点类型: user=个人空间虚拟根, wiki=知识库根, doc=文档
+    pub kind: String,
 }
 
 #[debug_handler]

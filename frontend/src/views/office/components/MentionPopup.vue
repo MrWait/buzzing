@@ -2,6 +2,7 @@
   <Teleport to="body">
     <div
       v-if="state.open"
+      ref="popupRef"
       class="mention-popup"
       :style="{ top: state.top + 'px', left: state.left + 'px' }"
       @mousedown.prevent.stop
@@ -24,12 +25,35 @@
 </template>
 
 <script setup lang="ts">
+import { nextTick, ref, watch } from 'vue'
 import type { MentionState, MentionSuggestion } from '@/views/office/composables/useMention'
 
 const props = defineProps<{
   state: MentionState
   onInsert: (item: MentionSuggestion) => void
 }>()
+
+const popupRef = ref<HTMLElement | null>(null)
+
+// 根据弹窗实际高度，在下方空间不足时向上翻转，保证完整展示
+function adjustPosition() {
+  const el = popupRef.value
+  if (!el) return
+  const gap = 4
+  const h = el.offsetHeight
+  if (props.state.anchorBottom + gap + h > window.innerHeight) {
+    props.state.top = Math.max(8, props.state.anchorTop - gap - h)
+  } else {
+    props.state.top = props.state.anchorBottom + gap
+  }
+}
+
+watch([() => props.state.open, () => props.state.items, () => props.state.loading], async () => {
+  if (props.state.open) {
+    await nextTick()
+    adjustPosition()
+  }
+})
 
 function onSelect(item: MentionSuggestion) {
   props.onInsert(item)
@@ -38,7 +62,7 @@ function onSelect(item: MentionSuggestion) {
 
 <style scoped>
 .mention-popup {
-  position: absolute;
+  position: fixed;
   z-index: 1000;
   min-width: 220px;
   max-width: 320px;

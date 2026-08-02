@@ -40,7 +40,6 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
-
 import { useYjs } from '@/composables/useYjs'
 import { useAuthStore } from '@/stores/auth'
 import { useWikiStore } from '@/stores/wiki'
@@ -172,16 +171,19 @@ const crumbs = computed<BreadcrumbItem[]>(() => {
   const items: BreadcrumbItem[] = []
   chain.value.forEach((n, idx) => {
     const isLast = idx === chain.value.length - 1
-    const isRoot = n.id === currentUserId.value
+    const isUserRoot = n.id === currentUserId.value
+    const isWikiRoot = n.type === 1
     items.push({
       id: n.id,
       label: n.title,
       icon: n.icon ?? undefined,
       route: isLast
         ? undefined
-        : isRoot
+        : isUserRoot
           ? { name: 'OfficeHome' }
-          : { name: 'OfficeEditor', params: { docId: n.id } },
+          : isWikiRoot
+            ? { name: 'WikiHome', params: { wikiId: n.id } }
+            : { name: 'OfficeEditor', params: { docId: n.id } },
     })
   })
   return items

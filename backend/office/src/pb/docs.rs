@@ -22,6 +22,7 @@ fn model_to_walk_item(d: &base::models::_entities::documents::Model) -> office::
         id: d.id.to_string(),
         title: d.title.clone(),
         icon: d.icon.clone().unwrap_or_default(),
+        r#type: 0,
     }
 }
 
@@ -204,6 +205,11 @@ pub(crate) async fn get(
             id: w.id,
             title: w.title,
             icon: w.icon.unwrap_or_default(),
+            r#type: match w.kind.as_str() {
+                "wiki" => 1,
+                "user" => 2,
+                _ => 0,
+            },
         })
         .collect();
 
