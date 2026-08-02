@@ -15,7 +15,7 @@
       <span class="doc-icon">{{ node.icon || '📄' }}</span>
       <span class="doc-title">{{ node.title || '未命名' }}</span>
       <span class="doc-add" @click.stop="emitAddChild">+</span>
-      <span class="doc-more" @click.stop="emitMenu">···</span>
+      <span class="doc-more" @click.stop="emitMenu">…</span>
     </div>
     <div v-if="expanded && hasChildren" class="children">
       <DocTreeNode

@@ -275,7 +275,8 @@ impl DocumentModel {
     }
 
     /// 追溯文档父链，返回 [root, ..., current] 顺序
-    /// 当遇到 parent_id == user_id 时，插入虚拟根节点（个人空间）并停止
+    /// 个人空间：遇到 parent_id == user_id 时插入虚拟根节点（个人空间）并停止
+    /// 知识库：文档链尾部插入 wiki 根节点（id=wiki_id, title=wiki 名称）
     pub async fn get_doc_path(
         db: &DatabaseConnection,
         doc_id: i64,
@@ -285,6 +286,7 @@ impl DocumentModel {
         let mut items = Vec::new();
         let mut cursor = Some(doc_id);
         let mut visited = HashSet::new();
+        let mut wiki_id: Option<i64> = None;
         while let Some(id) = cursor {
             if !visited.insert(id) {
                 break;
@@ -295,6 +297,7 @@ impl DocumentModel {
                     id: user_id.to_string(),
                     title: "个人空间".to_string(),
                     icon: None,
+                    kind: "user".to_string(),
                 });
                 break;
             }
@@ -302,14 +305,32 @@ impl DocumentModel {
                 Some(d) => d,
                 None => break,
             };
+            if wiki_id.is_none() {
+                wiki_id = doc.wiki_id;
+            }
             items.push(crate::controllers::docs::WalkItem {
                 id: doc.id.to_string(),
                 title: doc.title,
                 icon: doc.icon.clone(),
+                kind: "doc".to_string(),
             });
             cursor = doc.parent_id;
         }
         items.reverse();
+        // 知识库文档：在文档链最前面插入 wiki 根节点
+        if let Some(wid) = wiki_id {
+            if let Some(wiki) = crate::models::wikis::WikiModel::get_by_id(db, wid).await? {
+                items.insert(
+                    0,
+                    crate::controllers::docs::WalkItem {
+                        id: wid.to_string(),
+                        title: wiki.name,
+                        icon: wiki.icon,
+                        kind: "wiki".to_string(),
+                    },
+                );
+            }
+        }
         Ok(items)
     }
 }

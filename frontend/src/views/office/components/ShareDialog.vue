@@ -177,7 +177,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch, type CSSProperties } from 'vue'
 
 import { sharesApi, type ShareInfoDto } from '@/services/office/shares'
 import { membersApi, type MemberDto } from '@/services/office/members'
@@ -191,7 +191,7 @@ const props = withDefaults(defineProps<{ open: boolean; docId: string; triggerRe
 })
 const emit = defineEmits<{ (e: 'update:open', v: boolean): void }>()
 
-const panelStyle = computed(() => {
+const panelStyle = computed<CSSProperties>(() => {
   const r = props.triggerRect
   return {
     position: 'fixed',

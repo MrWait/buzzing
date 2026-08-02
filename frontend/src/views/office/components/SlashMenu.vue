@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { inject, onMounted, onUnmounted, ref } from 'vue'
+import { inject, onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import type { Ref } from 'vue'
 import type { EditorView } from 'prosemirror-view'
 import type { Schema } from 'prosemirror-model'
@@ -41,6 +41,26 @@ const items = ref<SlashMenuItem[]>(buildSlashItems(schema, triggerImageUpload))
 const { visible, filter, selectedIndex, filteredItems, position, execute } = useSlashMenu(editorView, items)
 
 const menuRef = ref<HTMLElement | null>(null)
+
+// 根据菜单实际高度，在下方空间不足时向上翻转，保证完整展示
+function adjustPosition() {
+  const el = menuRef.value
+  if (!el) return
+  const gap = 4
+  const h = el.offsetHeight
+  if (position.value.anchorBottom + gap + h > window.innerHeight) {
+    position.value.top = Math.max(8, position.value.anchorTop - gap - h)
+  } else {
+    position.value.top = position.value.anchorBottom + gap
+  }
+}
+
+watch([visible, filteredItems], async () => {
+  if (visible.value) {
+    await nextTick()
+    adjustPosition()
+  }
+})
 
 function onGlobalKeyDown(e: KeyboardEvent) {
   if (!visible.value) return

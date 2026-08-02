@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, type CSSProperties } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDocumentStore } from '@/stores/document'
 import { docsApi } from '@/services/office/docs'
@@ -80,7 +80,7 @@ const currentPage = computed(() => pageStack.value[pageStack.value.length - 1])
 function goTo(page: string) { pageStack.value.push(page) }
 function goBack() { if (pageStack.value.length > 1) pageStack.value.pop() }
 
-const menuStyle = computed(() => {
+const menuStyle = computed<CSSProperties>(() => {
   const r = props.triggerRect
   return {
     position: 'fixed',

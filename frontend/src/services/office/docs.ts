@@ -14,6 +14,8 @@ export interface WalkItem {
   id: string
   title: string
   icon: string | null
+  /** 0=doc, 1=wiki, 2=user(个人空间虚拟根) */
+  type?: number
 }
 
 export interface DocDto {
@@ -108,6 +110,7 @@ function docFromProto(p: any): DocDto {
       id: toStr(w.id),
       title: w.title ?? '',
       icon: toNullStr(w.icon),
+      type: w.type ?? 0,
     })),
     role: p.role ?? 0,
     role_label: p.role_label ?? '',

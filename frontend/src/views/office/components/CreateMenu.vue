@@ -17,7 +17,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, type CSSProperties } from 'vue'
 import { useRouter } from 'vue-router'
 import { docsApi } from '@/services/office/docs'
 
@@ -36,7 +36,7 @@ const emit = defineEmits<{ (e: 'update:open', v: boolean): void }>()
 
 const router = useRouter()
 
-const menuStyle = computed(() => {
+const menuStyle = computed<CSSProperties>(() => {
   const r = props.triggerRect
   return {
     position: 'fixed',
