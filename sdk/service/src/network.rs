@@ -82,11 +82,12 @@ impl Response {
     }
 }
 
+#[repr(i32)]
 #[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub enum LonglinkState {
-    Stop,
-    Connecting,
-    Connected,
+    Stop = 0,
+    Connecting = 1,
+    Connected = 2,
 }
 
 #[derive(Debug)]

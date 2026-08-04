@@ -1,4 +1,5 @@
 import 'package:buzzing/provider/app_state_provider.dart';
+import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/widget/app_view.dart';
@@ -23,6 +24,8 @@ class _BuzzingAppState extends ConsumerState<BuzzingApp> with WindowListener {
   @override
   void initState() {
     super.initState();
+    // 全局未读数变化 → 原生 app badge（FlutterAppBadger 调用保持注释，仅接线）
+    ref.read(imProvider).onBadgeChanged = ref.read(appControllerProvider).showBadge;
     if (isDesktop) {
       windowManager.addListener(this);
       windowManager.setPreventClose(true);

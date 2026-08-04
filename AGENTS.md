@@ -93,17 +93,15 @@ Buzzing 是一个企业级协作平台（类飞书/钉钉/Slack），包含完�
 | 文档 | 描述 |
 |------|------|
 | [架构概览](docs/architecture.md) | 整体架构、技术栈、分层设计 |
-| [服务端](docs/server.md) | 后端模块划分、路由、数据库、关键设计 |
-| [SDK](docs/sdk.md) | Rust SDK 模块划分、FFI 桥接、网络层 |
-| [客户端](docs/client.md) | Flutter 客户端页面、状态管理、路由 |
-| [客户端主题设计系统](docs/client_style.md) | 颜色/字体/ThemeExtension 设计方案 |
+| [服务端](docs/server/) | 后端模块划分、路由、数据库、关键设计 |
+| [SDK](docs/sdk/) | Rust SDK 模块划分、FFI 桥接、网络层 |
+| [客户端](docs/client/) | Flutter 客户端页面、状态管理、路由、设计指南、主题系统 |
 | [协议与 API](docs/protocol.md) | Protobuf 协议、命令枚举、数据流 |
 | [数据库](docs/database.md) | 数据库表结构、关系说明 |
-| [日历业务](docs/calendar/calendar_p1.md) | 日历业务功能 PRD (Phase 1) |
-| [日历排列](docs/calendar-layout-algorithm.md) | 日历重叠日程排列算法 |
+| [数据同步](docs/data_sync.md) | 离线同步底座：Feed 快速通道 / 消息按需通道 / Pipeline 实体变更通道；含 Web 端内存版实现约定 |
+| [日历业务](docs/calendar/calendar_p1.md) | 日历业务功能 PRD (Phase 1)、日程排列算法 |
 | [服务端测试](docs/backend_test.md) | 服务端测试套件 |
-| [前端架构](docs/frontend_arch.md) | Vue3 SPA 架构、路由、Layout、状态管理、协同编辑 |
-| [前端设计指南](docs/frontend_style.md) | 设计令牌、组件模式、布局系统、写作规范 |
+| [前端（frontend）](docs/frontend/) | Vue3 SPA 架构、路由、Layout、状态管理、协同编辑、设计指南 |
 | [office 业务](docs/office/)| office 业务相关文档，包括 roadmap，PRD，设计方案等|
 | [视频会议业务](docs/vc/)| vc 业务相关文档，包括 milestone，PRD，设计方案等 |
 | [IM 业务](docs/im/) | IM 业务相关文档，包括 milestone，PRD，设计方案等 |

@@ -74,6 +74,7 @@ function onCreateChat() {
 onMounted(() => {
   im.connectWs()
   im.loadFeeds()
+  im.loadFeedTopList()
 })
 </script>
 

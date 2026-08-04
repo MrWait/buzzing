@@ -4,7 +4,7 @@ use prost::Message;
 use rand::RngCore;
 use std::collections::HashMap;
 use std::ops::DerefMut;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
@@ -24,7 +24,7 @@ mod http;
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct NetworkState {
-    longlink_state: LonglinkState,
+    longlink_state: AtomicI32,
     running: AtomicBool,
     config: RwLock<NetworkConfig>,
     foreground: AtomicBool,
@@ -32,10 +32,22 @@ pub struct NetworkState {
 impl NetworkState {
     pub fn new() -> Self {
         Self {
-            longlink_state: LonglinkState::Stop,
+            longlink_state: AtomicI32::new(LonglinkState::Stop as i32),
             running: AtomicBool::new(false),
             config: RwLock::new(NetworkConfig::new()),
             foreground: AtomicBool::new(false),
+        }
+    }
+
+    pub fn set_longlink_state(&self, state: LonglinkState) {
+        self.longlink_state.store(state as i32, Ordering::SeqCst);
+    }
+
+    pub fn get_longlink_state(&self) -> LonglinkState {
+        match self.longlink_state.load(Ordering::SeqCst) {
+            1 => LonglinkState::Connecting,
+            2 => LonglinkState::Connected,
+            _ => LonglinkState::Stop,
         }
     }
 }
@@ -83,90 +95,95 @@ impl BizNetwork for AppNetwork {
         data: Vec<u8>,
         option: Option<RequestOption>,
     ) -> Result<Response> {
-        struct Timeout {
-            gap: u64,
-            timeout: u64,
-            step: u64,
-            i: usize,
-        }
-        impl Iterator for Timeout {
-            // timeout, longlink, http
-            type Item = (u64, bool, bool);
-            fn next(&mut self) -> Option<Self::Item> {
-                self.i = self.i + 1;
-                match self.i {
-                    1 => Some((0, true, false)),
-                    2 => Some((self.gap, false, true)),
-                    0 => Some((0, false, false)),
-                    _ => {
-                        if ((self.i as u64) * self.step) < self.timeout {
-                            Some((self.step, true, false))
-                        } else {
-                            None
-                        }
-                    }
-                }
-            }
-        }
-
-        let now = std::time::Instant::now();
+        let start = std::time::Instant::now();
         let rid = rand::thread_rng().next_u64() as i64;
 
         let (tx, mut rx) = unbounded_channel::<Response>();
-        let waiting = AtomicBool::new(true);
         let option = option.unwrap_or_default();
-        let mut timeout = Timeout {
-            gap: NET_HTTP_DELAY_MS,
-            timeout: option.timeout.timeout(),
-            step: 3000,
-            i: 0,
-        };
+        let timeout = option.timeout.timeout();
+        let deadline = start + Duration::from_millis(timeout);
 
+        // ws 已连接时优先走 ws；断开/连接中直接走 http，避免空等
+        let ws_connected = self.get_longlink_status() == LonglinkState::Connected;
         debug!(
-            "request start, cmd: {cmd}, option: {:?}, rid: {rid}, len: {}",
+            "request start, cmd: {cmd}, option: {:?}, rid: {rid}, len: {}, ws_connected: {ws_connected}",
             option,
             data.len(),
         );
 
-        while waiting.load(Ordering::Relaxed) {
-            let (time, longlink, http) = match timeout.next() {
-                None => {
-                    debug!("request timeout, abort");
-                    break;
-                }
-                Some(c) => c,
-            };
-            debug!("next request loop, {time}, {longlink}, {http}");
+        let mut longlink_fired = false;
+        let mut http_fired = false;
+        let mut longlink_at = std::time::Instant::now();
+        let mut last_longlink_at = std::time::Instant::now();
 
-            let tx1 = tx.clone();
-            let tx2 = tx.clone();
-            let mut resp: Option<Response> = None;
-            let option_clone = option.clone();
-            let data_clone = data.clone();
-            tokio::select!(
-                _ = async {
-                    resp = rx.recv().await;
-                    debug!("recv request resp");
-                } => {
-                    let resp = resp.unwrap_or_default();
-                    debug!(
-                        "request finish, cmd: {:?}, cost: {:?}, ack state: {:?}, rid: {:?}",
-                        cmd, now.elapsed().as_millis(), resp.code, rid,
-                    );
-                    if resp.code == ErrorCode::ErrorOnProcess as i32{
-                        debug!("request was processing");
-                        continue;
-                    }
-                    waiting.store(false, Ordering::Relaxed);
-                    return Ok(resp);
+        loop {
+            let now = std::time::Instant::now();
+            if now >= deadline {
+                debug!("request timeout, abort");
+                break;
+            }
+
+            // 决定本轮动作：优先 ws -> 500ms 未回兜底 http -> 每 3s 重试 ws
+            let mut sleep_ms = 0u64;
+            let mut do_longlink = false;
+            let mut do_http = false;
+
+            if !ws_connected {
+                if !http_fired {
+                    do_http = true;
+                } else {
+                    sleep_ms = deadline.saturating_duration_since(now).as_millis().max(1) as u64;
                 }
-                _ = async move {
-                    tokio::time::sleep(Duration::from_millis(time)).await;
-                    if http {
-                        let data_clone_2 = data_clone.clone();
-                        base_runtime::spawn(async move {
-                            debug!("start send request with http, rid: {:?}", rid);
-                            let ret = http::request(cmd, rid, data_clone_2, Some(option_clone)).await;
+            } else if !longlink_fired {
+                do_longlink = true;
+            } else if !http_fired
+                && now.duration_since(longlink_at) >= Duration::from_millis(NET_HTTP_DELAY_MS)
+            {
+                do_http = true;
+            } else if now.duration_since(last_longlink_at) >= Duration::from_millis(3000) {
+                do_longlink = true;
+            } else {
+                // 等待到最近的事件点（http 触发 / ws 重试 / 截止时间）
+                let next = [
+                    longlink_at + Duration::from_millis(NET_HTTP_DELAY_MS),
+                    last_longlink_at + Duration::from_millis(3000),
+                    deadline,
+                ]
+                .into_iter()
+                .filter(|t| *t > now)
+                .min()
+                .unwrap_or(deadline);
+                sleep_ms = next.duration_since(now).as_millis().max(1) as u64;
+            }
+
+            tokio::select!(
+                resp = rx.recv() => {
+                    match resp {
+                        Some(resp) => {
+                            debug!(
+                                "request finish, cmd: {:?}, cost: {:?}, ack state: {:?}, rid: {:?}",
+                                cmd, start.elapsed().as_millis(), resp.code, rid,
+                            );
+                            if resp.code == ErrorCode::ErrorOnProcess as i32 {
+                                debug!("request was processing");
+                                continue;
+                            }
+                            return Ok(resp);
+                        }
+                        None => {
+                            debug!("request channel closed, rid: {rid}");
+                            break;
+                        }
+                    }
+                }
+                _ = tokio::time::sleep(Duration::from_millis(sleep_ms)) => {
+                    if do_http {
+                        debug!("start send request with http, rid: {:?}", rid);
+                        let tx2 = tx.clone();
+                        let option_clone = option.clone();
+                        let data_clone = data.clone();
+                        let _ = base_runtime::spawn(async move {
+                            let ret = http::request(cmd, rid, data_clone, Some(option_clone)).await;
                             debug!("request with http finish: {:?}", rid);
                             match ret {
                                 Ok(resp) => {
@@ -177,20 +194,26 @@ impl BizNetwork for AppNetwork {
                                     let _ = tx2.send(Response::default());
                                 }
                             }
-                       });
+                        });
+                        http_fired = true;
                     }
-                    if longlink {
+                    if do_longlink {
                         debug!("request send with longlink");
-                        let _ = self.send_longlink_request(cmd, rid, data_clone, tx1);
+                        let _ = self.send_longlink_request(cmd, rid, data.clone(), tx.clone());
+                        if !longlink_fired {
+                            longlink_at = std::time::Instant::now();
+                            longlink_fired = true;
+                        }
+                        last_longlink_at = std::time::Instant::now();
                     }
-                } => {}
+                }
             );
         }
 
         debug!(
             "request finish, cmd: {:?}, cost: {:?}, rid: {:?}",
             cmd,
-            now.elapsed().as_millis(),
+            start.elapsed().as_millis(),
             rid,
         );
         Err(anyhow::anyhow!("request error"))
@@ -212,7 +235,7 @@ impl BizNetwork for AppNetwork {
         Ok("".to_string())
     }
     fn get_longlink_status(&self) -> LonglinkState {
-        LonglinkState::Stop
+        self.net_status.get_longlink_state()
     }
     fn start(&self) {}
     fn stop(&self) {}
@@ -251,8 +274,9 @@ impl AppTrait for AppNetwork {
             let (tx, rx) = unbounded_channel::<connection::Command>();
             let cmd_tx = Arc::new(tx.clone());
             self.ws_tx.lock().replace(tx);
+            let net_status = self.net_status.clone();
             base_runtime::spawn(async {
-                let _ = connection::ws_task(cmd_tx, rx).await;
+                let _ = connection::ws_task(cmd_tx, rx, net_status).await;
             });
         }
         self.start();
@@ -260,6 +284,12 @@ impl AppTrait for AppNetwork {
     }
     fn logout(&self) -> Result<()> {
         let _ = http::uninit_user_client();
+        // 复位长连接状态：登出时 ws_task 已被 base_runtime::stop 取消，
+        // 但 running 标志必须置回 false，否则再次登录时不会重新启动 ws_task
+        self.net_status.running.store(false, Ordering::SeqCst);
+        self.net_status.foreground.store(false, Ordering::SeqCst);
+        self.net_status.set_longlink_state(LonglinkState::Stop);
+        self.ws_tx.lock().take();
         Ok(())
     }
 

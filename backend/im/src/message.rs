@@ -12,7 +12,7 @@ use common::{
     BizHub, CacheLoader, CommonCache, EntityIds, EntityStatus, UserBrief, UserEntity, VecBool,
 };
 use common::{common_error, id_gen, pb_decode, pb_default, rid};
-use proto::idl::{command::Command, entity, error::ErrorCode, message};
+use proto::idl::{command::Command, entity, error::ErrorCode, message, pipeline};
 
 struct MessageContext {
     pub message: messages::Model,
@@ -84,13 +84,17 @@ pub async fn fill_messages(
     user_entity: &mut HashMap<i64, UserEntity>,
 ) -> Result<()> {
     let messages = MessageModel::find_by_ids(&ctx.db, entity_ids.message_ids()).await?;
-    fill_messages_impl(ctx, messages, false, user_entity).await
+    fill_messages_impl(ctx, messages, false, true, user_entity).await
 }
 
+/// 填充消息实体到 user_entity。`with_full` 控制已读/表情是否返回完整 top 列表（实时通道 top 5 截断，
+/// pipeline 懒拉返回完整）；`include_content` 控制是否携带 `entity.messages` 内容——
+/// 已读/表情独立推送与懒拉**不携带消息体**（消息体可能很大，见 docs/data_sync §5），仅填 readstates/reactions。
 async fn fill_messages_impl(
     ctx: &AppContext,
     mut db_messages: Vec<messages::Model>,
     with_full: bool,
+    include_content: bool,
     user_entity: &mut HashMap<i64, UserEntity>,
 ) -> Result<()> {
     let mut messages = HashMap::new();
@@ -117,6 +121,7 @@ async fn fill_messages_impl(
         for message in msgs.iter() {
             let reactions = pb_default::<Reactions>(&message.reactions);
             let read_state = VecBool::with(message.cmv_count as u64, message.read_states.to_vec());
+            let msg_id = message.id;
 
             // per user
             for (user_id, ref mut entity) in user_entity.iter_mut() {
@@ -124,7 +129,6 @@ async fn fill_messages_impl(
                 if !cmv.contains_key(*user_id) {
                     continue;
                 }
-                let mut msg: entity::Message = MessageModel(message.clone()).into();
                 let mut reactions = reactions.reactions.clone();
                 for (_id, reaction) in reactions.iter_mut() {
                     if reaction.top_ids.contains(&user_id) {
@@ -134,7 +138,6 @@ async fn fill_messages_impl(
                         reaction.top_ids.shrink_to(5);
                     }
                 }
-                msg.reactions = reactions;
 
                 let read_user_ids = cmv.extract(&read_state);
                 let mut read_state = entity::ReadState::default();
@@ -149,9 +152,25 @@ async fn fill_messages_impl(
                 read_state.total = message.cmv_count;
                 read_state.read_count = read_user_ids.len() as i32;
                 read_state.unread_count = message.cmv_count - read_user_ids.len() as i32;
-                msg.read_state = Some(read_state);
+                // 已读 / 表情为独立实体（id = message_id），随 Entity.readstates / Entity.reactions 下发；
+                // 内容仍来自 messages 行内 read_states / reactions 列，见 docs/data_sync §5。
+                read_state.id = msg_id;
+                read_state.version = message.readstate_version;
+                entity.entity.readstates.insert(msg_id, read_state);
+                entity
+                    .entity
+                    .reactions
+                    .insert(msg_id, entity::Reactions {
+                        id: msg_id,
+                        reactions,
+                        version: message.reaction_version,
+                    });
 
-                entity.entity.messages.insert(msg.id, msg);
+                // 仅当 include_content 时携带消息体（大消息体避免随已读/表情反复下发）
+                if include_content {
+                    let msg: entity::Message = MessageModel(message.clone()).into();
+                    entity.entity.messages.insert(msg_id, msg);
+                }
             }
         }
     }
@@ -159,11 +178,16 @@ async fn fill_messages_impl(
     Ok(())
 }
 
+/// 推送消息实体到在线用户（PushMessages，pipe=false）。
+/// `include_content`：内容变更（发送/撤回/删除/语音）传 true 携带 `entity.messages`；
+/// 已读/表情等独立实体变更传 false，只携带 `entity.readstates` / `entity.reactions`，
+/// 避免大消息体随已读/表情反复下发（见 docs/data_sync §5）。
 pub(crate) async fn push_messages(
     ctx: &AppContext,
     _brief: &UserBrief,
     user_ids: &[i64],
     message_ids: &[i64],
+    include_content: bool,
 ) -> Result<()> {
     let entity_ids = EntityIds {
         message_ids: message_ids.iter().copied().collect(),
@@ -182,7 +206,10 @@ pub(crate) async fn push_messages(
             (*id, entity)
         })
         .collect();
-    let _ = fill_messages(ctx, &entity_ids, &mut user_entity).await;
+    {
+        let messages = MessageModel::find_by_ids(&ctx.db, entity_ids.message_ids()).await?;
+        let _ = fill_messages_impl(ctx, messages, false, include_content, &mut user_entity).await;
+    }
 
     for (id, push) in pushs.iter_mut() {
         // 将 fill_messages 为每个用户填好的 entity 写入 push 载荷
@@ -203,6 +230,49 @@ pub(crate) async fn push_messages(
             )
             .await;
     }
+    Ok(())
+}
+
+/// 实体变更走 pipeline 实体变更通道（PUSH_ENTITY_CHANGE，pipe=true 持久化）。
+/// 只推轻量 EntityChange{id,type,version,operate}，不携带实体内容；SDK 收到后 mark dirty + 按需懒拉。
+/// operate：Update（已读/reaction/内容变更）、Delete（撤回/删除）等，见 entity.Operate。
+pub(crate) async fn push_entity_changed(
+    ctx: &AppContext,
+    user_ids: &[i64],
+    message_ids: &[i64],
+    version: i64,
+    operate: entity::Operate,
+    entity_type: entity::EntityType,
+) -> Result<()> {
+    if user_ids.is_empty() || message_ids.is_empty() {
+        return Ok(());
+    }
+    let mut changes = Vec::new();
+    for id in message_ids {
+        changes.push(entity::EntityChange {
+            id: *id,
+            r#type: entity_type as i32,
+            version,
+            operate: operate as i32,
+        });
+    }
+    let hub = BizHub::get()?;
+    let sid = id_gen(None);
+    let push = pipeline::PushEntityChanged {
+        changes,
+        ..Default::default()
+    };
+    let _ = hub
+        .gateway
+        .send_packet_to_user(
+            ctx,
+            user_ids,
+            sid,
+            Command::PushEntityChange,
+            push.encode_to_vec(),
+            true,
+        )
+        .await;
     Ok(())
 }
 
@@ -385,9 +455,18 @@ pub(crate) async fn message_read(
     let req = pb_decode::<message::MessageReadRequest>(&packet.payload)?;
     let resp = message::MessageReadResponse::default();
     debug!("message read, req: {:?}", req);
+    // 会话已读位置（max_pos + 透传的 max_badge_count → feed），见 data_sync §6.2 / §6.3
     if req.max_pos != 0 {
-        super::feed::feed_update_read_pos(ctx, req.chat_id, brief.id, req.max_pos).await?;
+        super::feed::feed_update_read_pos(
+            ctx,
+            req.chat_id,
+            brief.id,
+            req.max_pos,
+            req.max_badge_count,
+        )
+        .await?;
     }
+    // 消息级已读实体（精确 message_ids → read state），两套语义独立、互不派生
     if !req.message_ids.is_empty() {
         let messages = cache_message_load(ctx, &req.message_ids).await?;
         let mut cmv_ids = Vec::new();
@@ -427,7 +506,17 @@ pub(crate) async fn message_read(
         if !changed_ids.is_empty() {
             let changed_ids: Vec<_> = changed_ids.iter().copied().collect();
             let changed_message_ids: Vec<_> = changed_message_ids.iter().copied().collect();
-            push_messages(ctx, brief, &changed_ids, &changed_message_ids).await?;
+            push_messages(ctx, brief, &changed_ids, &changed_message_ids, false).await?;
+            // 已读实体变更走 pipeline 实体变更通道（持久化，离线端重连回放后 mark dirty + 懒拉）
+            push_entity_changed(
+                ctx,
+                &changed_ids,
+                &changed_message_ids,
+                current_ms() as i64,
+                entity::Operate::Update,
+                entity::EntityType::Readstate,
+            )
+            .await?;
         }
     }
     debug!("message read, resp: {:?}", resp);
@@ -558,7 +647,7 @@ pub(crate) async fn message_forward(
 
     // push new messages to chat members
     if let Ok(member_ids) = super::chat::chat_get_all_user_ids(ctx, req.chat_id).await {
-        let _ = push_messages(ctx, brief, &member_ids, &created_ids).await;
+        let _ = push_messages(ctx, brief, &member_ids, &created_ids, true).await;
     }
 
     resp.count = result_msgs.len() as i32;
@@ -597,7 +686,17 @@ pub(crate) async fn message_recall(
     }
 
     if let Ok(user_ids) = super::chat::chat_get_all_user_ids(ctx, chat_id).await {
-        let _ = push_messages(ctx, brief, &user_ids, &vec![req.id]).await;
+        let _ = push_messages(ctx, brief, &user_ids, &vec![req.id], true).await;
+        // 撤回属实体变更：走 pipeline 实体变更通道（离线端 mark dirty + 懒拉），见 docs/data_sync §5
+        let _ = push_entity_changed(
+            ctx,
+            &user_ids,
+            &vec![req.id],
+            current_ms() as i64,
+            entity::Operate::Delete,
+            entity::EntityType::Message,
+        )
+        .await;
     }
     debug!("message recall, resp: {resp:?}");
 
@@ -616,9 +715,93 @@ pub(crate) async fn message_get_by_ids(
     let messages = MessageModel::find_by_ids(&ctx.db, req.ids).await?;
     let mut map = HashMap::new();
     map.insert(brief.id, UserEntity::default());
-    let _ = fill_messages_impl(ctx, messages, req.with_full, &mut map).await;
+    let _ = fill_messages_impl(ctx, messages, req.with_full, true, &mut map).await;
     resp.entity = map.remove(&brief.id).map(|ue| ue.entity);
     debug!("message get by ids, resp: {resp:?}");
+    Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
+}
+
+/// pipeline 实体变更通道的按需懒拉：根据 {entity_id, type, version} 拉取实体内容（含完整 read_state）。
+/// 支持 Message / Readstate / Reaction（存储共用 messages 行，按需经 Entity.readstates / Entity.reactions 下发）与 Chat 实体。
+/// SDK 收到 PUSH_ENTITY_CHANGE 后 mark dirty，同步完成后统一拉取补齐实体，见 docs/data_sync §5。
+pub(crate) async fn pipeline_pull_entity(
+    ctx: &AppContext,
+    brief: &UserBrief,
+    packet: &entity::Packet,
+    _ws: bool,
+) -> Result<(i32, Vec<u8>)> {
+    let req = pb_decode::<pipeline::PullEntityRequest>(&packet.payload)?;
+    debug!("pipeline pull entity, req: {req:?}");
+    let mut resp = pipeline::PullEntityResponse::default();
+    if req.ids.is_empty() {
+        return Ok((ErrorCode::Success as i32, resp.encode_to_vec()));
+    }
+
+    // 消息类实体（Message/Readstate/Reaction）存储共用 messages 行，
+    // fill_messages_impl 会把内容放 Entity.messages，已读/表情放 Entity.readstates / Entity.reactions
+    // 消息类实体：MESSAGE 类型拉取时携带消息体；READSTATE/REACTION 类型只返回
+    // entity.readstates / entity.reactions（不含大消息体，见 docs/data_sync §5）。
+    let content_ids: std::collections::HashSet<i64> = req
+        .ids
+        .iter()
+        .filter(|id| id.r#type == entity::EntityType::Message as i32)
+        .map(|id| id.id)
+        .collect();
+    let side_ids: Vec<i64> = req
+        .ids
+        .iter()
+        .filter(|id| {
+            matches!(
+                id.r#type,
+                x if x == entity::EntityType::Readstate as i32
+                    || x == entity::EntityType::Reaction as i32
+            )
+        })
+        .map(|id| id.id)
+        .collect();
+    let side_only: Vec<i64> = side_ids
+        .iter()
+        .copied()
+        .filter(|id| !content_ids.contains(id))
+        .collect();
+
+    let mut map = HashMap::new();
+    map.insert(brief.id, UserEntity::default());
+    if !content_ids.is_empty() {
+        let messages = MessageModel::find_by_ids(&ctx.db, content_ids.into_iter().collect()).await?;
+        let _ = fill_messages_impl(ctx, messages, true, true, &mut map).await;
+    }
+    if !side_only.is_empty() {
+        let messages = MessageModel::find_by_ids(&ctx.db, side_only).await?;
+        let _ = fill_messages_impl(ctx, messages, true, false, &mut map).await;
+    }
+    resp.entity = map.remove(&brief.id).map(|ue| ue.entity);
+
+    // Chat 实体：拉取 chat 详情（含成员列表）
+    let chat_ids: Vec<i64> = req
+        .ids
+        .iter()
+        .filter(|id| id.r#type == entity::EntityType::Chat as i32)
+        .map(|id| id.id)
+        .collect();
+    if !chat_ids.is_empty() {
+        let _ = super::chat::cache_chat_load(ctx, &chat_ids).await;
+        let entity = resp.entity.get_or_insert_default();
+        for id in chat_ids {
+            if let Ok(chat) = super::chat::chat_cache_get(ctx, id).await {
+                let chat = chat.read().await;
+                entity.chats.insert(
+                    id,
+                    crate::models::chats::ChatModel(chat.chat.clone()).into_entity(chat.cmv.ids()),
+                );
+            }
+        }
+    }
+
+    debug!(
+        "pipeline pull entity, resp: {:?}",
+        resp.entity.as_ref().map(|e| e.messages.keys().collect::<Vec<_>>())
+    );
     Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
 }
 
@@ -636,7 +819,7 @@ pub(crate) async fn message_get_by_pos(
     debug!("get messages: {messages:?}");
     let mut map = HashMap::new();
     map.insert(brief.id, UserEntity::default());
-    let _ = fill_messages_impl(ctx, messages, false, &mut map).await;
+    let _ = fill_messages_impl(ctx, messages, false, true, &mut map).await;
     resp.entity = map.remove(&brief.id).map(|ue| ue.entity);
     debug!("get message by pos, resp: {:?}", resp);
     Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
@@ -662,7 +845,7 @@ pub(crate) async fn message_get_by_range(
     let messages = MessageModel::find_by_range(&ctx.db, req.chat_id, pos, count).await?;
     let mut map = HashMap::new();
     map.insert(brief.id, UserEntity::default());
-    let _ = fill_messages_impl(ctx, messages, false, &mut map).await;
+    let _ = fill_messages_impl(ctx, messages, false, true, &mut map).await;
     resp.entity = map.remove(&brief.id).map(|ue| ue.entity);
     debug!("get message by range, resp: {:?}", resp);
     Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
@@ -697,8 +880,18 @@ pub(crate) async fn reaction_set(
             user_ids = chat.read().await.cmv.ids();
         }
     }
-    if user_ids.is_empty() {
-        let _ = push_messages(ctx, brief, &user_ids, &vec![req.message_id]).await;
+    if !user_ids.is_empty() {
+        let _ = push_messages(ctx, brief, &user_ids, &vec![req.message_id], false).await;
+        // reaction 属实体变更：走 pipeline 实体变更通道（离线端 mark dirty + 懒拉），见 docs/data_sync §5
+        let _ = push_entity_changed(
+            ctx,
+            &user_ids,
+            &vec![req.message_id],
+            current_ms() as i64,
+            entity::Operate::Update,
+            entity::EntityType::Reaction,
+        )
+        .await;
     }
 
     debug!("reaction set, resp: {resp:?}");
@@ -715,6 +908,8 @@ pub(crate) async fn message_get_read_members(
 ) -> Result<(i32, Vec<u8>)> {
     let req = pb_decode::<message::GetReadMembersRequest>(&packet.payload)?;
     debug!("get read members, req: {req:?}");
+    // 已读详情：全量返回（仅 ID 级数据、量小）。已读状态最多承载到 ~2000 人的群，超过后仅展示 at 成员，
+    // 超大群（几万+）需要独立方案，后续单独处理。
     let mut resp = message::GetReadMembersResponse::default();
 
     let msg_ctx = cache_get_message(ctx, req.message_id).await?;
@@ -794,9 +989,19 @@ pub(crate) async fn message_delete(
     }
     MessageModel::set_status(&ctx.db, req.message_id, now, EntityStatus::Deleted as i16).await?;
 
-    // Push to all chat members
+    // Push to all chat members (删除属内容变更，携带消息体 tombstone)
     if let Ok(user_ids) = super::chat::chat_get_all_user_ids(ctx, chat_id).await {
-        let _ = push_messages(ctx, brief, &user_ids, &vec![req.message_id]).await;
+        let _ = push_messages(ctx, brief, &user_ids, &vec![req.message_id], true).await;
+        // 删除属实体变更：走 pipeline 实体变更通道（离线端 mark dirty + 懒拉），见 docs/data_sync §5
+        let _ = push_entity_changed(
+            ctx,
+            &user_ids,
+            &vec![req.message_id],
+            now,
+            entity::Operate::Delete,
+            entity::EntityType::Message,
+        )
+        .await;
     }
 
     debug!("delete message done");

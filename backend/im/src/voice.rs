@@ -52,7 +52,18 @@ pub(crate) async fn transcribe_voice(
     .map_err(|e| common_error(&format!("update message error: {e}")))?;
 
     let member_ids = super::chat::chat_get_all_user_ids(ctx, req.chat_id).await?;
-    super::message::push_messages(ctx, brief, &member_ids, &[req.message_id]).await?;
+    // 转写属内容变更，携带消息体推送
+    super::message::push_messages(ctx, brief, &member_ids, &[req.message_id], true).await?;
+    // 转写属消息内容变更：走 pipeline 实体变更通道（离线端 mark dirty + 懒拉），见 docs/data_sync §5
+    let _ = super::message::push_entity_changed(
+        ctx,
+        &member_ids,
+        &[req.message_id],
+        ts,
+        entity::Operate::Update,
+        entity::EntityType::Message,
+    )
+    .await;
 
     resp.message_id = req.message_id;
     resp.transcription = text;

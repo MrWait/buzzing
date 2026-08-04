@@ -17,6 +17,7 @@
       >
         <div class="feed-avatar" :style="{ background: feed.isMute ? '#999' : '#1976d2' }">
           {{ feed.name.charAt(0).toUpperCase() }}
+          <span v-if="isPeerOnline(feed)" class="feed-online-dot" />
         </div>
         <div class="feed-body">
           <div class="feed-top">
@@ -51,10 +52,12 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useImStore } from '@/stores/im'
+import { useAuthStore } from '@/stores/auth'
 import type { FeedItem } from '@/stores/im'
 
 const router = useRouter()
 const im = useImStore()
+const auth = useAuthStore()
 
 const contextMenu = ref<{ show: boolean; x: number; y: number; feed: FeedItem | null }>({
   show: false,
@@ -64,6 +67,18 @@ const contextMenu = ref<{ show: boolean; x: number; y: number; feed: FeedItem | 
 })
 
 const filteredList = computed(() => im.feedList)
+
+// W5-1: P2P 会话头像在线圆点（peer 状态来自 PUSH_PRESENCE 1352 更新的 users）
+function isPeerOnline(feed: FeedItem): boolean {
+  if (feed.type !== 1) return false
+  const chat = im.chats.get(feed.chatId)
+  if (!chat) return false
+  const peer = chat.memberIds.find((id) => id !== myId.value)
+  if (!peer) return false
+  return (im.users.get(peer)?.status || 0) === 1
+}
+
+const myId = computed(() => String(auth.user?.id ?? ''))
 
 onMounted(() => {
   document.addEventListener('click', closeContextMenu)
@@ -99,7 +114,7 @@ function toggleMute(feed: FeedItem) {
 }
 
 function markRead(feed: FeedItem) {
-  im.activeFeed(feed.id)
+  im.markFeedRead(feed.chatId)
   closeContextMenu()
 }
 
@@ -188,6 +203,17 @@ function formatTime(ms: number): string {
   font-weight: 600;
   flex-shrink: 0;
   margin-right: 10px;
+  position: relative;
+}
+.feed-online-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4caf50;
+  border: 2px solid #fff;
 }
 .feed-body {
   flex: 1;

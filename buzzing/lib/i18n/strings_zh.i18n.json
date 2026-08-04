@@ -48,6 +48,8 @@
   "voiceInput": "语音输入",
   "haveRead": "已读",
   "unread": "未读",
+  "readDetailTitle": "已读详情",
+  "refresh": "刷新",
   "copy": "复制",
   "delete": "删除",
   "forward": "转发",

@@ -65,6 +65,22 @@ impl AppChat {
             let _ = MetaTable::meta(&conn)
                 .insert(crate::constant::FLAG_PIPE_CURSOR, &sid.to_string());
         }
+
+        // 回放完成后，统一拉取本地脏实体（离线期间 PUSH_ENTITY_CHANGE 仅标记 dirty）。
+        // 消息类走 PullEntity 全量补齐落库清脏，会话类同步更新成员列表。见 docs/data_sync §5。
+        match self.collect_dirty_entities() {
+            Ok(dirty_ids) if !dirty_ids.is_empty() => {
+                let mut req = pipeline::PullEntityRequest::default();
+                req.ids = dirty_ids;
+                let mut resp = crate::api::pipe_pull_entity(&req).await?;
+                self.save_entity(&resp.entity.get_or_insert_default())?;
+                let _ = self.push_entity_changed(&resp.entity.get_or_insert_default());
+            }
+            Ok(_) => {}
+            Err(err) => {
+                warn!("collect dirty entities error: {:?}", err);
+            }
+        }
         Ok(())
     }
 }

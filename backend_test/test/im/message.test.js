@@ -131,6 +131,60 @@ describe('message', () => {
     assert.ok(res.code === 0 || res.code === 200, `read code=${res.code}`);
   });
 
+  it('should get read members (full list)', async () => {
+    assert.ok(chatId && sentMessageId);
+
+    // 已读详情：全量返回成员（含读/未读状态）。单用户已读自己消息 → 应有至少 1 名已读成员
+    const cmdEnum = getProto().lookupEnum('command.Command');
+    const GetReadMembersRequest = getProto().lookupType('message.GetReadMembersRequest');
+    const reqBytes = GetReadMembersRequest.encode(
+      GetReadMembersRequest.create({ chat_id: chatId, message_id: sentMessageId })
+    ).finish();
+
+    const res = await client.httpRequest(cmdEnum.values.MESSAGE_GET_READ_MEMBERS, reqBytes);
+    assert.ok(res.code === 0 || res.code === 200, `get read members code=${res.code}`);
+
+    const dec = safeDecode(getProto(), 'message.GetReadMembersResponse', res.data);
+    assert.ok(dec.ok, `decode get read members failed: ${dec.error}`);
+    assert.ok(dec.result.members && dec.result.members.length >= 1, 'should have >=1 member');
+    const readCount = dec.result.members.reduce(
+      (acc, m) => acc + (m.isRead ? 1 : 0), 0
+    );
+    assert.ok(readCount >= 1, `should have >=1 read member, got ${readCount}`);
+  });
+
+  it('should lazy pull read entity via pipeline entity change channel', async () => {
+    assert.ok(sentMessageId);
+
+    // 已读后，通过 pipeline 实体变更通道懒拉该消息（含完整 read_state）
+    const cmdEnum = getProto().lookupEnum('command.Command');
+    const PullEntityRequest = getProto().lookupType('pipeline.PullEntityRequest');
+    const EntityId = getProto().lookupType('entity.EntityId');
+    const reqBytes = PullEntityRequest.encode(
+      PullEntityRequest.create({
+        ids: [EntityId.create({ id: sentMessageId, type: 15 /* MESSAGE */ })],
+      })
+    ).finish();
+
+    const res = await client.httpRequest(cmdEnum.values.PIPELINE_PULL_ENTITY, reqBytes);
+    assert.ok(res.code === 0 || res.code === 200, `pull entity code=${res.code}`);
+
+    const dec = safeDecode(getProto(), 'pipeline.PullEntityResponse', res.data);
+    assert.ok(dec.ok, `decode pull entity failed: ${dec.error}`);
+    assert.ok(dec.result.entity?.messages, 'should have messages map');
+    const found = Object.values(dec.result.entity.messages).find(
+      msg => str(msg.id) === sentMessageId
+    );
+    assert.ok(found, `should find message ${sentMessageId} via pipeline`);
+    // 已读为独立实体（Entity.readstates，key=message_id，见 docs/data_sync §5）
+    const rs = dec.result.entity.readstates?.[str(sentMessageId)];
+    assert.ok(rs, 'should carry read_state via Entity.readstates');
+    assert.ok(
+      Number(rs.read_count) >= 1,
+      `read_count should be >=1, got ${rs.read_count}`
+    );
+  });
+
   it('should set reaction on message', async () => {
     assert.ok(sentMessageId);
 
@@ -142,6 +196,89 @@ describe('message', () => {
 
     const res = await client.httpRequest(cmdEnum.values.REACTION_SET, reqBytes);
     assert.ok(res.code === 0 || res.code === 200, `set reaction code=${res.code}`);
+  });
+
+  it('should lazy pull reaction via pipeline entity change channel', async () => {
+    assert.ok(sentMessageId);
+
+    // reaction 为独立实体（Entity.reactions，key=message_id），走 pipeline 实体变更通道懒拉
+    const cmdEnum = getProto().lookupEnum('command.Command');
+    const PullEntityRequest = getProto().lookupType('pipeline.PullEntityRequest');
+    const EntityId = getProto().lookupType('entity.EntityId');
+    const reqBytes = PullEntityRequest.encode(
+      PullEntityRequest.create({
+        ids: [EntityId.create({ id: sentMessageId, type: 15 /* MESSAGE */ })],
+      })
+    ).finish();
+
+    const res = await client.httpRequest(cmdEnum.values.PIPELINE_PULL_ENTITY, reqBytes);
+    assert.ok(res.code === 0 || res.code === 200, `pull entity code=${res.code}`);
+
+    const dec = safeDecode(getProto(), 'pipeline.PullEntityResponse', res.data);
+    assert.ok(dec.ok, `decode pull entity failed: ${dec.error}`);
+    const found = Object.values(dec.result.entity.messages).find(
+      msg => str(msg.id) === sentMessageId
+    );
+    assert.ok(found, `should find message ${sentMessageId} via pipeline`);
+    const rx = dec.result.entity.reactions?.[str(sentMessageId)];
+    assert.ok(rx && rx.reactions, 'should carry reactions via Entity.reactions');
+    // 至少存在 reaction=1
+    assert.ok(
+      rx.reactions['1'] || rx.reactions[1] && Number((rx.reactions['1'] || rx.reactions[1]).total) >= 1,
+      'should have reaction 1 with total>=1'
+    );
+  });
+
+  it('should recall message and see tombstone via pipeline', async () => {
+    assert.ok(chatId && sentMessageId);
+
+    const cmdEnum = getProto().lookupEnum('command.Command');
+    const RecallRequest = getProto().lookupType('message.RecallMessageRequest');
+    const recallRes = await client.httpRequest(cmdEnum.values.MESSAGE_RECALL,
+      RecallRequest.encode(RecallRequest.create({ id: sentMessageId })).finish());
+    assert.ok(recallRes.code === 0 || recallRes.code === 200, `recall code=${recallRes.code}`);
+
+    // 撤回后通过 pipeline 懒拉，应看到 status=RECALL
+    const PullEntityRequest = getProto().lookupType('pipeline.PullEntityRequest');
+    const EntityId = getProto().lookupType('entity.EntityId');
+    const reqBytes = PullEntityRequest.encode(
+      PullEntityRequest.create({
+        ids: [EntityId.create({ id: sentMessageId, type: 15 })],
+      })
+    ).finish();
+    const res = await client.httpRequest(cmdEnum.values.PIPELINE_PULL_ENTITY, reqBytes);
+    assert.ok(res.code === 0 || res.code === 200, `pull code=${res.code}`);
+    const dec = safeDecode(getProto(), 'pipeline.PullEntityResponse', res.data);
+    assert.ok(dec.ok, `decode failed: ${dec.error}`);
+    const found = Object.values(dec.result.entity.messages).find(m => str(m.id) === sentMessageId);
+    assert.ok(found, 'should find recalled message');
+    // entity.EntityStatus: RECALL=6
+    assert.ok(Number(found.status) === 6, `status should be RECALL(6), got ${found.status}`);
+  });
+
+  it('should delete message and see tombstone via pipeline', async () => {
+    assert.ok(chatId && sentMessageId);
+
+    const cmdEnum = getProto().lookupEnum('command.Command');
+    const DeleteRequest = getProto().lookupType('message.DeleteMessageRequest');
+    // 单用户即 owner/全部，mode=1 表示全局删除
+    const delRes = await client.httpRequest(cmdEnum.values.MESSAGE_DELETE,
+      DeleteRequest.encode(DeleteRequest.create({ message_id: sentMessageId, mode: 1 })).finish());
+    assert.ok(delRes.code === 0 || delRes.code === 200, `delete code=${delRes.code}`);
+
+    const PullEntityRequest = getProto().lookupType('pipeline.PullEntityRequest');
+    const EntityId = getProto().lookupType('entity.EntityId');
+    const reqBytes = PullEntityRequest.encode(
+      PullEntityRequest.create({ ids: [EntityId.create({ id: sentMessageId, type: 15 })] })
+    ).finish();
+    const res = await client.httpRequest(cmdEnum.values.PIPELINE_PULL_ENTITY, reqBytes);
+    assert.ok(res.code === 0 || res.code === 200, `pull code=${res.code}`);
+    const dec = safeDecode(getProto(), 'pipeline.PullEntityResponse', res.data);
+    assert.ok(dec.ok, `decode failed: ${dec.error}`);
+    const found = Object.values(dec.result.entity.messages).find(m => str(m.id) === sentMessageId);
+    assert.ok(found, 'should find deleted message');
+    // entity.EntityStatus: DELETED=5
+    assert.ok(Number(found.status) === 5, `status should be DELETED(5), got ${found.status}`);
   });
 
 });

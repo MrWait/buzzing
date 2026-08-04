@@ -81,6 +81,8 @@ impl ExternApp for AppIm {
             Command::MessageRecall as i32,
             Command::MessageGetByIds as i32,
             Command::MessageGetByPos as i32,
+            // pipeline 实体变更通道：懒拉实体内容（消息已读/read_state/reaction 归并到 MESSAGE 实体）
+            Command::PipelinePullEntity as i32,
             Command::MessageGetByRange as i32,
             Command::ReactionSet as i32,
             Command::MessageForward as i32,
@@ -176,6 +178,7 @@ impl ExternApp for AppIm {
             Command::MessageRecall => message::message_recall(ctx, brief, packet, ws).await?,
             Command::MessageGetByIds => message::message_get_by_ids(ctx, brief, packet, ws).await?,
             Command::MessageGetByPos => message::message_get_by_pos(ctx, brief, packet, ws).await?,
+            Command::PipelinePullEntity => message::pipeline_pull_entity(ctx, brief, packet, ws).await?,
             Command::MessageGetByRange => {
                 message::message_get_by_range(ctx, brief, packet, ws).await?
             }

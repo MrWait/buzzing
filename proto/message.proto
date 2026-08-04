@@ -73,6 +73,8 @@ message MessageReadRequest {
     int64 chat_id = 1;
     int32 max_pos = 2;
     repeated int64 message_ids = 3;
+    // max_pos 对应消息的 badge_count，服务端生成字段、客户端原样透传（见 data_sync §6.3）
+    int32 max_badge_count = 4;
 }
 message MessageReadResponse {}
 

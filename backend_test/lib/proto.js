@@ -32,6 +32,7 @@ export async function initProto() {
     'dept.proto',
     'calendar.proto',
     'server.proto',
+    'pipeline.proto',
   ];
 
   for (const file of files) {

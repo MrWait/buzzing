@@ -59,6 +59,8 @@ impl MessageModel {
             content: ActiveValue::set(msg.content.clone()),
             summary: ActiveValue::set(msg.summary.clone()),
             version: ActiveValue::set(0),
+            readstate_version: ActiveValue::set(0),
+            reaction_version: ActiveValue::set(0),
             ref_message_id: ActiveValue::set(msg.ref_message_id),
             ref_data: ActiveValue::set(msg.ref_data.clone()),
             thread_root_id: ActiveValue::set(msg.thread_root_id),
@@ -144,13 +146,13 @@ impl MessageModel {
     pub async fn set_read(
         db: &DatabaseConnection,
         id: i64,
-        version: i64,
+        readstate_version: i64,
         read_state: &VecBool,
     ) -> ModelResult<()> {
         let message = ActiveModel {
             id: ActiveValue::set(id),
             read_states: ActiveValue::set(read_state.encode_to_vec()),
-            version: ActiveValue::set(version),
+            readstate_version: ActiveValue::set(readstate_version),
             ..Default::default()
         };
         Entity::update(message).exec(db).await?;
@@ -167,7 +169,7 @@ impl MessageModel {
             id: ActiveValue::set(id),
             reactions: ActiveValue::set(reactions.encode_to_vec()),
             updated_at: ActiveValue::set(date_time(update_ms)),
-            version: ActiveValue::set(update_ms),
+            reaction_version: ActiveValue::set(update_ms),
             ..Default::default()
         };
         Entity::update(message).exec(db).await?;
@@ -240,8 +242,6 @@ impl Into<entity::Message> for MessageModel {
             summary: self.0.summary,
             client_id: self.0.client_id,
             version: self.0.version,
-            reactions: std::collections::HashMap::new(),
-            read_state: None,
             thread_root_id: self.0.thread_root_id,
             ref_message_id: self.0.ref_message_id,
             ref_data: if self.0.ref_data.is_empty() {
@@ -282,6 +282,8 @@ impl From<entity::Message> for MessageModel {
             read_count: 0,
             read_states: vec![],
             reactions: vec![],
+            readstate_version: 0,
+            reaction_version: 0,
             extra: vec![],
         })
     }

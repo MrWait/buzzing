@@ -132,6 +132,7 @@ impl AppTrait for AppChat {
         vec![
             // feed
             Command::FeedGetList as i32,
+            Command::FeedGetBadgeCount as i32,
             Command::FeedRemove as i32,
             Command::FeedGetTopList as i32,
             Command::FeedActive as i32,
@@ -159,6 +160,7 @@ impl AppTrait for AppChat {
             Command::MessageCreateDraft as i32,
             Command::MessageGetAllDrafts as i32,
             Command::MessageForward as i32,
+            Command::MessageGetReadMembers as i32,
             // favorite
             Command::FavoriteAdd as i32,
             Command::FavoriteGetList as i32,
@@ -212,7 +214,12 @@ impl AppTrait for AppChat {
     }
 
     fn net_commands(&self) -> Vec<i32> {
-        vec![Command::PushMessages as i32, Command::PushFeedList as i32]
+        vec![
+            Command::PushMessages as i32,
+            Command::PushFeedList as i32,
+            Command::PushFeedReadStatus as i32,
+            Command::PushEntityChange as i32,
+        ]
     }
 
     async fn on_ffi_command(&self, command: i32, params: &[u8]) -> Result<(i32, Vec<u8>)> {
@@ -220,6 +227,7 @@ impl AppTrait for AppChat {
         let ret = match cmd {
             // feed, chat
             Command::FeedGetList => self.feed_get_list(params),
+            Command::FeedGetBadgeCount => self.feed_get_badge_count(params),
             Command::FeedRemove => self.feed_remove(params).await,
             Command::FeedGetTopList => self.feed_get_top_list(params).await,
             Command::FeedActive => self.feed_active(params).await,
@@ -244,7 +252,9 @@ impl AppTrait for AppChat {
             Command::MessageGetByIds => self.message_get_by_ids(params).await,
             Command::MessageGetByRange => self.message_get_by_chat(params).await,
             Command::MessageSend => self.message_send(params).await,
+            Command::MessageRead => self.message_read(params).await,
             Command::MessageForward => self.message_forward(params).await,
+            Command::MessageGetReadMembers => self.get_read_members(params).await,
 
             // favorite
             Command::FavoriteAdd => self.favorite_add(params).await,
@@ -312,6 +322,9 @@ impl AppTrait for AppChat {
             // feed, chat
             Command::PushFeedList => self.handle_push_feed_list(params),
             Command::PushMessages => self.handle_push_messages(params),
+            Command::PushFeedReadStatus => self.handle_push_feed_read_status(params),
+            // pipeline 实体变更通道（消息内容/已读/表情按 READSTATE/REACTION 独立实体分发）
+            Command::PushEntityChange => self.handle_entity_changed(params),
             _ => Err(anyhow::anyhow!("not handled")),
         }
     }
@@ -415,8 +428,12 @@ impl AppChat {
         }
         {
             let mut conn = self.message_db.inner()?;
-            if !entity.messages.is_empty() {
-                debug!("message batch save: {:?}", entity.messages);
+            // 内容 / 已读 / 表情三路落库（共用 messages 行，见 docs/data_sync §5）
+            if !entity.messages.is_empty()
+                || !entity.readstates.is_empty()
+                || !entity.reactions.is_empty()
+            {
+                debug!("message batch save: {:?}", entity.messages.keys().collect::<Vec<_>>());
                 if let Err(err) =
                     message_database::message::message_batch_save(conn.deref_mut(), entity)
                 {
@@ -428,26 +445,150 @@ impl AppChat {
         Ok(())
     }
 
-    #[allow(dead_code)]
+    /// 处理实体变更推送（PUSH_ENTITY_CHANGE）。逐项检查实体类型并分别标记本地脏：
+    /// Message→消息内容脏、Readstate→已读脏、Reaction→表情脏、Chat→会话脏。
+    /// 仅标记不拉取：全量补齐统一在 pipeline 同步完成后进行（pipeline_sync_impl），
+    /// 实时通道的 PushMessages/PushFeedList 会携带最新数据落库自动清脏。见 docs/data_sync §5。
     pub(crate) fn handle_entity_changed(&self, params: &[u8]) -> Result<()> {
         let push = idl::pipeline::PushEntityChanged::decode(params)?;
         let mut changed = EntityChanged::default();
         changed.from_idl(&push.changes);
         debug!("handle entity changed: {:?}", changed);
+
+        // 收集各类型的 (id, version) 对：update 逐条携带各自版本，delete 无版本记为 0。
+        // 同一类型多条变更 version 可能不同，不能退化为单一 version（见 docs/data_sync §5）。
+        let collect = |t: i32| -> Vec<(i64, i64)> {
+            let mut v: Vec<(i64, i64)> = Vec::new();
+            if let Some(updates) = changed.entity_update.get(&t) {
+                v.extend(updates.iter().copied());
+            }
+            if let Some(deletes) = changed.entity_delete.get(&t) {
+                v.extend(deletes.iter().map(|id| (*id, 0)));
+            }
+            v
+        };
+
+        let msg_updates = collect(idl::entity::EntityType::Message as i32);
+        let readstate_updates = collect(idl::entity::EntityType::Readstate as i32);
+        let reaction_updates = collect(idl::entity::EntityType::Reaction as i32);
+        let chat_ids: Vec<i64> = changed
+            .entity_update
+            .get(&(idl::entity::EntityType::Chat as i32))
+            .map(|v| v.iter().map(|(id, _)| *id).collect())
+            .unwrap_or_default();
+
+        if !msg_updates.is_empty() || !readstate_updates.is_empty() || !reaction_updates.is_empty() {
+            let mut conn = self.message_db.inner()?;
+            if !msg_updates.is_empty() {
+                message_database::message::message_mark_dirty(
+                    conn.deref_mut(),
+                    &msg_updates,
+                    idl::entity::EntityType::Message as i32,
+                )?;
+            }
+            if !readstate_updates.is_empty() {
+                message_database::message::message_mark_dirty(
+                    conn.deref_mut(),
+                    &readstate_updates,
+                    idl::entity::EntityType::Readstate as i32,
+                )?;
+            }
+            if !reaction_updates.is_empty() {
+                message_database::message::message_mark_dirty(
+                    conn.deref_mut(),
+                    &reaction_updates,
+                    idl::entity::EntityType::Reaction as i32,
+                )?;
+            }
+        }
+        if !chat_ids.is_empty() {
+            let conn = self.db.inner()?;
+            database::chat::chat_mark_dirty(&conn, &chat_ids)?;
+        }
         Ok(())
     }
 
-    pub(crate) fn push_entity_changed(&self, _entity: &entity::Entity) -> Result<()> {
-        // TODO
+    /// 统一实体 ingest 入口（方案 A，见 docs/data_sync §5）：
+    /// 跨模块落库 + 按 map 非空派生客户端通知。实时推送（PushMessages / PushFeedList）
+    /// 与实体懒拉补齐（push_entity_changed）都收敛到此，避免跨模块处理入口分散在多个命令 handler。
+    ///
+    /// 派生规则：
+    /// - messages / readstates / reactions 非空 → PushMessages（消息区 UI）；新消息同时推进会话未读/角标
+    /// - feeds 非空 → PushFeedList（按 id 重取完整实体）；chats 非空但无 feeds → PushFeedList 透传（如 chat 名称/成员变更）
+    /// - users 透传：不落库，随上述任一通知折叠下发（SDK 用户缓存归 app-account 模块）
+    ///
+    /// 注：未来服务端可合成统一 `PushEntity` 命令，SDK 侧入口不变（此处即唯一跨模块入口）。
+    pub(crate) fn handle_push_entity(&self, entity: &entity::Entity) -> Result<()> {
+        debug!(
+            "handle push entity, feeds: {:?}, chats: {:?}, messages: {:?}, readstates: {:?}, reactions: {:?}, users: {:?}",
+            entity.feeds.keys().collect::<Vec<_>>(),
+            entity.chats.keys().collect::<Vec<_>>(),
+            entity.messages.keys().collect::<Vec<_>>(),
+            entity.readstates.keys().collect::<Vec<_>>(),
+            entity.reactions.keys().collect::<Vec<_>>(),
+            entity.users.keys().collect::<Vec<_>>(),
+        );
+
+        // 1. 跨模块落库（feeds/chats/messages/readstates/reactions；users 透传不落库）
+        self.save_entity(entity)?;
+
+        // 2. 消息区通知：消息 + 已读 + 表情。新消息经 feed_update_by_messages 推进会话未读/角标
+        //    （内部按需 push PushFeedList），已读/表情为独立实体、只做轻量消息区刷新。
+        if !entity.messages.is_empty()
+            || !entity.readstates.is_empty()
+            || !entity.reactions.is_empty()
+        {
+            let mut e = entity.clone();
+            if !entity.messages.is_empty() {
+                let _ = self.feed_update_by_messages(&mut e);
+            }
+            e.feeds.clear();
+            let mut req = idl::message::PushMessages::default();
+            req.entity = Some(e);
+            let _ = service::ffi::ffi_push(Command::PushMessages as i32, req.encode_to_vec());
+        }
+
+        // 3. 会话区通知：feed 变更按 id 重取完整实体；纯 chat 变更（无 feed）直接透传
+        if !entity.feeds.is_empty() {
+            let ids: Vec<i64> = entity.feeds.keys().copied().collect();
+            let _ = self.feed_push_by_ids(&ids);
+        } else if !entity.chats.is_empty() {
+            let mut req = idl::feed::PushFeedList::default();
+            req.entity = Some(entity.clone());
+            let _ = service::ffi::ffi_push(Command::PushFeedList as i32, req.encode_to_vec());
+        }
         Ok(())
+    }
+
+    /// 实体懒拉完成后的通知：统一收敛到 handle_push_entity（消息/已读/表情→PushMessages，会话→PushFeedList）。
+    pub(crate) fn push_entity_changed(&self, entity: &entity::Entity) -> Result<()> {
+        self.handle_push_entity(entity)
     }
 
     pub(crate) async fn sync_entity(&self, ids: Vec<entity::EntityId>) -> Result<()> {
+        if ids.is_empty() {
+            return Ok(());
+        }
         let mut req = idl::pipeline::PullEntityRequest::default();
         req.ids = ids;
         let mut resp = api::pipe_pull_entity(&req).await?;
-        self.save_entity(&resp.entity.get_or_insert_default())?;
-        let _ = self.push_entity_changed(&resp.entity.get_or_insert_default());
+        // 落库 + 客户端通知统一在 handle_push_entity 内完成
+        let _ = self.handle_push_entity(&resp.entity.get_or_insert_default());
         Ok(())
+    }
+
+    /// 汇总本地脏实体（消息内容/已读/表情 + 会话），供 pipeline 同步完成后统一拉取补齐。
+    pub(crate) fn collect_dirty_entities(&self) -> Result<Vec<entity::EntityId>> {
+        let mut ids = Vec::new();
+        {
+            let conn = self.message_db.inner()?;
+            ids.extend(message_database::message::message_get_dirty(&conn)?);
+        }
+        {
+            let conn = self.db.inner()?;
+            ids.extend(database::chat::chat_get_dirty(&conn)?);
+        }
+        debug!("collect dirty entities: {:?}", ids);
+        Ok(ids)
     }
 }

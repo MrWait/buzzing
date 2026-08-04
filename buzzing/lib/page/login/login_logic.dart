@@ -53,6 +53,17 @@ class LoginLogic extends ChangeNotifier {
 
   static final _emailRegExp = RegExp(r'^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$');
 
+  /// 解析下拉项 "server:port"：按最后一个冒号切分，
+  /// 兼容 "http(s)://host:port"（用户常直接粘贴完整地址）与 host 内嵌端口的情况，
+  /// 避免把 "http://host:5150" 错误解析成 server="http"、port=80 导致删除/连接失败。
+  static (String, int) _parseUnionEntry(String entry) {
+    final idx = entry.lastIndexOf(":");
+    if (idx < 0) return (entry, 80);
+    final server = entry.substring(0, idx);
+    final port = int.tryParse(entry.substring(idx + 1)) ?? 80;
+    return (server, port);
+  }
+
   void init() {
     initData();
     phoneCtrl.addListener(() {
@@ -159,9 +170,7 @@ class LoginLogic extends ChangeNotifier {
 
   Future<void> selectUnion(String entry) async {
     showUnionDropdown = false;
-    final parts = entry.split(":");
-    final server = parts[0];
-    final port = parts.length > 1 ? int.tryParse(parts[1]) ?? 80 : 80;
+    final (server, port) = _parseUnionEntry(entry);
     await _connectToServer(server, port);
     notifyListeners();
   }
@@ -181,6 +190,31 @@ class LoginLogic extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 删除已保存的连接配置，若删除的是当前选中的配置则同时重置当前连接
+  Future<void> removeUnion(String entry) async {
+    final (server, port) = _parseUnionEntry(entry);
+    // 精确删除列表项：removeUnionFromList 会以 "server:port" 重组，
+    // 兼容协议前缀后重组结果与下拉项完全一致，避免删不干净。
+    await DataPersistence.removeUnionFromList(server, port);
+    await DataPersistence.removeUnion(server);
+    if (_isSameUnion(currentUnionEntry, entry)) {
+      currentUnionEntry = "";
+      await DataPersistence.removeCurrentUnionServer();
+    }
+    _refreshUnionList();
+    notifyListeners();
+  }
+
+  /// 判断两个 "server:port" 是否指向同一服务（忽略 http(s):// 前缀差异）
+  bool _isSameUnion(String entryA, String entryB) {
+    if (entryA.isEmpty || entryB.isEmpty) return entryA == entryB;
+    final (serverA, portA) = _parseUnionEntry(entryA);
+    final (serverB, portB) = _parseUnionEntry(entryB);
+    return DataPersistence.normalizeServer(serverA) ==
+            DataPersistence.normalizeServer(serverB) &&
+        portA == portB;
+  }
+
   Future<void> _connectToServer(String server, int port) async {
     var union = DataPersistence.getUnion(server);
     if (union == null) {
@@ -195,7 +229,7 @@ class LoginLogic extends ChangeNotifier {
         L.d("sync config: ${config}");
         if (config != null) {
           union.setConfig(config);
-          await DataPersistence.putUnion(union);
+          await DataPersistence.putUnion(union, keyServer: server);
           await DataPersistence.addUnionToList(server, port);
           await DataPersistence.putCurrentUnionServer(server);
         }

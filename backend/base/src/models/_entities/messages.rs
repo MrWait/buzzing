@@ -22,6 +22,8 @@ pub struct Model {
     pub content: Vec<u8>,
     pub summary: String,
     pub version: i64,
+    pub readstate_version: i64,
+    pub reaction_version: i64,
     pub cmv_id: i64,
     pub cmv_count: i32,
     pub read_count: i32,

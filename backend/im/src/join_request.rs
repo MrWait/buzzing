@@ -148,8 +148,21 @@ pub(crate) async fn join_request_approve(
             return Ok((ErrorCode::ErrorNoPermision as i32, resp.encode_to_vec()));
         }
         if c.cmv.add(&vec![row.user_id])? {
-            ChatModel::update_cmv(&ctx.db, c.chat.id, None, None, &mut c.cmv).await?;
+            c.chat.version = crate::chat::bump_chat_version(c.chat.version);
+            let version = c.chat.version;
+            ChatModel::update_cmv(&ctx.db, c.chat.id, version, None, None, &mut c.cmv).await?;
             let _ = FeedModel::create_by_chat(&ctx.db, &c.chat, &vec![row.user_id]).await;
+            let member_ids = c.cmv.ids();
+            // 审批通过新增成员属 chat 实体变更：走 pipeline 实体变更通道
+            let _ = crate::message::push_entity_changed(
+                ctx,
+                &member_ids,
+                &[row.chat_id],
+                version,
+                entity::Operate::Update,
+                entity::EntityType::Chat,
+            )
+            .await;
         }
         member_ids = c.cmv.ids();
         let e = resp.entities.get_or_insert_default();

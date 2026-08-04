@@ -5,7 +5,7 @@ import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/utils/config/config.dart';
 import 'package:buzzing/utils/upgrade_manager.dart';
 import 'package:buzzing/utils/logger_util.dart';
-//import 'package:flutter_app_badger/flutter_app_badger.dart';
+import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:rxdart/rxdart.dart';
@@ -77,7 +77,7 @@ class AppController {
       onDidReceiveNotificationResponse: (notificationResponse) {},
     );
     if (!Platform.isWindows) {
-      //isAppBadgeSupported = await FlutterAppBadger.isAppBadgeSupported();
+      isAppBadgeSupported = await FlutterAppBadger.isAppBadgeSupported();
     }
 
     mainChannel.setMethodCallHandler((call) async {
@@ -272,18 +272,23 @@ class AppController {
         ?.stopForegroundService();
   }
 
-  void showBadge(count) {
+  /// 全局 app badge（原生启动器角标）。
+  /// count 为全会话未读和，可能很大；iOS/Android 启动器角标常只显示有限位数，
+  /// 故按 99+ 惯例截断（与 UI 内 navigate_bar/mobile_shell 的 '99+' 展示一致，防溢出）。
+  void showBadge(int count) {
     if (isAppBadgeSupported) {
-      if (count == 0) {
+      if (count <= 0) {
         removeBadge();
       } else {
-        // FlutterAppBadger.updateBadgeCount(count);
+        FlutterAppBadger.updateBadgeCount(count > 99 ? 99 : count);
       }
     }
   }
 
   void removeBadge() {
-    // FlutterAppBadger.removeBadge();
+    if (isAppBadgeSupported) {
+      FlutterAppBadger.removeBadge();
+    }
   }
 
   void onClose() {

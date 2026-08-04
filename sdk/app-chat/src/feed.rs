@@ -169,6 +169,18 @@ impl AppChat {
         Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
     }
 
+    /// 全局总未读数：SDK 本地聚合各会话 `badge`（= refer_badge - read_badge）之和，
+    /// 客户端只读该结果，不自算（见 readstatus 需求 C / data_sync §6）。
+    pub fn feed_get_badge_count(&self, _params: &[u8]) -> Result<(i32, Vec<u8>)> {
+        let mut resp = feed::GetFeedBadgeCountResponse::default();
+        {
+            let conn = self.db.inner()?;
+            resp.count = database::feed::feed_get_badge_count(&conn)?;
+        }
+        debug!("feed get badge count, resp: {resp:?}");
+        Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
+    }
+
     pub async fn feed_remove(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
         let req = feed::RemoveFeedRequest::decode(params)?;
         debug!("feed remove, req: {req:?}");
@@ -228,12 +240,59 @@ impl AppChat {
     }
 
     pub fn handle_push_feed_list(&self, params: &[u8]) -> Result<()> {
-        let mut req = feed::PushFeedList::decode(params)?;
+        let req = feed::PushFeedList::decode(params)?;
         debug!("handle push feed list: {req:?}");
         if let Some(entity) = req.entity {
-            let ids: Vec<i64> = entity.feeds.keys().copied().collect();
-            self.save_entity(&entity)?;
-            let _ = self.feed_push_by_ids(&ids);
+            // 统一实体 ingest：跨模块落库 + 派生客户端通知（方案 A，见 handle_push_entity）
+            self.handle_push_entity(&entity)?;
+        }
+        Ok(())
+    }
+
+    /// 处理会话已读位置子集推送 `PUSH_FEED_READ_STATUS`（见 data_sync §3.1）：
+    /// 字段级防回退合并到本地 Feed（仅 read_pos 前进时应用），并重算未读 badge。
+    /// 本地 Feed 不存在时忽略（客户端不生产数据）。
+    pub fn handle_push_feed_read_status(&self, params: &[u8]) -> Result<()> {
+        let push = feed::PushFeedReadStatus::decode(params)?;
+        debug!("handle push feed read status: {push:?}");
+        if push.chat_id == 0 {
+            return Ok(());
+        }
+
+        let mut entity = entity::Entity::default();
+        {
+            let conn = self.db.inner()?;
+            database::feed::feed_get_by_ids(&conn, &vec![push.chat_id], &mut entity)?;
+        }
+        let Some(local) = entity.feeds.get_mut(&push.chat_id) else {
+            // 本地无该 Feed：忽略子集推送，不凭子集数据创建记录
+            debug!("local feed not exists, ignore read status push: {}", push.chat_id);
+            return Ok(());
+        };
+
+        // 防回退：仅当服务端 read_pos 大于本地时才应用，update_time_ms 按新旧覆盖
+        if push.read_pos > local.read_pos as i64 {
+            local.read_pos = push.read_pos as i32;
+            local.read_badge = push.read_badge as i32;
+            if push.update_time_ms > local.update_time_ms {
+                local.update_time_ms = push.update_time_ms;
+            }
+            // 未读 = refer_badge - read_badge（本地派生，服务端不写 badge）
+            local.badge = (local.refer_badge - local.read_badge).max(0);
+
+            let mut updated = entity::Entity::default();
+            updated.feeds.insert(local.id, local.clone());
+            {
+                let mut conn = self.db.inner()?;
+                let _ = database::feed::feed_batch_save(conn.deref_mut(), &updated);
+            }
+            // 通知客户端刷新会话列表/角标
+            let _ = self.feed_push_by_ids(&vec![local.id]);
+        } else {
+            debug!(
+                "read pos not advanced, skip merge: chat_id={}, push={}, local={}",
+                push.chat_id, push.read_pos, local.read_pos
+            );
         }
         Ok(())
     }

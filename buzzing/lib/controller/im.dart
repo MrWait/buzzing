@@ -67,6 +67,12 @@ class ImController extends ChangeNotifier {
 
   var avatar = "";
 
+  /// 全局总未读数：SDK 本地聚合各会话未读（refer_badge - read_badge），客户端只读不计算
+  var totalUnread = 0;
+
+  /// 全局未读数变化回调（用于原生 app badge 等），由应用层注入
+  void Function(int count)? onBadgeChanged;
+
   var chatId = Int64(0);
   var userId = Int64(0);
   var debug = true;
@@ -468,8 +474,9 @@ class ImController extends ChangeNotifier {
   void mergeEntity(Entity src) {
     var feedLen = src.feeds.length;
     var msgLen = src.messages.length;
+    var sideLen = src.readstates.length + src.reactions.length;
     L.d(
-      "merge entity, chatId: ${chatId}, feeds: ${src.feeds.keys}, messages: ${src.messages.keys}",
+      "merge entity, chatId: ${chatId}, feeds: ${src.feeds.keys}, messages: ${src.messages.keys}, readstates: ${src.readstates.keys}, reactions: ${src.reactions.keys}",
     );
     var currentMsgIds = <Int64>[];
     src.messages.forEach((id, msg) {
@@ -482,10 +489,15 @@ class ImController extends ChangeNotifier {
     var msgIds = null;
     if (feedLen > 0) {
       msgIds = updateFeedList();
+      // 会话未读变化时，同步刷新全局总未读数
+      refreshTotalUnread();
     }
 
     if (msgLen > 0) {
       updateMessage(msgIds, currentMsgIds);
+    } else if (sideLen > 0) {
+      // 仅已读/表情独立实体变更：刷新消息行，重读 readstates / reactions map
+      notifyListeners();
     }
   }
 
@@ -732,6 +744,45 @@ class ImController extends ChangeNotifier {
   Future<void> markFeedRead(Int64 feedId) async {
     var req = ActiveFeedRequest(id: feedId);
     await sdk.invokeAsync(Command.FEED_ACTIVE, req.writeToBuffer());
+  }
+
+  /// 上屏已读上报：会话已读位置（maxPos + 透传 badgeCount）与消息级已读（可见非本人精确 id）同入口上报，
+  /// 服务端按两套独立语义拆分（见 data_sync §6.2 / §6.3）。客户端不产数据，只透传服务端生成的 badge_count。
+  /// 刷新全局总未读数：向 SDK 请求聚合未读数（FEED_GET_BADGE_COUNT），
+  /// 变化时通知 UI 并透传应用层（原生 badge）。SDK 本地算好直接返回，客户端不计算。
+  Future<void> refreshTotalUnread() async {
+    try {
+      final resp = await sdk.invokeAsync(Command.FEED_GET_BADGE_COUNT, Uint8List(0));
+      if (resp.data == null) return;
+      final badge = GetFeedBadgeCountResponse.fromBuffer(resp.data!);
+      final count = badge.count;
+      if (count != totalUnread) {
+        totalUnread = count;
+        notifyListeners();
+        onBadgeChanged?.call(count);
+      }
+    } catch (e) {
+      L.e("refresh total unread failed: $e");
+    }
+  }
+
+  Future<void> reportSeen(
+    Int64 chatId,
+    List<Int64> seenMessageIds,
+    int maxPos,
+    int maxBadgeCount,
+  ) async {
+    if (chatId == Int64.ZERO) return;
+    var req = MessageReadRequest.create();
+    req.chatId = chatId;
+    req.maxPos = maxPos;
+    req.maxBadgeCount = maxBadgeCount;
+    req.messageIds.addAll(seenMessageIds);
+    L.d(
+      "report seen: chat=$chatId maxPos=$maxPos maxBadge=$maxBadgeCount "
+      "ids=${seenMessageIds.length}",
+    );
+    await sdk.invokeAsync(Command.MESSAGE_READ, req.writeToBuffer());
   }
 
   Future<void> muteFeed(Int64 feedId) async {

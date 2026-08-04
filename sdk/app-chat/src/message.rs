@@ -140,8 +140,22 @@ impl AppChat {
         Ok((ErrorCode::Success as i32, resp.encode_to_vec()))
     }
 
-    pub(crate) async fn message_send(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
-        let mut req = message::SendMessageRequest::decode(params)?;
+    /// 已读上报（客户端 → 服务端）：会话已读位置（max_pos + 透传 badge_count）与消息级已读（精确 message_ids）
+    /// 两套语义经同一入口上报，服务端拆开处理（见 data_sync §6.2 / §6.3）。
+    pub(crate) async fn message_read(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
+        let req = message::MessageReadRequest::decode(params)?;
+        debug!("message read, req: {req:?}");
+        let ack = common_request::<message::MessageReadResponse>(
+            Command::MessageRead as i32,
+            req.encode_to_vec(),
+            None,
+        )
+        .await?;
+        debug!("message read ack: {ack:?}");
+        Ok((ErrorCode::Success as i32, vec![]))
+    }
+
+    pub(crate) async fn message_send(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {        let mut req = message::SendMessageRequest::decode(params)?;
         if req.client_id == 0 {
             return Ok((ErrorCode::Success as i32, vec![]));
         }
@@ -152,10 +166,10 @@ impl AppChat {
             if let Some(ref mut msg) = req.message {
                 msg.client_id = req.client_id;
                 message_database::message::message_save(&conn, msg)?;
-            } else if let Some((msg, _)) =
+            } else if let Some(row) =
                 message_database::message::message_get_by_id(&conn, req.client_id)?
             {
-                req.message = Some(msg);
+                req.message = Some(row.message);
             } else {
                 return Ok((ErrorCode::ErrorParamInvalid as i32, vec![]));
             }
@@ -180,8 +194,8 @@ impl AppChat {
             {
                 debug!("get message error: {:?}", err);
             }
-            // TODO: fill readstate
         }
+        // 已读/表情随内容行本地读取，已并入 entity.readstates / entity.reactions（见 data_sync §5）
         ids.message_ids
             .retain(|id| !entity.messages.contains_key(id));
         Ok(())
@@ -267,6 +281,20 @@ impl AppChat {
         Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
 
+    /// 已读详情：一次性全量返回成员（仅展示用，无需落库）。
+    /// 约定：全量数据不上分页；已读状态最多承载到 2000 人的群，超出建议只展示 at 成员，超大群问题后续单独处理。
+    pub(crate) async fn get_read_members(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
+        let req = message::GetReadMembersRequest::decode(params)?;
+        debug!("get read members, req: {req:?}");
+        let ack = common_request::<message::GetReadMembersResponse>(
+            Command::MessageGetReadMembers as i32,
+            req.encode_to_vec(),
+            None,
+        )
+        .await?;
+        Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
+    }
+
     pub(crate) async fn message_forward(&self, params: &[u8]) -> Result<(i32, Vec<u8>)> {
         let req = message::ForwardMessageRequest::decode(params)?;
         debug!("forward message: {:?}", req);
@@ -277,13 +305,7 @@ impl AppChat {
     pub(crate) fn handle_push_messages(&self, params: &[u8]) -> Result<()> {
         let mut push = message::PushMessages::decode(params)?;
         debug!("handle push messages, push: {:?}", push);
-        let entity = push.entity.get_or_insert_default();
-        self.save_entity(&entity)?;
-        self.feed_update_by_messages(entity)?;
-        let mut req = message::PushMessages::default();
-        entity.feeds.clear();
-        req.entity = push.entity;
-        let _ = service::ffi::ffi_push(Command::PushMessages as i32, req.encode_to_vec());
-        Ok(())
+        // 统一实体 ingest：跨模块落库 + 派生客户端通知（方案 A，见 handle_push_entity）
+        self.handle_push_entity(&push.entity.get_or_insert_default())
     }
 }
