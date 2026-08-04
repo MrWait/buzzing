@@ -27,7 +27,7 @@ class MessageBox extends ConsumerStatefulWidget {
   final User user;
   final Message msg;
 
-  const MessageBox({required this.msg, required this.user});
+  const MessageBox({super.key, required this.msg, required this.user});
 
   @override
   _MessageBoxState createState() => _MessageBoxState();
@@ -80,6 +80,7 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
         _BubbleWithMenu(
           isSelf: isSelf,
           showRead: isSelf && isGroupChat,
+          readState: im.entity.readstates[msg.id] ?? ReadState.create(),
           onReadTap: () => _showReadDetail(context, im, msg),
           hoverMenuBuilder: () => _buildHoverActions(context, cs, tt, im, isSelf),
           cs: cs,
@@ -560,69 +561,33 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
   }
 
   void _showReadDetail(BuildContext context, ImController im, Message msg) async {
-    final resp = await im.getReadMembers(msg.chatId, msg.id);
+    Future<dynamic> load() async {
+      return im.getReadMembers(msg.chatId, msg.id);
+    }
+
+    final resp = await load();
     if (resp == null || context.mounted == false) return;
     if (isDesktop) {
-      _showReadDetailDesktop(context, msg, resp);
+      _showReadDetailDesktop(context, msg, resp, load);
     } else {
-      _showReadDetailMobile(context, msg, resp);
+      _showReadDetailMobile(context, msg, resp, load);
     }
   }
 
-  void _showReadDetailMobile(BuildContext context, Message msg, dynamic resp) {
+  void _showReadDetailMobile(BuildContext context, Message msg, dynamic resp, Future<dynamic> Function() load) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     showModalBottomSheet(
       context: context,
       builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          constraints: BoxConstraints(maxHeight: 400),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('已读详情 (${msg.readState.readCount}/${msg.readState.total})', style: tt.titleSmall),
-              const SizedBox(height: 8),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: resp.members.length,
-                  itemBuilder: (ctx, i) {
-                    final m = resp.members[i];
-                    return ListTile(
-                      dense: true,
-                      leading: Container(
-                        width: 28, height: 28,
-                        decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(4)),
-                        alignment: Alignment.center,
-                        child: Text(
-                          (m.name.isNotEmpty ? m.name : '?')[0].toUpperCase(),
-                          style: tt.bodySmall?.copyWith(color: cs.onPrimary),
-                        ),
-                      ),
-                      title: Text(m.name, style: tt.bodySmall),
-                      trailing: Icon(
-                        m.isRead ? Icons.check_circle : Icons.access_time,
-                        size: 16,
-                        color: m.isRead ? cs.primary : cs.onSurfaceVariant,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
+        return _ReadDetailSheet(resp: resp, load: load, cs: cs, tt: tt);
       },
     );
   }
 
-  void _showReadDetailDesktop(BuildContext context, Message msg, dynamic resp) {
+  void _showReadDetailDesktop(BuildContext context, Message msg, dynamic resp, Future<dynamic> Function() load) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final readMembers = resp.members.where((m) => m.isRead).toList();
-    final unreadMembers = resp.members.where((m) => !m.isRead).toList();
 
     showDialog(
       context: context,
@@ -632,55 +597,218 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
           content: SizedBox(
             width: 420,
             height: 400,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Text('${readMembers.length} 已读', style: tt.titleSmall),
-                      ),
-                      const Divider(height: 1),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: readMembers.length,
-                          itemBuilder: (ctx, i) => _memberItem(readMembers[i], cs, tt),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const VerticalDivider(width: 1),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Text('${unreadMembers.length} 未读', style: tt.titleSmall),
-                      ),
-                      const Divider(height: 1),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: unreadMembers.length,
-                          itemBuilder: (ctx, i) => _memberItem(unreadMembers[i], cs, tt),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            child: _ReadDetailPanel(resp: resp, load: load, cs: cs, tt: tt),
           ),
         );
       },
     );
   }
 
-  Widget _memberItem(dynamic m, ColorScheme cs, TextTheme tt) {
+  String _formatTime(Int64 ms) {
+    var dt = DateTime.fromMillisecondsSinceEpoch(ms.toInt());
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+/// 已读详情 - 移动端 bottom sheet（带刷新）。
+/// 数据一次性全量返回（仅 ID 级别、量小）；已读状态最多承载到 2000 人群，超大群仅展示 at 成员，后续单独处理。
+class _ReadDetailSheet extends StatefulWidget {
+  final dynamic resp;
+  final Future<dynamic> Function() load;
+  final ColorScheme cs;
+  final TextTheme tt;
+  const _ReadDetailSheet({
+    required this.resp,
+    required this.load,
+    required this.cs,
+    required this.tt,
+  });
+
+  @override
+  State<_ReadDetailSheet> createState() => _ReadDetailSheetState();
+}
+
+class _ReadDetailSheetState extends State<_ReadDetailSheet> {
+  late List<dynamic> _members = List<dynamic>.from(widget.resp?.members ?? []);
+
+  Future<void> _refresh() async {
+    final resp = await widget.load();
+    if (!mounted || resp == null) return;
+    setState(() {
+      _members = List<dynamic>.from(resp.members ?? []);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = widget.tt;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      constraints: BoxConstraints(maxHeight: 400),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(t.readDetailTitle, style: tt.titleSmall)),
+              IconButton(
+                icon: const Icon(Icons.refresh, size: 18),
+                tooltip: t.refresh,
+                onPressed: _refresh,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _members.length,
+              itemBuilder: (ctx, i) {
+                final m = _members[i];
+                return _ReadMemberRow(m: m, cs: widget.cs, tt: tt, showStatus: true);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 已读详情 - 桌面端两栏面板（已读/未读各一栏，带刷新）。
+class _ReadDetailPanel extends StatefulWidget {
+  final dynamic resp;
+  final Future<dynamic> Function() load;
+  final ColorScheme cs;
+  final TextTheme tt;
+  const _ReadDetailPanel({
+    required this.resp,
+    required this.load,
+    required this.cs,
+    required this.tt,
+  });
+
+  @override
+  State<_ReadDetailPanel> createState() => _ReadDetailPanelState();
+}
+
+class _ReadDetailPanelState extends State<_ReadDetailPanel> {
+  late List<dynamic> _members = List<dynamic>.from(widget.resp?.members ?? []);
+  final _scrolls = [ScrollController(), ScrollController()];
+
+  @override
+  void dispose() {
+    _scrolls[0].dispose();
+    _scrolls[1].dispose();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    final resp = await widget.load();
+    if (!mounted || resp == null) return;
+    setState(() {
+      _members = List<dynamic>.from(resp.members ?? []);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = widget.tt;
+    final read = _members.where((m) => m.isRead).toList();
+    final unread = _members.where((m) => !m.isRead).toList();
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _ReadColumn(
+            title: '${read.length} ${t.haveRead}',
+            members: read,
+            cs: widget.cs,
+            tt: tt,
+            scroll: _scrolls[0],
+            onRefresh: _refresh,
+          ),
+        ),
+        const VerticalDivider(width: 1),
+        Expanded(
+          child: _ReadColumn(
+            title: '${unread.length} ${t.unread}',
+            members: unread,
+            cs: widget.cs,
+            tt: tt,
+            scroll: _scrolls[1],
+            onRefresh: _refresh,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ReadColumn extends StatelessWidget {
+  final String title;
+  final List<dynamic> members;
+  final ColorScheme cs;
+  final TextTheme tt;
+  final ScrollController scroll;
+  final Future<void> Function() onRefresh;
+  const _ReadColumn({
+    required this.title,
+    required this.members,
+    required this.cs,
+    required this.tt,
+    required this.scroll,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(title, style: tt.titleSmall),
+              IconButton(
+                icon: const Icon(Icons.refresh, size: 16),
+                tooltip: t.refresh,
+                onPressed: onRefresh,
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: ListView.builder(
+            controller: scroll,
+            itemCount: members.length,
+            itemBuilder: (ctx, i) => _ReadMemberRow(m: members[i], cs: cs, tt: tt, showStatus: false),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 已读详情单行成员。
+class _ReadMemberRow extends StatelessWidget {
+  final dynamic m;
+  final ColorScheme cs;
+  final TextTheme tt;
+  final bool showStatus;
+  const _ReadMemberRow({
+    required this.m,
+    required this.cs,
+    required this.tt,
+    required this.showStatus,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return ListTile(
       dense: true,
       leading: Container(
@@ -693,12 +821,14 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
         ),
       ),
       title: Text(m.name, style: tt.bodySmall),
+      trailing: showStatus
+          ? Icon(
+              m.isRead ? Icons.check_circle : Icons.access_time,
+              size: 16,
+              color: m.isRead ? cs.primary : cs.onSurfaceVariant,
+            )
+          : null,
     );
-  }
-
-  String _formatTime(Int64 ms) {
-    var dt = DateTime.fromMillisecondsSinceEpoch(ms.toInt());
-    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }
 
@@ -709,16 +839,17 @@ class _BubbleWithMenu extends StatefulWidget {
   final Widget child;
   final bool isSelf;
   final bool showRead;
+  final ReadState readState;
   final VoidCallback onReadTap;
   final Widget Function() hoverMenuBuilder;
   final ColorScheme cs;
   final TextTheme tt;
   final Message msg;
 
-  const _BubbleWithMenu({
-    required this.child,
+  const _BubbleWithMenu({    required this.child,
     required this.isSelf,
     required this.showRead,
+    required this.readState,
     required this.onReadTap,
     required this.hoverMenuBuilder,
     required this.cs,
@@ -860,7 +991,7 @@ class _BubbleWithMenuState extends State<_BubbleWithMenu> {
           ),
           if (widget.showRead)
             _ReadCircle(
-              readState: widget.msg.hasReadState() ? widget.msg.readState : ReadState.create(),
+              readState: widget.readState,
               onTap: widget.onReadTap,
             ),
         ],

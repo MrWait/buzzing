@@ -1,3 +1,4 @@
+import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/routes/app_routes.dart';
 import 'package:buzzing/utils/platform.dart';
 import 'package:flutter/material.dart';
@@ -53,20 +54,37 @@ class MobileShell extends ConsumerWidget {
     final location = router.state.uri.toString();
     final index = _tabIndex(location);
     final showNav = _showBottomNav(location);
+    final im = ref.watch(imProvider);
 
     return Scaffold(
       body: child,
       bottomNavigationBar: showNav
-          ? NavigationBar(
-              selectedIndex: index,
-              onDestinationSelected: (i) => _goToTab(context, i),
-              destinations: const [
-                NavigationDestination(icon: Icon(Icons.message), label: '消息'),
-                NavigationDestination(icon: Icon(Icons.calendar_month), label: '日历'),
-                NavigationDestination(icon: Icon(Icons.video_call), label: '会议'),
-                NavigationDestination(icon: Icon(Icons.contact_page), label: '联系人'),
-                NavigationDestination(icon: Icon(Icons.description), label: '办公'),
-              ],
+          ? ListenableBuilder(
+              listenable: im,
+              builder: (ctx, _) => NavigationBar(
+                selectedIndex: index,
+                onDestinationSelected: (i) => _goToTab(context, i),
+                destinations: [
+                  // 消息 Tab：全局未读角标
+                  NavigationDestination(
+                      icon: Badge(
+                        isLabelVisible: im.totalUnread > 0,
+                        label: Text(im.totalUnread > 99
+                            ? '99+'
+                            : '${im.totalUnread}'),
+                        child: const Icon(Icons.message),
+                      ),
+                      label: '消息'),
+                  const NavigationDestination(
+                      icon: Icon(Icons.calendar_month), label: '日历'),
+                  const NavigationDestination(
+                      icon: Icon(Icons.video_call), label: '会议'),
+                  const NavigationDestination(
+                      icon: Icon(Icons.contact_page), label: '联系人'),
+                  const NavigationDestination(
+                      icon: Icon(Icons.description), label: '办公'),
+                ],
+              ),
             )
           : null,
     );

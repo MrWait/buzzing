@@ -5,8 +5,8 @@ use base_db::prelude::{params, params_from_iter, Connection, Result, Row};
 use base_db::{cost, placeholder, Pagerize};
 use proto::idl::entity;
 
-const FIELD_CHAT: &str = "id, dirty, tpy, status, name, peer_a_id, peer_b_id, owner, member_ids, create_at_ms, update_at_ms, last_message_id, last_message_badge, last_message_pos, admin_ids, avatar, color, description, join_mode, global_mute_until";
-const FIELD_COUNT: usize = 20;
+const FIELD_CHAT: &str = "id, dirty, tpy, status, name, peer_a_id, peer_b_id, owner, member_ids, create_at_ms, update_at_ms, last_message_id, last_message_badge, last_message_pos, admin_ids, avatar, color, description, join_mode, global_mute_until, version";
+const FIELD_COUNT: usize = 21;
 
 pub(crate) fn init_tables(conn: &Connection) -> Result<()> {
     conn.execute(
@@ -30,10 +30,13 @@ avatar TEXT,
 color INTEGER,
 description TEXT DEFAULT '',
 join_mode INTEGER DEFAULT 0,
-global_mute_until BIGINT DEFAULT 0
+global_mute_until BIGINT DEFAULT 0,
+version BIGINT DEFAULT 0
 )",
         (),
     )?;
+    // 兼容旧库：补充 chat 实体版本列
+    let _ = conn.execute("ALTER TABLE chat ADD COLUMN version BIGINT NOT NULL DEFAULT 0", ());
     Ok(())
 }
 
@@ -60,7 +63,7 @@ fn parse_chat(row: &Row) -> Result<(entity::Chat, bool)> {
             last_message_badge_count: row.get(12)?,
             last_message_pos: row.get(13)?,
             admin_ids,
-            version: 0,
+            version: row.get(20)?,
             avatar: row.get(15)?,
             color: row.get(16)?,
             description: row.get(17)?,
@@ -108,6 +111,7 @@ pub(crate) fn chat_batch_save(conn: &mut Connection, entity: &entity::Entity) ->
                 &chat.description,
                 chat.join_mode,
                 chat.global_mute_until,
+                chat.version,
             ])?;
         }
     }
@@ -148,6 +152,7 @@ pub(crate) fn chat_save(conn: &Connection, chat: &entity::Chat) -> Result<()> {
         &chat.description,
         chat.join_mode,
         chat.global_mute_until,
+        chat.version,
     ])?;
 
     Ok(())
@@ -211,13 +216,18 @@ pub(crate) fn chat_mark_dirty(conn: &Connection, origin_ids: &[i64]) -> Result<(
 }
 
 #[allow(dead_code)]
-pub(crate) fn chat_get_dirty(conn: &Connection, limit: usize) -> Result<Vec<(i64, i64)>> {
-    let query = format!("SELECT (id, update_at_ms) WHERE dirty=1 LIMIT ?1");
-    let mut stmt = conn.prepare(&query)?;
-    let mut result = Vec::with_capacity(limit);
-    let _ = stmt.query(params![limit]).and_then(|mut rows| {
+pub(crate) fn chat_get_dirty(conn: &Connection) -> Result<Vec<entity::EntityId>> {
+    cost!("chat_get_dirty");
+    let query = "SELECT id FROM chat WHERE dirty=1";
+    let mut stmt = conn.prepare(query)?;
+    let mut result = Vec::new();
+    let _ = stmt.query(params![]).and_then(|mut rows| {
         while let Some(row) = rows.next()? {
-            result.push((row.get(0)?, row.get(1)?));
+            let id: i64 = row.get(0)?;
+            result.push(entity::EntityId {
+                id,
+                r#type: entity::EntityType::Chat as i32,
+            });
         }
         Ok(())
     });

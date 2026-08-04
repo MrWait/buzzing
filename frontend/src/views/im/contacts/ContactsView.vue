@@ -79,7 +79,8 @@
               @click="showUserProfile(user)"
             >
               <div class="user-avatar" :style="{ background: avatarColor(user.name) }">
-                {{ user.name.charAt(0) }}
+                <img v-if="user.avatar" class="user-avatar-img" :src="user.avatar" />
+                <span v-else>{{ user.name.charAt(0) }}</span>
               </div>
               <div class="user-info">
                 <div class="user-name">{{ user.name }}</div>
@@ -104,7 +105,8 @@
       <div class="profile-dialog">
         <div class="profile-header">
           <div class="profile-avatar" :style="{ background: avatarColor(profileUser.name) }">
-            {{ profileUser.name.charAt(0) }}
+            <img v-if="profileUser.avatar" class="profile-avatar-img" :src="profileUser.avatar" />
+            <span v-else>{{ profileUser.name.charAt(0) }}</span>
           </div>
           <div class="profile-name">{{ profileUser.name }}</div>
         </div>
@@ -427,6 +429,13 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 600;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .user-info {
   flex: 1;
@@ -496,6 +505,13 @@ onMounted(() => {
   font-size: 22px;
   font-weight: 600;
   margin-bottom: 12px;
+  overflow: hidden;
+}
+.profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .profile-name {
   font-size: 16px;

@@ -157,11 +157,52 @@ async function doSearch() {
   }
   loading.value = true
   try {
-    // 后台尚未实现搜索接口，使用客户端的联系人和会话列表做简单客户端搜索
-    const kw = q.toLowerCase()
-    const { getDeptById } = await import('@/services/im/contacts')
+    // 优先服务端全局搜索（GLOBAL_SEARCH=1406），失败回退客户端内存搜索
+    const { globalSearch } = await import('@/services/im/api')
     const { useImStore } = await import('@/stores/im')
     const im = useImStore()
+    const feedName = (chatId: string) => im.feedList.find((f) => f.chatId === chatId)?.name || '消息'
+
+    const types: string[] = []
+    if (activeTab.value === 'all') types.push('message', 'chat', 'user')
+    else if (activeTab.value === 'messages') types.push('message')
+    else if (activeTab.value === 'chats') types.push('chat')
+    else if (activeTab.value === 'contacts') types.push('user')
+
+    try {
+      const resp = await globalSearch(q, types, 1, 20)
+      results.value = {
+        users: (resp.users || []).map((u: any) => ({
+          id: Number(u.user?.id || 0),
+          name: u.user?.name || '',
+          highlight: u.highlight || u.user?.name || '',
+        })),
+        chats: (resp.chats || []).map((c: any) => ({
+          id: String(c.chat?.id || '0'),
+          name: c.chat?.name || '',
+          highlight: c.highlight || c.chat?.name || '',
+        })),
+        messages: (resp.messages || []).map((m: any) => {
+          const msg = m.message || {}
+          const chatId = String(msg.chat_id || '0')
+          return {
+            id: Number(msg.id || 0),
+            content: msg.summary || '',
+            highlight: m.highlight || msg.summary || '',
+            chatId,
+            chatName: feedName(chatId),
+          }
+        }),
+      }
+      loading.value = false
+      return
+    } catch (e) {
+      console.warn('[search] server search failed, fallback to local:', e)
+    }
+
+    // 客户端回退：联系人和会话列表做简单内存搜索
+    const kw = q.toLowerCase()
+    const { getDeptById } = await import('@/services/im/contacts')
 
     const matchedUsers: SearchUser[] = []
     const matchedChats: SearchChat[] = []

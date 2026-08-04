@@ -188,6 +188,12 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	/// en: 'Unread'
 	String get unread => 'Unread';
 
+	/// en: 'Read detail'
+	String get readDetailTitle => 'Read detail';
+
+	/// en: 'Refresh'
+	String get refresh => 'Refresh';
+
 	/// en: 'Copy'
 	String get copy => 'Copy';
 
@@ -2214,6 +2220,8 @@ extension on Translations {
 			'voiceInput' => 'Voice Input',
 			'haveRead' => 'Have read',
 			'unread' => 'Unread',
+			'readDetailTitle' => 'Read detail',
+			'refresh' => 'Refresh',
 			'copy' => 'Copy',
 			'delete' => 'Delete',
 			'forward' => 'Forward',
@@ -2675,10 +2683,10 @@ extension on Translations {
 			'plsInputMeetingSubject' => 'Please enter a meeting subject',
 			'meetingStartTime' => 'Starting time',
 			'meetingDuration' => 'Meeting duration',
-			'enterMeeting' => 'Enter the meeting',
-			'meetingNo' => 'Meeting number',
 			_ => null,
 		} ?? switch (path) {
+			'enterMeeting' => 'Enter the meeting',
+			'meetingNo' => 'Meeting number',
 			'yourMeetingName' => 'Your name',
 			'plsInputMeetingNumber' => 'Please enter the meeting number',
 			'plsInputYouMeetingName' => 'Please enter your name',

@@ -36,10 +36,7 @@ impl ExternApp for AppGateway {
     }
 
     fn handled_command(&self) -> Vec<i32> {
-        vec![
-            Command::PipelinePullPacket as i32,
-            Command::PipelinePullEntity as i32,
-        ]
+        vec![Command::PipelinePullPacket as i32]
     }
 
     async fn handle_client_packet(
@@ -58,9 +55,6 @@ impl ExternApp for AppGateway {
             // pipeline
             Command::PipelinePullPacket => {
                 pipeline::pipeline_pull_packet(ctx, brief, packet, ws).await?
-            }
-            Command::PipelinePullEntity => {
-                pipeline::pipeline_pull_entity(ctx, brief, packet, ws).await?
             }
             _ => (0, vec![]),
         };

@@ -18,6 +18,21 @@ message PushFeedList {
     entity.Entity entity = 1;
 }
 
+// 全局总未读数（SDK 本地聚合各会话 refer_badge - read_badge，服务端不维护 badge 语义）
+message GetFeedBadgeCountRequest {}
+message GetFeedBadgeCountResponse {
+    int32 count = 1;
+}
+
+// Feed 实体子集推送：会话已读位置变更（read 相关字段 + 同步游标），见 data_sync §3.1
+message PushFeedReadStatus {
+    int64 feed_id = 1;
+    int64 chat_id = 2;
+    int64 read_pos = 3;
+    int64 read_badge = 4;
+    int64 update_time_ms = 5;
+}
+
 message PullFeedByIdsRequest {
     repeated int64 ids = 1;
 }

@@ -86,6 +86,7 @@ enum EntityType {
     CALENDAR = 21;
     SCHEDULE = 22;
     SCHEDULE_CYCLE = 23;
+    REACTION = 24;
 }
 
 enum SettingType {
@@ -249,12 +250,15 @@ message FavoriteList {
     repeated Favorite favorites = 1;
 }
 
+// 消息已读实体（独立实体，id = message_id，随 Entity.readstates 下发）
 message ReadState {
     int32 total = 1;
     int32 read_count = 2;
     int32 unread_count = 3;
     bool me_read = 4;
     repeated int64 top_read_ids = 5;
+    int64 version = 6;
+    int64 id = 7;
 }
 
 message Reaction {
@@ -263,8 +267,11 @@ message Reaction {
     repeated int64 top_ids = 3;
 }
 
+// 消息表情实体（独立实体，id = message_id，随 Entity.reactions 下发）
 message Reactions {
     map<int32, Reaction> reactions = 1;
+    int64 version = 2;
+    int64 id = 3;
 }
 
 message Message {
@@ -282,8 +289,6 @@ message Message {
     bytes content = 20;
     string summary = 21;
     int64 version = 22;
-    ReadState read_state = 23;
-    map<int32, Reaction> reactions = 24;
 
     // 引用回复：ref_message_id ≠ 0 时表示引用其他消息
     int64 ref_message_id         = 31;  // 0 = 无引用
@@ -491,6 +496,9 @@ message Entity {
     map<int64, Message> messages = 4;
     map<int64, Feed> feeds = 5;
     map<string, FileInfo> files = 6;
+    // 已读 / 表情独立实体，key = message_id
+    map<int64, ReadState> readstates = 7;
+    map<int64, Reactions> reactions = 8;
 }
 
 enum ClientPlatform {

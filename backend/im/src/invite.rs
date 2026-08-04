@@ -135,10 +135,23 @@ pub(crate) async fn invite_link_join(
     {
         let mut c = context.write().await;
         if c.cmv.add(&vec![brief.id])? {
-            ChatModel::update_cmv(&ctx.db, c.chat.id, None, None, &mut c.cmv).await?;
+            c.chat.version = crate::chat::bump_chat_version(c.chat.version);
+            let version = c.chat.version;
+            ChatModel::update_cmv(&ctx.db, c.chat.id, version, None, None, &mut c.cmv).await?;
             let _ = FeedModel::create_by_chat(&ctx.db, &c.chat, &vec![brief.id]).await;
             resp.chat_id = row.chat_id;
             resp.chat = Some(c.get_entity());
+            let member_ids = c.cmv.ids();
+            // 邀请加入属 chat 实体变更：走 pipeline 实体变更通道
+            let _ = crate::message::push_entity_changed(
+                ctx,
+                &member_ids,
+                &[row.chat_id],
+                version,
+                entity::Operate::Update,
+                entity::EntityType::Chat,
+            )
+            .await;
         }
     }
 

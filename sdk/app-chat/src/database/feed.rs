@@ -62,10 +62,13 @@ pub(crate) fn feed_batch_save(conn: &mut Connection, entity: &entity::Entity) ->
 
         for feed in entity.feeds.values() {
             stmt.clear_bindings();
+            // 未读数本地派生（见 data_sync §6）：badge = max(0, refer_badge - read_badge)。
+            // 服务端不写 badge（恒为 0），所有保存路径统一在此重算，保证会话列表/全局角标口径一致。
+            let badge = (feed.refer_badge - feed.read_badge).max(0);
             if let Err(err) = stmt.execute(params![
                 feed.id,
                 feed.r#type,
-                feed.badge,
+                badge,
                 feed.update_time_ms,
                 feed.rank_time_ms,
                 feed.refer_id,

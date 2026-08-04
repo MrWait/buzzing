@@ -111,6 +111,10 @@ messages:
     attrs:
       - derive(serde::Serialize, serde::Deserialize)
       - serde(default)
+  - paths: [entity.Reactions]
+    attrs:
+      - derive(serde::Serialize, serde::Deserialize)
+      - serde(default)
   - paths: [entity.MessageReference]
     attrs:
       - derive(serde::Serialize, serde::Deserialize)

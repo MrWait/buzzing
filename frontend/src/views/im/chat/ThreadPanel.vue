@@ -30,13 +30,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useImStore } from '@/stores/im'
 
 const props = defineProps<{ chatId: string; rootMessageId: string }>()
 const emit = defineEmits<{ (e: 'close'): void }>()
 const im = useImStore()
 const inputText = ref('')
+
+// W4-2: 打开话题时从服务端拉取真实回复（MESSAGE_GET_THREAD），合并进 store 消息列表
+async function fetchThread() {
+  await im.loadThread(props.chatId, props.rootMessageId)
+}
+
+onMounted(fetchThread)
+watch(() => props.rootMessageId, fetchThread)
 
 const rootMsg = computed(() => {
   const msgs = im.messages.get(props.chatId) || []

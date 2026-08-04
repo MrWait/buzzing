@@ -38,12 +38,51 @@
 - **预期**: 返回成功（code=0）
 - **依赖**: 用例 1 发送消息
 
-### 5. should set reaction on message
+### 4.1 lazy pull read entity via pipeline entity change channel
 
+- **命令**: `PIPELINE_PULL_ENTITY` (1051)
+- **请求**: `PullEntityRequest { ids: [{id: sentMessageId, type=15 (MESSAGE)}] }`
+- **背景**: 已读为独立实体（ReadState，id=message_id，随 `Entity.readstates` 下发），走 pipeline 实体变更通道；SDK 收到 `PUSH_ENTITY_CHANGE` 后按需懒拉（见 docs/data_sync §5）
+- **预期**: 返回 `PullEntityResponse`，`entity.messages` 含目标消息且 `entity.readstates[sentMessageId]` 已填充（`read_count >= 1`）
+- **依赖**: 用例 4 已读
+
+### 4.2 get read members (full list)
+
+- **命令**: `MESSAGE_GET_READ_MEMBERS` (1218)
+- **请求**: `GetReadMembersRequest { chat_id, message_id }`
+- **背景**: 已读详情全量返回成员（读/未读状态）；已读状态最多承载 ~2000 人群，超大群仅展示 at 成员（后续单独处理）
+- **预期**: 返回 `GetReadMembersResponse.members`，>=1 名成员且已读成员 `isRead=true` 数 >=1
+- **依赖**: 用例 4 已读
+
+### 5. should set reaction on message
 - **命令**: `REACTION_SET` (1214)
 - **请求**: `SetMessageReactitonRequest { message_id, reaction=1, set=true }`
 - **预期**: 返回成功（code=0）
 - **依赖**: 用例 1 发送消息
+
+### 5.1 lazy pull reaction via pipeline entity change channel
+
+- **命令**: `PIPELINE_PULL_ENTITY` (1051)
+- **请求**: `PullEntityRequest { ids: [{id: sentMessageId, type=15}] }`
+- **背景**: reaction 为独立实体（Reactions，id=message_id，随 `Entity.reactions` 下发），走 pipeline 实体变更通道
+- **预期**: 返回 `entity.messages` 含目标消息且 `entity.reactions[sentMessageId].reactions[1].total>=1`
+- **依赖**: 用例 5
+
+### 5.2 recall message and see tombstone via pipeline
+
+- **命令**: `MESSAGE_RECALL` (1205)
+- **请求**: `RecallMessageRequest { id: sentMessageId }`
+- **背景**: 撤回属实体变更（operate=Delete），之后经 pipeline 懒拉应见 tombstone
+- **预期**: 撤回返回成功；`PIPELINE_PULL_ENTITY` 拉到该消息 `status=RECALL(6)`
+- **依赖**: 用例 1 发送消息
+
+### 5.3 delete message and see tombstone via pipeline
+
+- **命令**: `MESSAGE_DELETE` (1206)
+- **请求**: `DeleteMessageRequest { message_id, mode=1 }`（mode=1 全局删除）
+- **背景**: 删除属实体变更（operate=Delete），之后经 pipeline 懒拉应见 tombstone
+- **预期**: 删除返回成功；`PIPELINE_PULL_ENTITY` 拉到该消息 `status=DELETED(5)`
+- **依赖**: 用例 5.2 撤回后删除
 
 ## 约束
 

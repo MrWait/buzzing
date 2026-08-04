@@ -48,6 +48,8 @@
   "voiceInput": "Voice Input",
   "haveRead": "Have read",
   "unread": "Unread",
+  "readDetailTitle": "Read detail",
+  "refresh": "Refresh",
   "copy": "Copy",
   "delete": "Delete",
   "forward": "Forward",

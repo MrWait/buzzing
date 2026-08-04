@@ -229,6 +229,7 @@ impl ChatModel {
     pub async fn update_cmv(
         db: &DatabaseConnection,
         chat_id: i64,
+        version: i64,
         owner_id: Option<i64>,
         admin_ids: Option<Vec<i64>>,
         cmv: &mut Cmv,
@@ -238,6 +239,7 @@ impl ChatModel {
         let mut active = ActiveModel {
             id: ActiveValue::set(chat_id),
             cmv: ActiveValue::set(cmv.to()),
+            version: ActiveValue::set(version),
             ..Default::default()
         };
         if let Some(oid) = owner_id {

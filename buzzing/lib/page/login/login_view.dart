@@ -339,24 +339,56 @@ class _UnionSelectorState extends State<_UnionSelector> {
     final offset = renderBox.localToGlobal(Offset.zero);
 
     final cs = Theme.of(context).colorScheme;
+    // 下拉列表宽度与展示组件对齐（减去 item 内边距后作为内容宽度）
+    final menuWidth = renderBox.size.width;
+    const itemPadding = 12.0;
+    final contentWidth = menuWidth - itemPadding * 2;
     final items = <PopupMenuEntry<String>>[
       ...widget.logic.unionList.map((entry) => PopupMenuItem<String>(
         value: entry,
-        child: Text(entry),
+        padding: const EdgeInsets.symmetric(horizontal: itemPadding),
+        child: SizedBox(
+          width: contentWidth,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  entry,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              // 点击 X 删除该连接配置（返回标记值，不触发 selectUnion）
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.of(context).pop("__delete__$entry"),
+                child: Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Icon(Icons.close, size: 16, color: cs.outline),
+                ),
+              ),
+            ],
+          ),
+        ),
       )),
       if (widget.logic.unionList.isNotEmpty)
         const PopupMenuDivider(),
       PopupMenuItem<String>(
         value: "__add__",
-        child: Row(
-          children: [
-            Icon(Icons.add, size: 18, color: cs.primary),
-            SizedBox(width: 8),
-            Text(
-              t.addServer,
-              style: TextStyle(color: cs.primary),
-            ),
-          ],
+        padding: const EdgeInsets.symmetric(horizontal: itemPadding),
+        child: SizedBox(
+          width: contentWidth,
+          child: Row(
+            children: [
+              Icon(Icons.add, size: 18, color: cs.primary),
+              SizedBox(width: 8),
+              Text(
+                t.addServer,
+                style: TextStyle(color: cs.primary),
+              ),
+            ],
+          ),
         ),
       ),
     ];
@@ -374,6 +406,8 @@ class _UnionSelectorState extends State<_UnionSelector> {
 
     if (result == "__add__") {
       _showAddServerDialog();
+    } else if (result != null && result.startsWith("__delete__")) {
+      widget.logic.removeUnion(result.substring("__delete__".length));
     } else if (result != null) {
       widget.logic.selectUnion(result);
     }

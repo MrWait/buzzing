@@ -145,7 +145,12 @@ pub(crate) async fn update_last_message(
     {
         let mut c = context.write().await;
         msg.pos = c.chat.last_message_pos as i32 + 1;
-        msg.badge = c.chat.last_message_badge as i32 + 1;
+        // badge_count 枚举（见 data_sync §6.1）：仅系统消息不 +badge，其余逐条 +1
+        msg.badge = if msg.r#type == entity::MessageType::System as i16 {
+            c.chat.last_message_badge as i32
+        } else {
+            c.chat.last_message_badge as i32 + 1
+        };
         msg.cmv_id = c.cmv.id;
         msg.cmv_count = c.cmv.count;
         msg.read_states = VecBool::with_zeros(c.cmv.count as u64).chunks;
@@ -244,6 +249,16 @@ pub(crate) async fn chat_create(
     }
 }
 
+/// chat 实体变更版本：单调递增（取 max(prev+1, now_ms)），保证 pipeline 变更通道去重/防回退。
+pub(crate) fn bump_chat_version(prev: i64) -> i64 {
+    let now = current_ms() as i64;
+    if prev < now {
+        now
+    } else {
+        prev + 1
+    }
+}
+
 pub(crate) async fn chat_add_chatters(
     ctx: &AppContext,
     brief: &UserBrief,
@@ -254,6 +269,7 @@ pub(crate) async fn chat_add_chatters(
     debug!("chat add chatters, req: {req:?}");
     let context = chat_cache_get(ctx, req.chat_id).await?;
     let mut user_ids = None;
+    let mut changed_version = 0i64;
     {
         let mut c = context.write().await;
 
@@ -271,7 +287,17 @@ pub(crate) async fn chat_add_chatters(
         }
 
         if c.cmv.add(&req.ids)? {
-            ChatModel::update_cmv(&ctx.db, c.chat.id, None, None, &mut c.cmv).await?;
+            c.chat.version = bump_chat_version(c.chat.version);
+            changed_version = c.chat.version;
+            ChatModel::update_cmv(
+                &ctx.db,
+                c.chat.id,
+                changed_version,
+                None,
+                None,
+                &mut c.cmv,
+            )
+            .await?;
             // send packet to users
             user_ids = Some(c.cmv.ids());
 
@@ -292,6 +318,18 @@ pub(crate) async fn chat_add_chatters(
 
     if let Some(ids) = user_ids {
         let _ = crate::feed::update_feed_status(ctx, req.chat_id, &ids, None).await;
+        // 群成员变更属 chat 实体变更：走 pipeline 实体变更通道（离线端 mark dirty + 拉取）
+        if changed_version > 0 {
+            let _ = crate::message::push_entity_changed(
+                ctx,
+                &ids,
+                &[req.chat_id],
+                changed_version,
+                entity::Operate::Update,
+                entity::EntityType::Chat,
+            )
+            .await;
+        }
     }
     debug!("chat add chatters done");
     Ok((0, vec![]))
@@ -330,6 +368,7 @@ pub(crate) async fn chat_delete_chatters(
     let context = chat_cache_get(ctx, req.chat_id).await?;
     // let mut member_ids = Vec::new();
     let mut user_ids = None;
+    let mut changed_version = 0i64;
     {
         let mut c = context.write().await;
         let mut admin_ids = None;
@@ -346,7 +385,17 @@ pub(crate) async fn chat_delete_chatters(
                     admin_ids = Some(c.chat.admin_ids.clone());
                 }
             }
-            let _ = ChatModel::update_cmv(&ctx.db, c.chat.id, None, admin_ids, &mut c.cmv).await?;
+            c.chat.version = bump_chat_version(c.chat.version);
+            changed_version = c.chat.version;
+            let _ = ChatModel::update_cmv(
+                &ctx.db,
+                c.chat.id,
+                changed_version,
+                None,
+                admin_ids,
+                &mut c.cmv,
+            )
+            .await?;
             user_ids = Some(c.cmv.ids());
         }
     }
@@ -371,6 +420,18 @@ pub(crate) async fn chat_delete_chatters(
 
     if let Some(ids) = user_ids {
         let _ = crate::feed::update_feed_status(ctx, req.chat_id, &ids, None).await;
+        // 群成员变更属 chat 实体变更：走 pipeline 实体变更通道（离线端 mark dirty + 拉取）
+        if changed_version > 0 {
+            let _ = crate::message::push_entity_changed(
+                ctx,
+                &ids,
+                &[req.chat_id],
+                changed_version,
+                entity::Operate::Update,
+                entity::EntityType::Chat,
+            )
+            .await;
+        }
     }
     debug!("chat delete chatters done");
     Ok((0, vec![]))
@@ -408,6 +469,7 @@ pub(crate) async fn chat_update(
     debug!("chat update, req: {req:?}");
     let context = chat_cache_get(ctx, req.chat_id).await?;
     let mut resp = chat::UpdateChatResponse::default();
+    let mut changed = false;
     {
         let mut c = context.write().await;
 
@@ -420,8 +482,6 @@ pub(crate) async fn chat_update(
         if !is_owner && !is_admin {
             return Ok((ErrorCode::ErrorNoPermision as i32, resp.encode_to_vec()));
         }
-
-        let mut changed = false;
 
         if !req.name.is_empty() && req.name != c.chat.name {
             c.chat.name = req.name.clone();
@@ -472,6 +532,7 @@ pub(crate) async fn chat_update(
         }
 
         if changed {
+            c.chat.version = bump_chat_version(c.chat.version);
             let active = ActiveModel {
                 id: ActiveValue::set(c.chat.id),
                 name: ActiveValue::set(c.chat.name.clone()),
@@ -497,9 +558,21 @@ pub(crate) async fn chat_update(
         let mut entity = entity::Entity::default();
         entity.chats.insert(req.chat_id, c.get_entity());
         let _ = crate::feed::push_entity(ctx, &member_ids, entity).await;
-
+        // chat 详情变更（名称/描述/权限等）属 chat 实体变更：走 pipeline 实体变更通道
         let e = resp.entities.get_or_insert_default();
         e.chats.insert(req.chat_id, c.get_entity());
+
+        if changed {
+            let _ = crate::message::push_entity_changed(
+                ctx,
+                &member_ids,
+                &[req.chat_id],
+                c.chat.version,
+                entity::Operate::Update,
+                entity::EntityType::Chat,
+            )
+            .await;
+        }
     }
 
     debug!("chat update done");
@@ -541,6 +614,7 @@ pub(crate) async fn chat_quit(
     let context = chat_cache_get(ctx, req.chat_id).await?;
     // let mut member_ids = Vec::new();
     let user_ids;
+    let mut changed_version = 0i64;
     {
         let mut c = context.write().await;
         let mut owner_id = None;
@@ -567,7 +641,17 @@ pub(crate) async fn chat_quit(
         }
         assert_ne!(c.chat.owner_id, 0);
 
-        let _ = ChatModel::update_cmv(&ctx.db, c.chat.id, owner_id, admin_ids, &mut c.cmv).await;
+        c.chat.version = bump_chat_version(c.chat.version);
+        changed_version = c.chat.version;
+        let _ = ChatModel::update_cmv(
+            &ctx.db,
+            c.chat.id,
+            changed_version,
+            owner_id,
+            admin_ids,
+            &mut c.cmv,
+        )
+        .await;
         user_ids = c.cmv.ids();
     }
 
@@ -579,6 +663,16 @@ pub(crate) async fn chat_quit(
     )
     .await;
     let _ = crate::feed::update_feed_status(ctx, req.chat_id, &user_ids, None).await;
+    // 退群后剩余成员收到 chat 实体变更（成员列表更新）
+    let _ = crate::message::push_entity_changed(
+        ctx,
+        &user_ids,
+        &[req.chat_id],
+        changed_version,
+        entity::Operate::Update,
+        entity::EntityType::Chat,
+    )
+    .await;
     debug!("chat quit");
     Ok((0, vec![]))
 }
@@ -594,13 +688,24 @@ pub(crate) async fn chat_dismiss(
     let resp = chat::DismissChatResponse::default();
     let context = chat_cache_get(ctx, req.chat_id).await?;
     {
-        let c = context.write().await;
+        let mut c = context.write().await;
 
         if c.chat.owner_id != brief.id || c.chat.r#type == entity::ChatType::ChatP2p as i16 {
             return Ok((ErrorCode::ErrorNoPermision as i32, resp.encode_to_vec()));
         }
 
+        c.chat.version = bump_chat_version(c.chat.version);
         let user_ids = c.cmv.ids();
+        // 解散群聊属 chat 实体变更：向所有成员推 Chat Delete（离线端回放后本地清除群）
+        let _ = crate::message::push_entity_changed(
+            ctx,
+            &user_ids,
+            &[req.chat_id],
+            c.chat.version,
+            entity::Operate::Delete,
+            entity::EntityType::Chat,
+        )
+        .await;
         super::feed::update_feed_status(
             ctx,
             req.chat_id,

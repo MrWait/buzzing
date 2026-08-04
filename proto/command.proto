@@ -34,6 +34,8 @@ enum Command {
     FEED_GET_LIST = 1100;
     CHAT_CREATE = 1101;
     CHAT_ENTER = 1102;
+    // SDK 本地聚合全局总未读数（见 data_sync §6 / readstatus 需求 C）
+    FEED_GET_BADGE_COUNT = 1103;
     CHAT_ADD_CHATTERS = 1104;
     CHAT_DELETE_CHATTERS = 1105;
     CHAT_UPDATE = 1106;
@@ -52,6 +54,8 @@ enum Command {
     CHAT_QUIT = 1119;
     FEED_GET_BY_IDS = 1120;
     FEED_SET_MUTE = 1121;
+    // 会话已读位置变更推送（Feed 实体子集），见 data_sync §3.1
+    PUSH_FEED_READ_STATUS = 1117;
 
     // M2: 群管理 (1122-1133)
     CHAT_SET_ANNOUNCEMENT    = 1122;

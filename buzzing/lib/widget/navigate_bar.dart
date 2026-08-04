@@ -46,10 +46,19 @@ class NaviBar extends ConsumerWidget {
                 router.go(AppRoute.SEARCH);
               }, Icons.search_rounded),
               Container(height: 40, child: MainPopup(context)),
-              NaviButton(context, () {
-                final router = GoRouter.of(context);
-                router.go(AppRoute.IM);
-              }, Icons.message),
+              // 消息入口：显示全局未读角标（跟随 ImController.totalUnread 实时刷新）
+              ListenableBuilder(
+                  listenable: im,
+                  builder: (ctx, _) => Badge(
+                        isLabelVisible: im.totalUnread > 0,
+                        label: Text(im.totalUnread > 99
+                            ? '99+'
+                            : '${im.totalUnread}'),
+                        child: NaviButton(context, () {
+                          final router = GoRouter.of(context);
+                          router.go(AppRoute.IM);
+                        }, Icons.message),
+                      )),
               NaviButton(context, () {
                 final router = GoRouter.of(context);
                 router.go(AppRoute.CALENDAR);

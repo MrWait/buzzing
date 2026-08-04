@@ -28,8 +28,22 @@ class DataPersistence {
   static const _CURRENT_UNION_SERVER = "currentUnionServer";
   static const _UNION_SERVER_LIST = "unionServerList";
 
+  /// 归一化服务器地址：去掉 http(s):// 前缀与路径，仅保留 host[:port]。
+  /// 保证 getUnion / putUnion / removeUnion 使用一致的存储 key。
+  static String normalizeServer(String server) {
+    var s = server.trim();
+    if (s.startsWith("https://")) {
+      s = s.substring("https://".length);
+    } else if (s.startsWith("http://")) {
+      s = s.substring("http://".length);
+    }
+    final slash = s.indexOf("/");
+    if (slash >= 0) s = s.substring(0, slash);
+    return s;
+  }
+
   static String unionKey(String union) {
-    return "UNION_SERVER_" + union;
+    return "UNION_SERVER_" + normalizeServer(union);
   }
 
   static List<String> getUnionServerList() {
@@ -121,8 +135,10 @@ class DataPersistence {
     return SpUtil.remove(_CURRENT_UNION_SERVER);
   }
 
-  static Future<bool>? putUnion(Union union) {
-    var key = unionKey(union.server);
+  static Future<bool>? putUnion(Union union, {String? keyServer}) {
+    // 默认以 union.server 为 key；连接场景下 gateway 可能与用户输入地址不同，
+    // 因此允许显式传入用户输入的原始地址作为 key，保证后续能命中并删除。
+    var key = unionKey(keyServer ?? union.server);
     return SpUtil.putObject(key, union.toJson());
   }
 

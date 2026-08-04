@@ -86,6 +86,8 @@ class TranslationsZh with BaseTranslations<AppLocale, Translations> implements T
 	@override String get voiceInput => '语音输入';
 	@override String get haveRead => '已读';
 	@override String get unread => '未读';
+	@override String get readDetailTitle => '已读详情';
+	@override String get refresh => '刷新';
 	@override String get copy => '复制';
 	@override String get delete => '删除';
 	@override String get forward => '转发';
@@ -801,6 +803,8 @@ extension on TranslationsZh {
 			'voiceInput' => '语音输入',
 			'haveRead' => '已读',
 			'unread' => '未读',
+			'readDetailTitle' => '已读详情',
+			'refresh' => '刷新',
 			'copy' => '复制',
 			'delete' => '删除',
 			'forward' => '转发',
@@ -1262,10 +1266,10 @@ extension on TranslationsZh {
 			'plsInputMeetingSubject' => '请输入会议主题',
 			'meetingStartTime' => '开始时间',
 			'meetingDuration' => '会议时长',
-			'enterMeeting' => '进入会议',
-			'meetingNo' => '会议号',
 			_ => null,
 		} ?? switch (path) {
+			'enterMeeting' => '进入会议',
+			'meetingNo' => '会议号',
 			'yourMeetingName' => '您的名称',
 			'plsInputMeetingNumber' => '请输入会议号',
 			'plsInputYouMeetingName' => '请输入您的名称',

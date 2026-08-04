@@ -342,12 +342,16 @@ impl FeedModel {
         Ok(feeds)
     }
 
+    /// 更新会话已读位置（read_pos + read_badge 同组、单调防回退）。
+    /// `read_badge` 为客户端透传的 `max_badge_count`（服务端生成字段，见 data_sync §6.3），
+    /// 由服务端直接写入并做健壮性兜底（min(max, refer_badge)；读到最新必然归零）。
     pub async fn update_read_pos(
         db: &DatabaseConnection,
         chat_id: i64,
         user_id: i64,
         pos: i32,
-    ) -> ModelResult<Vec<Model>> {
+        read_badge: i32,
+    ) -> ModelResult<Option<Model>> {
         let now = current_ms() as i64;
 
         let feed = Feeds::find()
@@ -361,13 +365,19 @@ impl FeedModel {
             .await?;
 
         let Some(db_feed) = feed else {
-            return Ok(vec![]);
+            return Ok(None);
         };
 
+        // 单调防回退：只进不退；未推进时不落库、不广播
+        if pos <= db_feed.read_pos {
+            return Ok(None);
+        }
+
+        // read_badge 兜底收敛：读到最新必然归零；否则按 min(max_badge_count, refer_badge) 收敛
         let read_badge = if pos >= db_feed.refer_pos {
             db_feed.refer_badge
         } else {
-            db_feed.read_badge
+            read_badge.min(db_feed.refer_badge).max(0)
         };
 
         let model = ActiveModel {
@@ -388,16 +398,16 @@ impl FeedModel {
             .exec(db)
             .await?;
 
-        let feeds = Feeds::find()
+        let feed = Feeds::find()
             .filter(
                 model::query::condition()
                     .eq(Column::EntityId, chat_id)
                     .eq(Column::UserId, user_id)
                     .build(),
             )
-            .all(db)
+            .one(db)
             .await?;
-        Ok(feeds)
+        Ok(feed)
     }
 
     pub async fn update_by_new_message(

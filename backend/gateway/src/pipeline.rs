@@ -97,15 +97,3 @@ pub(crate) async fn pipeline_pull_packet(
     debug!("pipeline pull packets, resp: {resp:?}");
     Ok((0, resp.encode_to_vec()))
 }
-
-#[allow(dead_code)]
-#[allow(unused_variables)]
-pub(crate) async fn pipeline_pull_entity(
-    ctx: &AppContext,
-    brief: &UserBrief,
-    packet: &entity::Packet,
-    ws: bool,
-) -> Result<(i32, Vec<u8>)> {
-
-    Ok((0, vec![]))
-}

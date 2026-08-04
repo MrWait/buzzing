@@ -58,6 +58,7 @@ mod m20260728_100007_open_app_versions;
 mod m20260728_100008_open_app_market_info;
 mod m20260728_100009_open_app_installations;
 mod m20260728_100010_open_app_reviews;
+mod m20260805_100001_messages_entity_versions;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -121,6 +122,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260728_100008_open_app_market_info::Migration),
             Box::new(m20260728_100009_open_app_installations::Migration),
             Box::new(m20260728_100010_open_app_reviews::Migration),
+            Box::new(m20260805_100001_messages_entity_versions::Migration),
         ]
     }
 }

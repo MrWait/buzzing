@@ -11,6 +11,9 @@ import presenceProto from '../../../../proto/presence.proto?raw'
 import typingProto from '../../../../proto/typing.proto?raw'
 import threadProto from '../../../../proto/thread.proto?raw'
 import officeProto from '../../../../proto/office.proto?raw'
+import muteProto from '../../../../proto/mute.proto?raw'
+import inviteProto from '../../../../proto/invite.proto?raw'
+import joinRequestProto from '../../../../proto/join_request.proto?raw'
 
 let protoRoot: protobuf.Root | null = null
 
@@ -30,6 +33,9 @@ export function getProto(): protobuf.Root {
     { name: 'typing.proto', content: typingProto },
     { name: 'thread.proto', content: threadProto },
     { name: 'office.proto', content: officeProto },
+    { name: 'mute.proto', content: muteProto },
+    { name: 'invite.proto', content: inviteProto },
+    { name: 'join_request.proto', content: joinRequestProto },
   ]
   for (const { content } of files) {
     const parsed = protobuf.parse(content, { keepCase: true })

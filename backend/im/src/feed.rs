@@ -114,9 +114,37 @@ pub(crate) async fn feed_update_read_pos(
     chat_id: i64,
     user_id: i64,
     pos: i32,
+    read_badge: i32,
 ) -> Result<()> {
-    let feeds = feeds::FeedModel::update_read_pos(&ctx.db, chat_id, user_id, pos).await?;
-    let _ = push_feed_to_user(ctx, feeds).await;
+    let feed = feeds::FeedModel::update_read_pos(&ctx.db, chat_id, user_id, pos, read_badge).await?;
+    let Some(feed) = feed else {
+        // 防回退未推进（pos 未前进或 feed 不存在），不广播
+        return Ok(());
+    };
+    // 会话已读位置变更：向该用户所有在线设备广播 Feed 实体子集（不改变排序）
+    push_feed_read_status(ctx, user_id, &feed).await
+}
+
+/// 向单个用户广播会话已读位置子集推送 `PUSH_FEED_READ_STATUS`（见 data_sync §3.1）
+async fn push_feed_read_status(ctx: &AppContext, user_id: i64, feed: &feeds::Model) -> Result<()> {
+    let gateway = BizHub::get()?.gateway.clone();
+    let push = feed::PushFeedReadStatus {
+        feed_id: feed.entity_id,
+        chat_id: feed.entity_id,
+        read_pos: feed.read_pos as i64,
+        read_badge: feed.read_badge as i64,
+        update_time_ms: feed.update_ms,
+    };
+    let _ = gateway
+        .send_packet_to_user(
+            ctx,
+            &vec![user_id],
+            rid(),
+            Command::PushFeedReadStatus,
+            push.encode_to_vec(),
+            false,
+        )
+        .await;
     Ok(())
 }
 

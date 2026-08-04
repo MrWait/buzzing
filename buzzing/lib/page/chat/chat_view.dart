@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/const.dart';
@@ -696,11 +698,86 @@ class _ThreadPanel extends ConsumerWidget {
   }
 }
 
-class MessageView extends ConsumerWidget {
+class MessageView extends ConsumerStatefulWidget {
   const MessageView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MessageView> createState() => _MessageViewState();
+}
+
+class _MessageViewState extends ConsumerState<MessageView> {
+  // 每条消息的定位 key（GlobalObjectKey(msg.id) 保证唯一，回收后可复用）
+  final Map<Int64, GlobalKey> _msgKeys = {};
+  // 上屏已读上报做防抖，避免滚动过程频繁发请求
+  Timer? _seenDebounce;
+  final GlobalKey _listKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    final im = ref.read(imProvider);
+    im.msgCtrl.addListener(_onScrollChanged);
+    // 首帧渲染后上报一次，覆盖首屏已就绪、且未触发滚动的事件（如已滚到底部的短列表）
+    WidgetsBinding.instance.addPostFrameCallback((_) => _reportSeen());
+  }
+
+  @override
+  void dispose() {
+    _seenDebounce?.cancel();
+    final im = ref.read(imProvider);
+    im.msgCtrl.removeListener(_onScrollChanged);
+    super.dispose();
+  }
+
+  void _onScrollChanged() {
+    _seenDebounce?.cancel();
+    _seenDebounce = Timer(const Duration(milliseconds: 200), _reportSeen);
+  }
+
+  /// 基于「可见区全局矩形与每条消息矩形相交」判定真正上屏的消息（见 data_sync §6.2）：
+  /// 只有真正上屏的**非本人**消息按精确 id 标已读，中间未上屏的消息保持未读；
+  /// 会话已读位置另行按可见最大 pos 及其 badge_count 上报。
+  void _reportSeen() {
+    if (!mounted) return;
+    final im = ref.read(imProvider);
+    if (im.chatId == Int64.ZERO) return;
+    final listBox = _listKey.currentContext?.findRenderObject() as RenderBox?;
+    if (listBox == null) return;
+    final viewport =
+        listBox.localToGlobal(Offset.zero) & listBox.size;
+
+    final seenIds = <Int64>[];
+    var maxPos = 0;
+    var maxBadge = 0;
+    // 清理不再展示的 key
+    final alive = im.messagePosList.map((m) => m.id).toSet();
+    _msgKeys.removeWhere((id, _) => !alive.contains(id));
+
+    for (final mi in im.messagePosList) {
+      final box = _msgKeys[mi.id]?.currentContext?.findRenderObject()
+          as RenderBox?;
+      if (box == null) continue;
+      final rect = box.localToGlobal(Offset.zero) & box.size;
+      if (!viewport.overlaps(rect)) continue;
+      final msg = im.entity.messages[mi.id];
+      if (msg == null) continue;
+      // 非本人消息按精确 id 批量已读
+      if (msg.fromId != im.userId) {
+        seenIds.add(msg.id);
+      }
+      // 会话已读位置：可见最大 pos 及其 badge_count（服务端生成字段，原样透传）
+      if (mi.pos > maxPos) {
+        maxPos = mi.pos;
+        maxBadge = msg.badgeCount;
+      }
+    }
+
+    if (maxPos == 0 && seenIds.isEmpty) return;
+    im.reportSeen(im.chatId, seenIds, maxPos, maxBadge);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final im = ref.watch(imProvider);
     return ListenableBuilder(
@@ -711,13 +788,18 @@ class MessageView extends ConsumerWidget {
           color: cs.surface,
           child: SelectionArea(
             child: ListView.builder(
+              key: _listKey,
               controller: im.msgCtrl,
               itemCount: im.messagePosList.length,
               itemBuilder: (context, index) {
                 var mi = im.messagePosList[index];
                 var msg = im.entity.messages[mi.id] ?? Message();
                 var user = im.entity.users[msg.fromId] ?? User();
-                return MessageBox(msg: msg, user: user);
+                return MessageBox(
+                  key: _msgKeys[mi.id] ??= GlobalObjectKey(mi.id),
+                  msg: msg,
+                  user: user,
+                );
               },
             ),
           ),

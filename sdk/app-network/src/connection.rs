@@ -14,7 +14,9 @@ use tungstenite::protocol::Message;
 
 use base_util::{gen_i32, lock::RwLock, thread_id, time::current_s};
 use proto::idl::entity;
-use service::{emit_event, network::Response, BizHub};
+use service::{emit_event, network::{LonglinkState, Response}, BizHub};
+
+use crate::NetworkState;
 
 #[derive(Debug)]
 pub struct WaitedPacket {
@@ -98,6 +100,7 @@ impl rustls::client::danger::ServerCertVerifier for AcceptAllVerifier {
 pub(crate) async fn ws_task(
     cmd_tx: Arc<UnboundedSender<Command>>,
     mut rx: UnboundedReceiver<Command>,
+    net_status: Arc<NetworkState>,
 ) -> Result<()> {
     let waited: RwLock<HashMap<i64, UnboundedSender<Response>>> = RwLock::new(HashMap::new());
 
@@ -110,11 +113,13 @@ pub(crate) async fn ws_task(
     loop {
         let mut retry_count = 0;
         let mut ws_stream = None;
+        net_status.set_longlink_state(LonglinkState::Connecting);
         loop {
             retry_count += 1;
             if retry_count > 6 {
                 retry_count = 0;
             }
+            net_status.set_longlink_state(LonglinkState::Connecting);
             tokio::select!(
                 _ = async {
                     debug!("start connect server, retry_count: {} {:?} {:?}", retry_count, user_info, device_info);
@@ -153,6 +158,7 @@ pub(crate) async fn ws_task(
         }
 
         debug!("start process loop");
+        net_status.set_longlink_state(LonglinkState::Connected);
 
         let (mut sink, mut stream) = match ws_stream {
             Some(ws) => ws.split(),
