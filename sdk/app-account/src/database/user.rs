@@ -5,8 +5,8 @@ use base_db::prelude::{params, params_from_iter, Connection, Result, Row};
 use base_db::{cost, placeholder, Pagerize};
 use proto::idl::entity;
 
-const FIELD_USER: &str = "id, dirty, status, name, tenant_id, version, avatar, dept_id";
-const FIELD_COUNT: usize = 8;
+const FIELD_USER: &str = "id, dirty, status, name, tenant_id, version, avatar, dept_id, phone, email, position, city, superior_id, superior_name";
+const FIELD_COUNT: usize = 14;
 
 pub(crate) fn init_tables(conn: &Connection) -> Result<()> {
     conn.execute(
@@ -18,10 +18,23 @@ name TEXT DEFAULT '',
 tenant_id BIGINT,
 version BIGINT,
 avatar TEXT,
-dept_id BIGINT
+dept_id BIGINT,
+phone TEXT DEFAULT '',
+email TEXT DEFAULT '',
+position TEXT DEFAULT '',
+city TEXT DEFAULT '',
+superior_id BIGINT DEFAULT 0,
+superior_name TEXT DEFAULT ''
 )",
         (),
     )?;
+    // 兼容旧库：为新加的 profile 字段补充列
+    let _ = conn.execute("ALTER TABLE user ADD COLUMN phone TEXT DEFAULT ''", ());
+    let _ = conn.execute("ALTER TABLE user ADD COLUMN email TEXT DEFAULT ''", ());
+    let _ = conn.execute("ALTER TABLE user ADD COLUMN position TEXT DEFAULT ''", ());
+    let _ = conn.execute("ALTER TABLE user ADD COLUMN city TEXT DEFAULT ''", ());
+    let _ = conn.execute("ALTER TABLE user ADD COLUMN superior_id BIGINT DEFAULT 0", ());
+    let _ = conn.execute("ALTER TABLE user ADD COLUMN superior_name TEXT DEFAULT ''", ());
     Ok(())
 }
 
@@ -36,6 +49,12 @@ fn parse_user(row: &Row) -> Result<(entity::User, bool)> {
             version: row.get(5)?,
             avatar: row.get(6)?,
             dept_id: row.get(7)?,
+            phone: row.get(8)?,
+            email: row.get(9)?,
+            position: row.get(10)?,
+            city: row.get(11)?,
+            superior_id: row.get(12)?,
+            superior_name: row.get(13)?,
         },
         dirty != 0,
     ))
@@ -63,6 +82,12 @@ pub(crate) fn user_batch_save(conn: &mut Connection, users: &[entity::User]) -> 
                 user.version,
                 &user.avatar,
                 user.dept_id,
+                &user.phone,
+                &user.email,
+                &user.position,
+                &user.city,
+                user.superior_id,
+                &user.superior_name,
             ])?;
         }
     }
@@ -89,6 +114,12 @@ pub(crate) fn user_save(conn: &Connection, user: &entity::User) -> Result<()> {
         user.version,
         &user.avatar,
         user.dept_id,
+        &user.phone,
+        &user.email,
+        &user.position,
+        &user.city,
+        user.superior_id,
+        &user.superior_name,
     ])?;
 
     Ok(())

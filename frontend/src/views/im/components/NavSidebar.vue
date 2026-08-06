@@ -215,7 +215,7 @@ onUnmounted(() => {
 .avatar {
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: 50%;
   background: #4a6cf7;
   color: #fff;
   display: flex;
@@ -357,7 +357,7 @@ onUnmounted(() => {
 .pm-avatar {
   width: 36px;
   height: 36px;
-  border-radius: 6px;
+  border-radius: 50%;
   object-fit: cover;
   background: #4a6cf7;
 }

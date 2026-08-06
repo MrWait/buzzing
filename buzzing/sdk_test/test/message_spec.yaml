@@ -1,0 +1,32 @@
+# Message reply-reference test spec
+# 覆盖引用回复时 ref_message_id / ref_data 在 SDK 本地库的落库与读回
+#
+# 背景：客户端「回复消息」时编辑区（内存 replyTarget）渲染正常，但发送后气泡看不到引用内容。
+# 根因在 SDK 本地 SQLite 表 message：既无 ref_message_id / ref_data 列，
+# parse_row 又写死 ref_message_id=0 / ref_data=None，upsert 也不落这两列。
+# 因此无论服务端回声怎么携带引用字段，从本地库读回时引用总是丢。
+# 本 spec 覆盖：带引用创建的草稿，落库后经 MESSAGE_GET_BY_CHAT 读回应原样保留。
+
+version: 1.0
+module: message_reply
+commands:
+  - FEED_GET_LIST (1100)
+  - MESSAGE_CREATE_DRAFT (1051)
+  - MESSAGE_GET_BY_CHAT (0)
+
+precondition_flow:
+  description: >
+    复用 test_util 的 initSdk + autoLoginOrFullFlow：
+    1. 初始化 SDK 并登录（非 personal 身份）
+    2. 等待一轮 feed 同步，取第一个会话作为 chatId（FEED_GET_LIST）
+
+groups:
+  - name: Reply Reference Persistence
+    id: reply_ref_local_db
+    description: 引用回复的 ref_message_id/ref_data 必须随消息写入本地库并在读回时保留
+    cases:
+      - id: DRAFT_KEEPS_REPLY_REF
+        description: >
+          MESSAGE_CREATE_DRAFT 携带 ref_message_id + ref_data 创建草稿，
+          随后 MESSAGE_GET_BY_CHAT 读回，消息实体的引用字段不得丢失
+          （回归：SDK message 表增补 ref_message_id/ref_data 列）。

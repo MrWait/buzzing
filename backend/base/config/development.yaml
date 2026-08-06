@@ -155,3 +155,6 @@ settings:
   cert: "assets/cert/server.crt"
   cert_key: "assets/cert/server.key"
   turn_secret: "buzzing-turn-secret-dev"
+  # pipeline TTL 清理配置（秒）：30 天过期、每 24 小时清理一次
+  pipeline_ttl_seconds: 2592000
+  pipeline_cleanup_interval_seconds: 86400

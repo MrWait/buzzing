@@ -153,7 +153,20 @@ pub(crate) async fn update_last_message(
         };
         msg.cmv_id = c.cmv.id;
         msg.cmv_count = c.cmv.count;
-        msg.read_states = VecBool::with_zeros(c.cmv.count as u64).chunks;
+        // 创建消息时直接初始化实体版本与已读状态（见 docs/data_sync §5）：
+        // - version / readstate_version / reaction_version 用当前时间初始化，保证 PULL_ENTITY
+        //   至少返回有效版本，版本合并守卫（excluded.version >= incoming_version）能正常清脏，
+        //   避免「无已读」场景下实体版本为 0、脏标记版本守卫失败导致反复拉取。
+        // - 发送者对自己发出的消息视为已读（me_read=true、read_count 计入发送者），
+        //   已读/表情独立实体始终存在且带版本，不再返回空。
+        let now_ms = current_ms() as i64;
+        let mut read_state = VecBool::with_zeros(c.cmv.count as u64);
+        let _ = c.cmv.set(&mut read_state, &[msg.from_id]);
+        msg.read_count = read_state.iter().filter(|b| *b).count() as i32;
+        msg.read_states = read_state.chunks;
+        msg.version = now_ms;
+        msg.readstate_version = now_ms;
+        msg.reaction_version = now_ms;
         if c.chat.r#type == entity::ChatType::ChatP2p as i16 {
             member_ids.push(c.chat.peer_a_id);
             member_ids.push(c.chat.peer_b_id);

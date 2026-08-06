@@ -100,7 +100,7 @@ onMounted(() => {
 .app-avatar {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: 50%;
   background: #e8f0fe;
   color: #1a73e8;
   display: flex;

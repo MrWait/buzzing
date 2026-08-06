@@ -5,12 +5,13 @@ import 'package:buzzing/models/idl/chat.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/entity.pbenum.dart';
 import 'package:buzzing/page/chat/group_share.dart';
+import 'package:buzzing/page/chat/announcement_page.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/routes/app_routes.dart';
 import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/widget/member_picker/member_picker.dart';
-import 'package:buzzing/widget/announcement_dialog.dart';
+import 'package:buzzing/widget/profile.dart';
 import 'package:buzzing/widget/user_list_item.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
@@ -64,20 +65,16 @@ class GroupProfileContent extends ConsumerWidget {
       children: [
         _GroupInfoHeader(chat: chat, im: im),
         const SizedBox(height: 24),
-        _SectionTitle(title: '群公告'),
-        _AnnouncementTile(
-            chat: chat,
-            chatId: chatId,
-            im: im,
-            isOwner: isOwner,
-            isAdmin: isAdmin),
-        const SizedBox(height: 16),
+        // 群公告入口：点击进入覆盖消息区的公告查看/编辑页
+        _AnnouncementEntry(chatId: chatId, im: im, isOwner: isOwner, isAdmin: isAdmin),
+        const SizedBox(height: 8),
         _GroupMembersSection(chatId: chatId),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         if (isOwner || isAdmin) ...[
-          _SectionTitle(title: '群管理'),
-          _GroupManageTile(chatId: chatId, cs: cs),
-          const SizedBox(height: 16),
+          _GroupManageTile(chatId: chatId),
+          const SizedBox(height: 8),
+          _JoinRequestsTile(chatId: chatId),
+          const SizedBox(height: 8),
         ],
         _DangerZoneTile(chatId: chatId, isOwner: isOwner, im: im, cs: cs, bt: bt),
       ],
@@ -104,8 +101,7 @@ class _GroupInfoHeader extends ConsumerWidget {
           onTap: (isOwner || isAdmin) ? () => _openEdit(context) : null,
           child: Stack(
             children: [
-              UserAvatar(
-                  name: chat.name, avatar: chat.avatar, size: 36, radius: 18),
+              UserAvatar(name: chat.name, avatar: chat.avatar, size: 36),
               if (isOwner || isAdmin)
                 Positioned(
                   right: 0,
@@ -190,70 +186,111 @@ class _GroupInfoHeader extends ConsumerWidget {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
+/// 群设置统一扁平设置行：icon + 标题（可选副文案）+ 可选尾部值 + chevron。
+/// group_profile_page 内的群公告/群成员/群管理均使用该风格，避免割裂。
+class _FlatSettingTile extends StatelessWidget {
+  final IconData icon;
   final String title;
-  const _SectionTitle({required this.title});
+  final String? subtitle;
+  final String? trailingValue;
+  final VoidCallback? onTap;
+
+  const _FlatSettingTile({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.trailingValue,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(title,
-          style: tt.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600)),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: cs.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
+                  if (subtitle != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(subtitle!,
+                          style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+              ),
+            ),
+            if (trailingValue != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text(trailingValue!,
+                    style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+              ),
+            Icon(Icons.chevron_right, size: 20, color: cs.onSurfaceVariant),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _AnnouncementTile extends ConsumerWidget {
-  final Chat chat;
+class _AnnouncementEntry extends ConsumerWidget {
   final Int64 chatId;
   final ImController im;
   final bool isOwner;
   final bool isAdmin;
 
-  const _AnnouncementTile(
-      {required this.chat,
-      required this.chatId,
+  const _AnnouncementEntry(
+      {required this.chatId,
       required this.im,
       required this.isOwner,
       required this.isAdmin});
 
+  void _open(BuildContext context) {
+    // 桌面端叠加在聊天区上，移动端整页路由
+    if (isDesktop) {
+      im.openAnnouncement();
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => Scaffold(body: AnnouncementPage(chatId: chatId))),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
-    final canEdit = isOwner || isAdmin;
-    var announcement = im.entity.messages[chatId];
-    if (announcement != null &&
-        announcement.status == EntityStatus.DELETED.value) {
-      announcement = null;
-    }
-    return Card(
-      child: ListTile(
-        leading: Icon(Icons.campaign, color: cs.primary),
-        title: Text(announcement != null ? '查看公告' : '设置公告'),
-        subtitle: announcement != null
-            ? Text(announcement.summary.isNotEmpty
-                ? announcement.summary
-                : '点击查看详情',
-                maxLines: 2, overflow: TextOverflow.ellipsis)
-            : null,
-        trailing: canEdit && announcement != null
-            ? IconButton(
-                icon: Icon(Icons.delete_outline, color: cs.error),
-                onPressed: () async {
-                  await im.deleteAnnouncement(chatId);
-                },
-              )
-            : null,
-        onTap: canEdit
-            ? () => showAnnouncementEditor(context, im, chatId, announcement)
-            : announcement != null
-                ? () => showAnnouncementViewer(context, announcement!)
-                : null,
-      ),
+    final summary = _announcementSummary(im);
+    return _FlatSettingTile(
+      icon: Icons.campaign,
+      title: '群公告',
+      subtitle: summary.isNotEmpty ? summary : null,
+      onTap: () => _open(context),
     );
+  }
+
+  String _announcementSummary(ImController im) {
+    final announcement = im.entity.messages[chatId];
+    if (announcement == null ||
+        announcement.tpy != MessageType.ANNOUNCEMENT.value ||
+        announcement.status == EntityStatus.DELETED.value) {
+      return '';
+    }
+    return announcement.summary;
   }
 }
 
@@ -316,8 +353,6 @@ class _GroupMembersSectionState extends ConsumerState<_GroupMembersSection> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
     final im = ref.watch(imProvider);
     final chat = im.getChat(widget.chatId);
     final memberCount = chat?.memberIds.length ?? _members.length;
@@ -325,7 +360,10 @@ class _GroupMembersSectionState extends ConsumerState<_GroupMembersSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InkWell(
+        _FlatSettingTile(
+          icon: Icons.group,
+          title: '群成员',
+          trailingValue: '$memberCount人',
           onTap: () {
             if (isDesktop) {
               ref.read(imProvider).openGroupMemberList();
@@ -333,16 +371,6 @@ class _GroupMembersSectionState extends ConsumerState<_GroupMembersSection> {
               context.push('${AppRoute.MEMBER_LIST}/${widget.chatId}');
             }
           },
-          child: Row(
-            children: [
-              Text('群成员',
-                  style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-              const Spacer(),
-              Text('$memberCount人',
-                  style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
-              Icon(Icons.chevron_right, size: 18, color: cs.onSurfaceVariant),
-            ],
-          ),
         ),
         const SizedBox(height: 8),
         TextField(
@@ -379,6 +407,7 @@ class _GroupMembersSectionState extends ConsumerState<_GroupMembersSection> {
   }
 
   Widget _buildAvatarRow(double maxWidth) {
+    final im = ref.read(imProvider);
     const avatarSize = 36.0;
     const spacing = 8.0;
     final slotWidth = avatarSize + spacing;
@@ -392,7 +421,13 @@ class _GroupMembersSectionState extends ConsumerState<_GroupMembersSection> {
         for (final m in shown)
           Padding(
             padding: const EdgeInsets.only(right: spacing),
-            child: UserAvatar(name: m.name, avatar: m.avatar, size: 36, radius: 18),
+            child: AvatarUserPopup(
+              im: im,
+              id: m.userId,
+              url: m.avatar,
+              ver: im.getUserVer(m.userId),
+              child: UserAvatar(name: m.name, avatar: m.avatar, size: 36),
+            ),
           ),
         _AddMemberButton(onTap: _addMembers),
       ],
@@ -427,26 +462,44 @@ class _AddMemberButton extends StatelessWidget {
 
 class _GroupManageTile extends ConsumerWidget {
   final Int64 chatId;
-  final ColorScheme cs;
 
-  const _GroupManageTile({required this.chatId, required this.cs});
+  const _GroupManageTile({required this.chatId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Card(
-      child: ListTile(
-        leading: Icon(Icons.admin_panel_settings, color: cs.primary),
-        title: const Text('群管理'),
-        subtitle: const Text('禁言、入群方式、管理员设置'),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () {
-          if (isDesktop) {
-            ref.read(imProvider).openGroupManage();
-          } else {
-            context.push('${AppRoute.GROUP_MANAGE}/$chatId');
-          }
-        },
-      ),
+    return _FlatSettingTile(
+      icon: Icons.admin_panel_settings,
+      title: '群管理',
+      subtitle: '禁言、入群方式、管理员设置',
+      onTap: () {
+        if (isDesktop) {
+          ref.read(imProvider).openGroupManage();
+        } else {
+          context.push('${AppRoute.GROUP_MANAGE}/$chatId');
+        }
+      },
+    );
+  }
+}
+
+/// 入群申请入口（群设置二级页面：桌面端嵌入面板，移动端整页路由）
+class _JoinRequestsTile extends ConsumerWidget {
+  final Int64 chatId;
+
+  const _JoinRequestsTile({required this.chatId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return _FlatSettingTile(
+      icon: Icons.pending_actions,
+      title: '入群申请',
+      onTap: () {
+        if (isDesktop) {
+          ref.read(imProvider).openGroupJoinRequests();
+        } else {
+          context.push('${AppRoute.JOIN_REQUESTS}/$chatId');
+        }
+      },
     );
   }
 }

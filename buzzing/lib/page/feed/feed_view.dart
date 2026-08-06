@@ -96,6 +96,7 @@ class FeedPage extends ConsumerWidget {
     final item = ConversationItem(
       model: m,
       selected: isDesktop && m.feed.id == im.chatId,
+      im: im,
       onTap: () => _onTapFeed(context, ref, m.feed.id),
       onSecondaryTapDown: isDesktop
           ? (details) => _showContextMenu(context, ref, m, details.globalPosition)

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/controller/sdk_controller.dart';
 import 'package:buzzing/routes/app_navigator.dart';
 import 'package:buzzing/utils/config/config.dart';
@@ -13,7 +14,8 @@ import 'package:go_router/go_router.dart';
 class SplashLogic {
   late StreamSubscription initializedSub;
   final SdkController sdk;
-  SplashLogic({required this.sdk});
+  final ImController im;
+  SplashLogic({required this.sdk, required this.im});
 
   void init(GoRouter router) {
     if (!try_login(router)) {
@@ -78,6 +80,8 @@ class SplashLogic {
           token: account.loginUser!.token,
           unionClientConfig: json.encode(Config.union.config.toJson()),
         );
+        // 自动登录同样需要刷新客户端身份缓存（ImController 为全局单例）
+        im.applyLoginUser(account.loginUser!);
       }
       AppNavigator.startIm(router, account.loginUser);
       return true;

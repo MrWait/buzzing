@@ -90,6 +90,10 @@ Future<InvokeResponse> sdkLogin({
   return invoke(Command.USER_LOGIN.value, loginReq.writeToBuffer());
 }
 
+/// USER_LOGOUT 请求体（供需要直接检查 invoke 返回值的用例使用）
+List<int> userLogoutPayload() =>
+    SdkLogoutUserRequest.create().writeToBuffer();
+
 Future<void> logoutUser() async {
   await invoke(
     Command.USER_LOGOUT.value,

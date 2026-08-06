@@ -2272,6 +2272,7 @@ dependencies = [
  "scopeguard",
  "sea-orm",
  "serde_json",
+ "setting",
  "tokio",
  "tokio-rustls",
  "tokio-tungstenite",

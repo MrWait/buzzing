@@ -59,6 +59,8 @@ mod m20260728_100008_open_app_market_info;
 mod m20260728_100009_open_app_installations;
 mod m20260728_100010_open_app_reviews;
 mod m20260805_100001_messages_entity_versions;
+mod m20260806_000001_pipeline_cleanup_state;
+mod m20260808_000001_user_profile_fields;
 pub struct Migrator;
 
 #[async_trait::async_trait]
@@ -123,6 +125,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20260728_100009_open_app_installations::Migration),
             Box::new(m20260728_100010_open_app_reviews::Migration),
             Box::new(m20260805_100001_messages_entity_versions::Migration),
+            Box::new(m20260806_000001_pipeline_cleanup_state::Migration),
+            Box::new(m20260808_000001_user_profile_fields::Migration),
         ]
     }
 }

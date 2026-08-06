@@ -24,7 +24,7 @@ use async_trait::async_trait;
 use prost::Message;
 use std::collections::HashSet;
 use std::ops::DerefMut;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio::sync::Mutex;
@@ -123,8 +123,35 @@ impl AppTrait for AppChat {
         Ok(())
     }
     fn logout(&self) -> Result<()> {
+        debug!("app chat logout, clear runtime state");
         self.db.reset();
         self.message_db.reset();
+
+        // 复位同步标志：feed_sync / pipeline_sync 可能被 base_runtime::stop 中途取消，
+        // 导致标志停留在 true，下次登录时 sync 会直接 early-return 从而永久不再同步。
+        self.feed_sync_flag.store(false, Ordering::Relaxed);
+        self.feed_reentrant_flag.store(false, Ordering::Relaxed);
+        self.pipeline_sync_flag.store(false, Ordering::Relaxed);
+
+        // 清理草稿暂存 id 集合，避免上一个用户的消息 id 泄漏到下一个用户
+        {
+            let mut stash_ids = self.stash_ids.write();
+            stash_ids.clear();
+        }
+
+        // 排空预取队列，避免下次登录后继续预取上一个用户的会话
+        if let Ok(mut rx) = self.task_rx.try_lock() {
+            let mut dropped = 0;
+            while rx.try_recv().is_ok() {
+                dropped += 1;
+            }
+            if dropped > 0 {
+                debug!("drop {} pending prefetch task on logout", dropped);
+            }
+        } else {
+            warn!("prefetch task queue busy, skip draining on logout");
+        }
+
         Ok(())
     }
 
@@ -216,6 +243,7 @@ impl AppTrait for AppChat {
     fn net_commands(&self) -> Vec<i32> {
         vec![
             Command::PushMessages as i32,
+            Command::PushMessageReadstate as i32,
             Command::PushFeedList as i32,
             Command::PushFeedReadStatus as i32,
             Command::PushEntityChange as i32,
@@ -322,6 +350,7 @@ impl AppTrait for AppChat {
             // feed, chat
             Command::PushFeedList => self.handle_push_feed_list(params),
             Command::PushMessages => self.handle_push_messages(params),
+            Command::PushMessageReadstate => self.handle_push_message_readstate(params),
             Command::PushFeedReadStatus => self.handle_push_feed_read_status(params),
             // pipeline 实体变更通道（消息内容/已读/表情按 READSTATE/REACTION 独立实体分发）
             Command::PushEntityChange => self.handle_entity_changed(params),
@@ -411,6 +440,9 @@ impl AppChat {
     }
 
     pub(crate) fn save_entity(&self, entity: &entity::Entity) -> Result<()> {
+        // 确认消息落库前清理对应本地 stash：服务端消息 client_id 命中本机关存的
+        // stash 缓存时，删除 stash 行（id == client_id），避免 pos range 拉取重复上屏。
+        self.clean_stash_by_confirmed(entity)?;
         {
             let mut conn = self.db.inner()?;
             if !entity.feeds.is_empty() {
@@ -442,6 +474,34 @@ impl AppChat {
             }
         }
         if !entity.users.is_empty() {}
+        Ok(())
+    }
+
+    /// 确认消息落库前的 stash 清理：服务端确认消息携带 client_id，与本地草稿 stash
+    /// （id == client_id, status=FAIL）关联。当该消息 id 已变为服务端新 id（id != client_id）
+    /// 时，说明是已确认消息，删除对应本地 stash 行并移出缓存，避免本地与确认消息重复上屏。
+    fn clean_stash_by_confirmed(&self, entity: &entity::Entity) -> Result<()> {
+        let stash_guard = self.stash_ids.read();
+        let stash: Vec<i64> = entity
+            .messages
+            .values()
+            .filter(|msg| msg.client_id != 0 && msg.id != msg.client_id)
+            .map(|msg| msg.client_id)
+            .filter(|client_id| stash_guard.contains(client_id))
+            .collect();
+        drop(stash_guard);
+        if stash.is_empty() {
+            return Ok(());
+        }
+        debug!("clean stash by confirmed messages: {stash:?}");
+        {
+            let conn = self.message_db.inner()?;
+            let _ = message_database::message::message_delete_by_ids(&conn, &stash)?;
+        }
+        let mut stash_guard = self.stash_ids.write();
+        for id in &stash {
+            stash_guard.remove(id);
+        }
         Ok(())
     }
 

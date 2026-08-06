@@ -26,3 +26,4 @@ rustls-pemfile = { workspace = true }
 proto = { workspace = true }
 common = { workspace = true }
 base = { workspace = true }
+setting = { workspace = true }

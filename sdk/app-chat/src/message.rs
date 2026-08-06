@@ -162,14 +162,16 @@ impl AppChat {
 
         {
             let conn = self.message_db.inner()?;
-
-            if let Some(ref mut msg) = req.message {
-                msg.client_id = req.client_id;
-                message_database::message::message_save(&conn, msg)?;
-            } else if let Some(row) =
+            // 优先取回本地 stash 行（id == client_id, status=FAIL）作为待发消息，
+            // 避免把客户端重传的 id=0 草稿写库产生垃圾行。
+            if let Some(row) =
                 message_database::message::message_get_by_id(&conn, req.client_id)?
             {
                 req.message = Some(row.message);
+            } else if let Some(ref mut msg) = req.message {
+                msg.id = req.client_id;
+                msg.client_id = req.client_id;
+                message_database::message::message_save(&conn, msg)?;
             } else {
                 return Ok((ErrorCode::ErrorParamInvalid as i32, vec![]));
             }
@@ -177,6 +179,14 @@ impl AppChat {
         debug!("start send message: {:?}", req);
         let ack = crate::api::message_send(&req).await?;
         debug!("send message ok: {:?}", ack);
+
+        // 发送成功：删除本地 stash 行并移出缓存，避免确认消息到达后重复上屏。
+        // 网络失败时上面 `?` 提前返回，不会走到这里，保留本地 stash 供重试。
+        {
+            let conn = self.message_db.inner()?;
+            let _ = message_database::message::message_delete_by_ids(&conn, &[req.client_id])?;
+        }
+        self.stash_ids.write().remove(&req.client_id);
 
         Ok((ErrorCode::Success as i32, ack.encode_to_vec()))
     }
@@ -256,6 +266,10 @@ impl AppChat {
                     .as_slice(),
             );
         }
+        // 拉取路径同样推进会话水位/已读：自家消息 → 本地已读前进。
+        // 推送（PushMessages）与 PIPELINE 懒拉已收敛到 feed_update_by_messages（handle_push_entity），
+        // 这里覆盖 range / by-pos 拉取（聊天打开、后台 prefetch、补 gap），见 docs/data_sync §6。
+        let _ = self.feed_update_by_messages(entity);
         if prefetch {
             if low > 1 {
                 self.message_prefetch(chat_id, std::cmp::max(low - 30, 1), low);
@@ -306,6 +320,14 @@ impl AppChat {
         let mut push = message::PushMessages::decode(params)?;
         debug!("handle push messages, push: {:?}", push);
         // 统一实体 ingest：跨模块落库 + 派生客户端通知（方案 A，见 handle_push_entity）
+        self.handle_push_entity(&push.entity.get_or_insert_default())
+    }
+
+    /// 已读独立实体推送（PUSH_MESSAGE_READSTATE=1212）：载荷 PushReadMessageRequest{entity}
+    /// 只携带 entity.readstates（key=message_id），与消息内容通道 1211 区分，见 docs/data_sync §5。
+    pub(crate) fn handle_push_message_readstate(&self, params: &[u8]) -> Result<()> {
+        let mut push = message::PushReadMessageRequest::decode(params)?;
+        debug!("handle push message readstate, push: {:?}", push);
         self.handle_push_entity(&push.entity.get_or_insert_default())
     }
 }

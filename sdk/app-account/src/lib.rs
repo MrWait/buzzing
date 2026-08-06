@@ -84,7 +84,16 @@ impl AppTrait for AppAccount {
         Ok(())
     }
     fn logout(&self) -> Result<()> {
+        debug!("app account logout, clear account info");
         self.db.reset();
+        // 清理登录态：token / user_id / tenant_id / db_key / client_config。
+        // 不清理会导致登出后仍可用旧 token 发起请求，且下一个用户登录前存在串号风险。
+        // device_info 由 init 设置，属于设备级信息，需保留。
+        {
+            let mut account_info = self.account_info.write();
+            (*account_info).user_info = UserInfo::default();
+            (*account_info).client_config = UnionClientConfig::default();
+        }
         Ok(())
     }
 

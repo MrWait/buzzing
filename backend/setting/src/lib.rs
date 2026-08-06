@@ -1,4 +1,4 @@
-mod models;
+pub mod models;
 
 use axum::debug_handler;
 use loco_rs::prelude::*;

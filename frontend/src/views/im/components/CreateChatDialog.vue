@@ -228,7 +228,8 @@ async function onStartChat() {
   const peerUserId = String(ids[0])
   const chatId = await im.createP2pChat(myUserId, peerUserId)
   if (chatId) {
-    router.push(`/im/chat/${chatId}`)
+    im.selectChat(chatId)
+    router.push({ name: 'ImChatMain' })
     onClose()
   }
 }
@@ -240,7 +241,8 @@ async function onCreateGroup() {
   const name = groupName.value.trim() || ''
   const chatId = await im.createGroupChat(myUserId, name, ids.map(String))
   if (chatId) {
-    router.push(`/im/chat/${chatId}`)
+    im.selectChat(chatId)
+    router.push({ name: 'ImChatMain' })
     onClose()
   }
 }
@@ -404,7 +406,7 @@ onMounted(() => {
 .user-avatar {
   width: 30px;
   height: 30px;
-  border-radius: 4px;
+  border-radius: 50%;
   color: #fff;
   display: flex;
   align-items: center;
@@ -479,7 +481,7 @@ onMounted(() => {
 .selected-avatar {
   width: 28px;
   height: 28px;
-  border-radius: 4px;
+  border-radius: 50%;
   color: #fff;
   display: flex;
   align-items: center;

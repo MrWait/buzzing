@@ -1,0 +1,107 @@
+# Session lifecycle test spec
+# 覆盖 USER_LOGIN (1001) / USER_LOGOUT (1002) 的登录态清理行为
+#
+# 背景：客户端曾出现「A 登出后 B 登录，主界面仍显示 A 的数据」的缺陷。
+# 根因有两处：
+#   1. 客户端 ImController 为全局单例，登出未清理、登录未刷新身份缓存（客户端侧修复）
+#   2. SDK 侧 logout 只 reset 了 DbConn，未清理 AppAccount.account_info 与
+#      AppChat 的运行时缓存（stash_ids / sync flags / prefetch queue）
+# 本 spec 覆盖第 2 类问题，即 SDK 登出后不得残留上一个用户的会话态。
+
+version: 1.0
+module: session
+commands:
+  - USER_LOGIN (1001)
+  - USER_LOGOUT (1002)
+  - USER_GET_BY_IDS (1300)
+  - FEED_GET_LIST (1100)
+
+precondition_flow:
+  description: >
+    复用 contact_spec 中的 autoLoginOrFullFlow：
+    1. 下载 union client config
+    2. 手机号密码登录，选择非 personal 身份
+    3. 调用 SDK USER_LOGIN
+
+default_credentials:
+  server: "https://www.buzzing-im.com:5150"
+  phone: "10011110002"
+  password: "123456"
+  identity: "non-personal (tenant.id != 0)"
+
+groups:
+  - name: Logout State Cleanup
+    id: logout_cleanup
+    description: 登出后 SDK 必须释放身份与 DB，依赖登录态的命令应失败而非返回旧用户数据
+    cases:
+      - id: LOGOUT_RETURNS_OK
+        description: USER_LOGOUT 正常返回
+        command: USER_LOGOUT
+        input: {}
+        asserts:
+          - resp.status == 200
+
+      - id: LOGOUT_CLEARS_DB
+        description: >
+          登出后 AppAccount / AppChat 的 DbConn 已 reset，
+          依赖本地 DB 的命令不得返回上一个用户的数据（应报错或返回空）。
+        steps:
+          - USER_LOGOUT
+          - USER_GET_BY_IDS { ids: ["<loggedInUserId>"] }
+        asserts:
+          - USER_GET_BY_IDS 不返回 status 200 + 非空 users（DB 已释放）
+
+      - id: LOGOUT_CLEARS_FEED_DB
+        description: 登出后 FEED_GET_LIST 不得返回上一个用户的会话列表
+        steps:
+          - USER_LOGOUT
+          - FEED_GET_LIST { cursor: MAX, count: 50 }
+        asserts:
+          - 不返回 status 200 + 非空 feeds（chat.db 已释放）
+
+  - name: Re-login After Logout
+    id: relogin
+    depends_on: logout_cleanup.LOGOUT_RETURNS_OK
+    description: >
+      登出后重新登录必须完全可用。
+      回归点：AppChat 的 feed_sync_flag / pipeline_sync_flag 若在 logout 未复位，
+      再次登录时 feed_sync/pipeline_sync 会 early-return，导致永久不再同步。
+    cases:
+      - id: RELOGIN_OK
+        description: 登出后使用同一身份重新登录成功
+        steps:
+          - USER_LOGOUT
+          - USER_LOGIN { userId: loggedInUserId, token: userToken, tenantId: loggedInTenantId }
+        asserts:
+          - login resp.status == 200
+
+      - id: RELOGIN_DB_USABLE
+        description: 重新登录后 DB 重新可用，USER_GET_BY_IDS 恢复正常
+        steps:
+          - USER_LOGOUT
+          - USER_LOGIN { ... }
+          - USER_GET_BY_IDS { ids: ["<loggedInUserId>"] }
+        asserts:
+          - resp.status == 200
+          - resp.users.length == 1
+          - users[0].id == loggedInUserId
+
+      - id: RELOGIN_FEED_SYNC_WORKS
+        description: >
+          重新登录后 feed 同步仍可工作（sync flag 已在 logout 复位）。
+          FEED_GET_LIST 应返回 200。
+        steps:
+          - USER_LOGOUT
+          - USER_LOGIN { ... }
+          - 等待 feed 同步
+          - FEED_GET_LIST { cursor: MAX, count: 50 }
+        asserts:
+          - resp.status == 200
+
+      - id: RELOGIN_REPEATED
+        description: 连续多轮 logout/login 均保持可用（验证无状态泄漏与死锁）
+        steps:
+          - 重复 3 次：USER_LOGOUT -> USER_LOGIN -> USER_GET_BY_IDS
+        asserts:
+          - 每轮 login resp.status == 200
+          - 每轮 USER_GET_BY_IDS resp.status == 200 且 users[0].id == loggedInUserId

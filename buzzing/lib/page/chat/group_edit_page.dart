@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mime_type/mime_type.dart';
 import 'package:path/path.dart' as p;
@@ -112,9 +113,8 @@ class GroupEditViewState extends ConsumerState<GroupEditView> {
     await im.updateChat(widget.chatId, name: name, description: _descCtrl.text.trim(), avatar: _avatar);
     if (mounted) {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已保存')),
-      );
+      // 窗口中间弹出成功提示（绿色 ✅ + 文案），替换底部 SnackBar
+      EasyLoading.showSuccess('已保存');
     }
   }
 
@@ -136,7 +136,7 @@ class GroupEditViewState extends ConsumerState<GroupEditView> {
             onTap: canEdit ? _pickAndUploadAvatar : null,
             child: Stack(
               children: [
-                UserAvatar(name: _nameCtrl.text, avatar: _avatar, size: 72, radius: 10),
+                UserAvatar(name: _nameCtrl.text, avatar: _avatar, size: 72),
                 if (canEdit)
                   Positioned(
                     right: 0,

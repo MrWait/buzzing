@@ -9,6 +9,7 @@ use base_util::{gen_i32, thread_id};
 use proto::idl::{command::Command, entity, error::ErrorCode, feed};
 use proto::EntityIds;
 use service::network::common_request;
+use service::{BizAccount, BizHub};
 
 use crate::{database, AppChat};
 
@@ -117,17 +118,32 @@ impl AppChat {
             let feed_ids: Vec<_> = entity.messages.values().map(|m| m.chat_id).collect();
             let _ = database::feed::feed_get_by_ids(&conn, &feed_ids, entity)?;
             let mut updated = entity::Entity::default();
+            // 本机用户 id：识别「自己发送的消息」。发送者发出最新消息时服务端权威持久化其已读游标，
+            // 但不再推送 PUSH_FEED_READ_STATUS；此处 SDK 在应用新消息（推送 or 拉取）时本地同步推进，
+            // 多端一致、无需额外推送（见 docs/data_sync §6）。
+            let self_uid = BizHub::get()
+                .map(|hub| hub.account.get_user_info().user_id)
+                .unwrap_or(0);
             for msg in entity.messages.values() {
                 if let Some(conv) = entity.feeds.get_mut(&msg.chat_id) {
+                    let mut changed = false;
                     if conv.refer_pos < msg.pos {
                         conv.refer_pos = msg.pos;
                         conv.refer_id = msg.id;
                         conv.refer_badge = msg.badge_count;
-                        conv.badge = conv.refer_badge - conv.read_badge;
                         conv.rank_time_ms = msg.create_time_ms;
-
+                        changed = true;
+                    }
+                    // 自家消息：本地推进会话已读游标（单调防回退；read_badge 取本条 badge_count，
+                    // 与服务端 send 路径口径一致）。自家消息必然已读到，故该会话未读随之归零/下降。
+                    if msg.from_id == self_uid && conv.read_pos < msg.pos {
+                        conv.read_pos = msg.pos;
+                        conv.read_badge = msg.badge_count.min(conv.refer_badge);
+                        changed = true;
+                    }
+                    if changed {
+                        conv.badge = (conv.refer_badge - conv.read_badge).max(0);
                         updated.feeds.insert(conv.id, conv.clone());
-
                         need_push = true;
                     }
                 }

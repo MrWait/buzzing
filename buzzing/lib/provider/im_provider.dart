@@ -10,13 +10,13 @@ final imProvider = Provider<ImController>((ref) {
   final bus = ref.watch(eventBusProvider);
   final im = ImController(sdk: sdk, ev: bus);
   im.onInit();
+  ref.onDispose(() => im.dispose());
+  // 冷启动时若已有持久化身份，立即应用；
+  // 运行期切换用户由 LoginLogic.loginUser / SplashLogic 显式调用 applyLoginUser。
   final account = DataPersistence.getAccount();
-  if (account?.loginUser != null) {
-    im.loginUser = account!.loginUser!;
-    im.userId = im.loginUser.user.id;
-    im.avatar = im.loginUser.user.avatar;
-    im.setUserId(im.loginUser.user.id);
-    Future.delayed(Duration.zero, () => im.fetchFeed());
+  final loginUser = account?.loginUser;
+  if (loginUser != null) {
+    im.applyLoginUser(loginUser);
   }
   return im;
 });

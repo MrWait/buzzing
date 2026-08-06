@@ -5,8 +5,8 @@ use base_db::prelude::{params, params_from_iter, Connection, Error, Result, Row}
 use base_db::{cost, placeholder, Pagerize};
 use proto::idl::entity;
 
-const FIELD_MESSAGE: &str = "id, dirty, readstate_dirty, reaction_dirty, version, readstate_version, reaction_version, tpy, chat_id, from_id, pos, badge_count, status, client_id, create_time_ms, update_time_ms, at_user_ids, content, summary, reaction, readstate";
-const FIELD_COUNT: usize = 21;
+const FIELD_MESSAGE: &str = "id, dirty, readstate_dirty, reaction_dirty, version, readstate_version, reaction_version, tpy, chat_id, from_id, pos, badge_count, status, client_id, create_time_ms, update_time_ms, at_user_ids, content, summary, reaction, readstate, ref_message_id, ref_data";
+const FIELD_COUNT: usize = 23;
 
 pub(crate) fn init_tables(conn: &Connection) -> Result<()> {
     conn.execute(
@@ -31,7 +31,9 @@ at_user_ids TEXT,
 content BLOB,
 summary TEXT,
 reaction BLOB,
-readstate BLOB
+readstate BLOB,
+ref_message_id BIGINT DEFAULT 0,
+ref_data BLOB
 )",
         (),
     )?;
@@ -42,6 +44,8 @@ readstate BLOB
         "ALTER TABLE message ADD COLUMN version BIGINT NOT NULL DEFAULT 0",
         "ALTER TABLE message ADD COLUMN readstate_version BIGINT NOT NULL DEFAULT 0",
         "ALTER TABLE message ADD COLUMN reaction_version BIGINT NOT NULL DEFAULT 0",
+        "ALTER TABLE message ADD COLUMN ref_message_id BIGINT NOT NULL DEFAULT 0",
+        "ALTER TABLE message ADD COLUMN ref_data BLOB",
     ] {
         let _ = conn.execute(sql, ());
     }
@@ -87,6 +91,12 @@ fn parse_row(row: &Row) -> Result<MessageRow> {
         .as_deref()
         .and_then(|bytes| entity::ReadState::decode(bytes).ok());
 
+    // 引用回复：ref_data 为 MessageReference 的 proto blob，可能为 NULL
+    let ref_data: Option<Vec<u8>> = row.get(22)?;
+    let ref_data = ref_data
+        .as_deref()
+        .and_then(|bytes| entity::MessageReference::decode(bytes).ok());
+
     Ok(MessageRow {
         message: entity::Message {
             id: row.get(0)?,
@@ -103,8 +113,8 @@ fn parse_row(row: &Row) -> Result<MessageRow> {
             content: row.get(17)?,
             summary: row.get(18)?,
             version: row.get(4)?,
-            ref_message_id: 0,
-            ref_data: None,
+            ref_message_id: row.get(21)?,
+            ref_data,
             // TODO: add column in sql
             thread_root_id: 0,
         },
@@ -143,18 +153,21 @@ fn message_content_upsert<'a>(
     conn: &Connection,
     messages: impl Iterator<Item = &'a entity::Message>,
 ) -> Result<()> {
-    let query = "INSERT INTO message (id, dirty, version, tpy, chat_id, from_id, pos, badge_count, status, client_id, create_time_ms, update_time_ms, at_user_ids, content, summary)
-VALUES (?1,0,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)
+    let query = "INSERT INTO message (id, dirty, version, tpy, chat_id, from_id, pos, badge_count, status, client_id, create_time_ms, update_time_ms, at_user_ids, content, summary, ref_message_id, ref_data)
+VALUES (?1,0,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16)
 ON CONFLICT(id) DO UPDATE SET
     version=excluded.version, tpy=excluded.tpy, chat_id=excluded.chat_id, from_id=excluded.from_id,
     pos=excluded.pos, badge_count=excluded.badge_count, status=excluded.status,
     client_id=excluded.client_id, create_time_ms=excluded.create_time_ms, update_time_ms=excluded.update_time_ms,
-    at_user_ids=excluded.at_user_ids, content=excluded.content, summary=excluded.summary, dirty=0
+    at_user_ids=excluded.at_user_ids, content=excluded.content, summary=excluded.summary, dirty=0,
+    ref_message_id=excluded.ref_message_id, ref_data=excluded.ref_data
 WHERE excluded.version >= version";
     let mut stmt = conn.prepare(query)?;
     for message in messages {
         let at_user_ids =
             serde_json::to_string::<Vec<i64>>(&message.at_user_ids).unwrap_or_default();
+        // ref_data 为 MessageReference proto blob，未设置时为 NULL
+        let ref_data = message.ref_data.as_ref().map(|d| d.encode_to_vec());
         stmt.execute(params![
             message.id,
             message.version,
@@ -170,6 +183,8 @@ WHERE excluded.version >= version";
             &at_user_ids,
             &message.content,
             &message.summary,
+            message.ref_message_id,
+            &ref_data,
         ])?;
     }
     Ok(())
@@ -319,7 +334,8 @@ pub(crate) fn message_delete_by_ids(conn: &Connection, origin_ids: &[i64]) -> Re
 
 pub(crate) fn message_get_all_stash(conn: &Connection) -> Result<HashSet<i64>> {
     let mut ids = HashSet::new();
-    let query = format!("SELECT id FROM message WHERE status=5");
+    // stash 草稿以 status=FAIL(8) 落库（见 message_create_draft），重启时据此重载
+    let query = format!("SELECT id FROM message WHERE status=8");
     let mut stmt = conn.prepare(&query)?;
     let _ = stmt.query(params![]).and_then(|mut rows| {
         while let Some(row) = rows.next()? {

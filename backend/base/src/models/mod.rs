@@ -5,6 +5,7 @@ pub mod cmvs;
 pub mod depts;
 pub mod feeds;
 pub mod messages;
+pub mod pipeline_cleanup_state;
 pub mod pipelines;
 pub mod schedule_reminders;
 pub mod settings;

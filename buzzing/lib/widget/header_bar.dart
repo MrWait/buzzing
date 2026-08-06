@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:buzzing/i18n/strings.g.dart';
+import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/widget/picker.dart';
 import 'package:buzzing/widget/profile.dart';
@@ -28,8 +29,18 @@ class HeaderBar extends ConsumerWidget {
                   color: cs.surfaceVariant,
                   child: ListenableBuilder(
                       listenable: im,
-                      builder: (ctx, _) => ProfilePopup(im, context, im.userId,
-                          im.avatar, im.getUserVer(im.userId))))),
+                      builder: (ctx, _) => AvatarUserPopup(
+                            im: im,
+                            id: im.userId,
+                            url: im.avatar,
+                            ver: im.getUserVer(im.userId),
+                            child: CircleAvatar(
+                              backgroundImage: im.avatar.isEmpty
+                                  ? null
+                                  : NetworkImage(CommonUtils.fixResourceUrl(im.avatar)),
+                              radius: 20,
+                            ),
+                          )))),
           Container(
             width: height,
             child: Icon(Icons.query_builder, color: cs.primary),
@@ -107,6 +118,8 @@ class HeaderBarWindows extends StatelessWidget {
 Widget MainPopup(BuildContext context) {
   final cs = Theme.of(context).colorScheme;
   return CustomPopup(
+    backgroundColor: cs.surface,
+    arrowColor: cs.surface,
     content: Column(mainAxisSize: MainAxisSize.min, children: [
       GestureDetector(
         onTap: () {

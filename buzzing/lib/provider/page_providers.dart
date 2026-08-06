@@ -15,7 +15,8 @@ import 'app_state_provider.dart';
 
 final loginLogicProvider = Provider.autoDispose<LoginLogic>((ref) {
   final sdk = ref.watch(sdkProvider);
-  final logic = LoginLogic(sdk: sdk);
+  final im = ref.watch(imProvider);
+  final logic = LoginLogic(sdk: sdk, im: im);
   logic.init();
   ref.onDispose(() => logic.dispose());
   return logic;
@@ -23,7 +24,8 @@ final loginLogicProvider = Provider.autoDispose<LoginLogic>((ref) {
 
 final splashLogicProvider = Provider.autoDispose<SplashLogic>((ref) {
   final sdk = ref.watch(sdkProvider);
-  final logic = SplashLogic(sdk: sdk);
+  final im = ref.watch(imProvider);
+  final logic = SplashLogic(sdk: sdk, im: im);
   ref.onDispose(() => logic.dispose());
   return logic;
 });

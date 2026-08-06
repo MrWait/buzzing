@@ -12,6 +12,11 @@ message PullPipelineResponse {
     int64 sid = 1;
     repeated entity.Packet packets = 2;
     bool has_more = 3;
+    // TTL 清理水位标记：req.sid>0 且 < 服务端已清理到的水位时置 true，
+    // 表示该用户管道数据已丢失，客户端应软重置本地数据（见 docs/data_sync）。
+    bool expired = 4;
+    // 服务端当前清理水位（观测用，客户端逻辑不依赖）。
+    int64 min_sid = 5;
 }
 
 message PushEntityChanged {

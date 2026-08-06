@@ -38,12 +38,34 @@ impl AppChat {
                 .unwrap_or(0);
         }
 
+        // 服务端 TTL 清理导致管道数据丢失（expired）时，软重置本地数据
+        let mut need_reset = false;
+
         loop {
             let mut req = pipeline::PullPipelineRequest::default();
             req.sid = sid;
             req.count = 50;
             let ack = crate::api::pipe_pull_packet(&req).await?;
-            debug!("pipeline pull ack: {:?}", ack);
+            debug!(
+                "pipeline pull ack, packets: {}, sid: {}, has_more: {}, expired: {}",
+                ack.packets.len(),
+                ack.sid,
+                ack.has_more,
+                ack.expired
+            );
+            if ack.expired {
+                // 数据已丢失（cursor 落后于服务端清理水位，min_sid 供观测）：
+                // 服务端仅返回 expired+sid 不含数据，跳过回放，清空本地消息/会话，
+                // 并把 feed cursor 置 0 触发全量同步覆盖。见 docs/data_sync §pipeline TTL。
+                warn!(
+                    "pipeline data expired (watermark {}), soft reset, new sid: {}",
+                    ack.min_sid, ack.sid
+                );
+                self.reset_pipeline_data()?;
+                sid = ack.sid;
+                need_reset = true;
+                break;
+            }
             for packet in ack.packets.iter() {
                 debug!(
                     "pipeline replay packet, rid: {}, cmd: {}",
@@ -66,6 +88,12 @@ impl AppChat {
                 .insert(crate::constant::FLAG_PIPE_CURSOR, &sid.to_string());
         }
 
+        // 数据丢失重置后：本地已清空，无需拉脏实体，直接全量重建（feed 覆盖 + 消息按需）
+        if need_reset {
+            self.feed_sync().await;
+            return Ok(());
+        }
+
         // 回放完成后，统一拉取本地脏实体（离线期间 PUSH_ENTITY_CHANGE 仅标记 dirty）。
         // 消息类走 PullEntity 全量补齐落库清脏，会话类同步更新成员列表。见 docs/data_sync §5。
         match self.collect_dirty_entities() {
@@ -80,6 +108,26 @@ impl AppChat {
             Err(err) => {
                 warn!("collect dirty entities error: {:?}", err);
             }
+        }
+        Ok(())
+    }
+
+    /// 管道数据丢失（expired）后的软重置：
+    /// - 消息表清空（保留草稿 status=8，消息走按需通道，打开会话时重新拉取）
+    /// - 会话表清空（feed 全量同步会重建）
+    /// - feed cursor 置 0（feed 表数据幂等，不清表，下次 feed_sync 全量拉取覆盖）
+    fn reset_pipeline_data(&self) -> Result<()> {
+        {
+            let conn = self.message_db.inner()?;
+            conn.execute("DELETE FROM message WHERE status != 8", ())?;
+        }
+        {
+            let conn = self.db.inner()?;
+            conn.execute("DELETE FROM chat", ())?;
+        }
+        {
+            let conn = self.db.inner()?;
+            MetaTable::meta(&conn).insert(crate::constant::FLAG_FEED_CURSOR, "0")?;
         }
         Ok(())
     }

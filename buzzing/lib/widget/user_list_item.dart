@@ -1,20 +1,22 @@
 import 'package:buzzing/utils/common_utils.dart';
+import 'package:buzzing/controller/im.dart';
+import 'package:buzzing/widget/profile.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 
-/// 用户头像：优先展示真实头像，头像为空或加载失败时 fallback 到首字母
+/// 用户头像：优先展示真实头像，头像为空或加载失败时 fallback 到首字母。
+/// 形状统一为圆形（见 docs/flutter/client_style.md 头像形状规范）。
 class UserAvatar extends StatefulWidget {
   final String name;
   final String avatar;
   final double size;
-  final double radius;
 
   const UserAvatar({
     super.key,
     required this.name,
     required this.avatar,
     this.size = 32,
-    this.radius = 4,
   });
 
   @override
@@ -41,7 +43,7 @@ class _UserAvatarState extends State<UserAvatar> {
       height: widget.size,
       decoration: BoxDecoration(
         color: cs.primary,
-        borderRadius: BorderRadius.circular(widget.radius),
+        shape: BoxShape.circle,
       ),
       clipBehavior: Clip.antiAlias,
       child: showImage
@@ -115,7 +117,20 @@ class UserListItem extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
+
+  /// 整行点击回调：传出**头像的全局矩形**，用于以头像为锚点弹出资料浮层
+  /// （头像右侧对齐）。与 [onTapUp] 二选一（优先于 [onTap]）。
+  final void Function(Rect avatarRect)? onAvatarTapUp;
+
+  /// 包含点击点位置的回调：与 [onTap] 二选一（onTapUp 优先）。
+  /// 用于需要在点击位置弹出用户资料浮层的场景。
+  final void Function(TapUpDetails details)? onTapUp;
   final double avatarSize;
+
+  /// 传入后，点击头像就地在头像位置弹出对应用户的资料浮层；
+  /// 不传则头像不弹浮层（如选中态的选择器场景）。
+  final ImController? im;
+  final Int64? userId;
 
   const UserListItem({
     super.key,
@@ -125,21 +140,49 @@ class UserListItem extends StatelessWidget {
     this.subtitle,
     this.trailing,
     this.onTap,
+    this.onAvatarTapUp,
+    this.onTapUp,
     this.avatarSize = 32,
+    this.im,
+    this.userId,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+    final avatarKey = GlobalKey();
+    Widget avatarW = UserAvatar(
+      key: avatarKey,
+      name: name,
+      avatar: avatar,
+      size: avatarSize,
+    );
+    // 点击头像弹资料浮层：优先于行的 onTap
+    if (im != null && userId != null) {
+      avatarW = AvatarUserPopup(
+        im: im!,
+        id: userId!,
+        url: avatar,
+        ver: im!.getUserVer(userId!),
+        child: avatarW,
+      );
+    }
     return GestureDetector(
-      onTap: onTap,
+      onTapUp: onAvatarTapUp != null
+          ? (details) {
+              final box =
+                  avatarKey.currentContext?.findRenderObject() as RenderBox?;
+              if (box == null) return;
+              onAvatarTapUp!(box.localToGlobal(Offset.zero) & box.size);
+            }
+          : onTapUp ?? ((details) => onTap?.call()),
       behavior: HitTestBehavior.translucent,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
-            UserAvatar(name: name, avatar: avatar, size: avatarSize),
+            avatarW,
             const SizedBox(width: 12),
             Expanded(
               child: Column(

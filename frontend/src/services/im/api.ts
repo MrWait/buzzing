@@ -85,6 +85,9 @@ export const CMD = {
   CHAT_JOIN_REQUEST_REJECT: 1131,
   CHAT_JOIN_REQUEST_LIST: 1132,
   CHAT_GET_MEMBERS: 1133,
+  // 成员增删 (1104/1105)
+  CHAT_ADD_CHATTERS: 1104,
+  CHAT_DELETE_CHATTERS: 1105,
   // W4-1: Pin 消息 (1134-1136)
   CHAT_PIN_MESSAGE: 1134,
   CHAT_UNPIN_MESSAGE: 1135,
@@ -208,6 +211,24 @@ export async function deleteAnnouncement(chatId: string) {
     'chat.DeleteAnnouncementRequest',
     { chat_id: chatId },
     'chat.DeleteAnnouncementResponse',
+  )
+}
+
+export async function addChatChatters(chatId: string, ids: string[]) {
+  return protoRequest(
+    CMD.CHAT_ADD_CHATTERS,
+    'chat.AddChatChatterRequest',
+    { chat_id: chatId, ids },
+    'chat.AddChatChatterResponse',
+  )
+}
+
+export async function removeChatChatters(chatId: string, ids: string[]) {
+  return protoRequest(
+    CMD.CHAT_DELETE_CHATTERS,
+    'chat.RemoveChatChatterRequest',
+    { chat_id: chatId, ids },
+    'chat.RemoveChatChatterResponse',
   )
 }
 

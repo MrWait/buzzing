@@ -21,6 +21,11 @@ String? getApiToken(String domain) {
   return tokens[domain];
 }
 
+/// 清空所有域名的 token 缓存（登出时调用，避免下一个用户复用旧凭证）
+void clearApiTokens() {
+  tokens.clear();
+}
+
 class HttpUtil {
   HttpUtil._();
 

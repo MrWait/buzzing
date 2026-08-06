@@ -12,6 +12,7 @@ import 'package:buzzing/models/idl/error.pb.dart';
 import 'package:buzzing/models/idl/sdk.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/utils/logger_util.dart';
+import 'package:buzzing/utils/net/http_util.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:fixnum/fixnum.dart' as $fixnum;
@@ -213,9 +214,19 @@ class SdkController {
     return "unknown";
   }
 
+  /// 登出：通知 SDK 释放会话，并清理客户端侧缓存的凭证。
+  /// 必须清理 token/userId，否则下一个用户登录前的请求会带上旧用户的凭证。
   Future<void> logout() async {
     var req = SdkLogoutUserRequest.create();
-    await invokeAsync(Command.USER_LOGOUT, req.writeToBuffer());
+    try {
+      await invokeAsync(Command.USER_LOGOUT, req.writeToBuffer());
+    } finally {
+      token = null;
+      userId = Int64(0);
+      // 清理 dio 拦截器使用的 domain -> token 映射
+      clearApiTokens();
+      L.d("sdk controller credential cleared");
+    }
   }
 
   void contactGetOrg() {}

@@ -161,6 +161,24 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 	/// en: 'Video Call'
 	String get videoCall => 'Video Call';
 
+	/// en: 'Voice Call'
+	String get voiceCall => 'Voice Call';
+
+	/// en: 'Direct Superior'
+	String get directSuperior => 'Direct Superior';
+
+	/// en: 'City'
+	String get city => 'City';
+
+	/// en: 'Phone'
+	String get phoneNumber => 'Phone';
+
+	/// en: 'Show'
+	String get show => 'Show';
+
+	/// en: 'Hide'
+	String get hide => 'Hide';
+
 	/// en: 'Picture'
 	String get picture => 'Picture';
 
@@ -2211,6 +2229,12 @@ extension on Translations {
 			'album' => 'Album',
 			'camera' => 'Camera',
 			'videoCall' => 'Video Call',
+			'voiceCall' => 'Voice Call',
+			'directSuperior' => 'Direct Superior',
+			'city' => 'City',
+			'phoneNumber' => 'Phone',
+			'show' => 'Show',
+			'hide' => 'Hide',
 			'picture' => 'Picture',
 			'video' => 'Video',
 			'voice' => 'Voice',
@@ -2677,14 +2701,14 @@ extension on Translations {
 			'groupCallForbidden' => 'The current group is on a call, are you sure you want to join the current call?',
 			'launchMeeting' => 'Launch meeting',
 			'joinMeeting' => 'Join meeting',
+			_ => null,
+		} ?? switch (path) {
 			'readyToJoin' => 'Ready to join meeting',
 			'microphoneDevice' => 'Microphone',
 			'cameraDevice' => 'Camera',
 			'plsInputMeetingSubject' => 'Please enter a meeting subject',
 			'meetingStartTime' => 'Starting time',
 			'meetingDuration' => 'Meeting duration',
-			_ => null,
-		} ?? switch (path) {
 			'enterMeeting' => 'Enter the meeting',
 			'meetingNo' => 'Meeting number',
 			'yourMeetingName' => 'Your name',

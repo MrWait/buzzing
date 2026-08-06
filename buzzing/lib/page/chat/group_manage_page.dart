@@ -2,13 +2,12 @@ import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/models/idl/chat.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/provider/im_provider.dart';
-import 'package:buzzing/routes/app_routes.dart';
 import 'package:buzzing/widget/member_picker/member_picker.dart';
+import 'package:buzzing/widget/profile.dart';
 import 'package:buzzing/widget/user_list_item.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 /// 群管理页（移动端整页展示）
 class GroupManagePage extends StatelessWidget {
@@ -131,19 +130,17 @@ class GroupManageViewState extends ConsumerState<GroupManageView> {
               _GlobalMuteTile(chat: chat, im: im),
               const Divider(height: 1),
               _JoinModeTile(chat: chat, im: im),
-              const Divider(height: 1),
-              _JoinRequestsTile(chatId: widget.chatId, cs: cs),
             ],
           ),
         ),
         const SizedBox(height: 16),
         const _SectionTitle(title: '管理员设置'),
-        Card(child: _buildAdminSection(cs, isOwner)),
+        Card(child: _buildAdminSection(cs, im, isOwner)),
       ],
     );
   }
 
-  Widget _buildAdminSection(ColorScheme cs, bool isOwner) {
+  Widget _buildAdminSection(ColorScheme cs, ImController im, bool isOwner) {
     if (_loadingAdmins) {
       return const Padding(
         padding: EdgeInsets.all(16),
@@ -174,8 +171,13 @@ class GroupManageViewState extends ConsumerState<GroupManageView> {
         for (final admin in _admins)
           ListTile(
             dense: true,
-            leading:
-                UserAvatar(name: admin.name, avatar: admin.avatar, size: 32),
+            leading: AvatarUserPopup(
+                im: im,
+                id: admin.userId,
+                url: admin.avatar,
+                ver: im.getUserVer(admin.userId),
+                child: UserAvatar(name: admin.name, avatar: admin.avatar, size: 32),
+              ),
             title: Text(admin.name),
             trailing: isOwner
                 ? IconButton(
@@ -210,7 +212,7 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-/// 全员禁言开关
+/// 全员禁言开关（单行：checkbox + 描述）
 class _GlobalMuteTile extends ConsumerStatefulWidget {
   final Chat chat;
   final ImController im;
@@ -235,23 +237,51 @@ class _GlobalMuteTileState extends ConsumerState<_GlobalMuteTile> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return SwitchListTile(
-      secondary: Icon(Icons.volume_off, color: cs.error),
-      title: const Text('全员禁言'),
-      subtitle: Text(_globalMuted ? '已开启' : '已关闭'),
-      value: _globalMuted,
-      onChanged: (val) async {
-        final untilMs = val
-            ? Int64(DateTime.now().millisecondsSinceEpoch + 86400000 * 365)
-            : Int64.ZERO;
-        await widget.im.globalMute(widget.chat.id, untilMs);
-        setState(() => _globalMuted = val);
-      },
+    final tt = Theme.of(context).textTheme;
+    return InkWell(
+      onTap: () => _toggle(!_globalMuted),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 40,
+              height: 40,
+              child: Checkbox(
+                value: _globalMuted,
+                onChanged: (val) => _toggle(val ?? false),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('全员禁言',
+                      style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 2),
+                  Text(_globalMuted ? '已开启' : '已关闭',
+                      style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  Future<void> _toggle(bool val) async {
+    final untilMs = val
+        ? Int64(DateTime.now().millisecondsSinceEpoch + 86400000 * 365)
+        : Int64.ZERO;
+    await widget.im.globalMute(widget.chat.id, untilMs);
+    if (mounted) setState(() => _globalMuted = val);
   }
 }
 
-/// 入群方式（允许任何人 / 需要审核 / 禁止加入）
+/// 入群方式（允许任何人 / 需要审核 / 禁止加入）。
+/// 多选类：两行 = 描述 + 下拉框。
 class _JoinModeTile extends ConsumerStatefulWidget {
   final Chat chat;
   final ImController im;
@@ -263,6 +293,7 @@ class _JoinModeTile extends ConsumerStatefulWidget {
 }
 
 class _JoinModeTileState extends ConsumerState<_JoinModeTile> {
+  static const _labels = ['允许任何人', '需要审核', '禁止加入'];
   late int _joinMode;
 
   @override
@@ -273,67 +304,40 @@ class _JoinModeTileState extends ConsumerState<_JoinModeTile> {
 
   @override
   Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
     final cs = Theme.of(context).colorScheme;
-    final labels = ['允许任何人', '需要审核', '禁止加入'];
-    return ListTile(
-      leading: Icon(Icons.verified_user, color: cs.primary),
-      title: const Text('入群方式'),
-      subtitle: Text(labels[_joinMode.clamp(0, 2)]),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => _showJoinModePicker(context),
-    );
-  }
-
-  void _showJoinModePicker(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: const Text('选择入群方式'),
+    final value = _joinMode.clamp(0, _labels.length - 1);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SimpleDialogOption(
-            onPressed: () async {
-              await widget.im.updateChat(widget.chat.id, joinMode: 0);
-              setState(() => _joinMode = 0);
-              if (ctx.mounted) Navigator.pop(ctx);
+          Text('入群方式',
+              style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<int>(
+            initialValue: value,
+            isExpanded: true,
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            items: List.generate(
+                _labels.length,
+                (i) => DropdownMenuItem(
+                    value: i,
+                    child: Text(_labels[i],
+                        style: tt.bodyMedium?.copyWith(color: cs.onSurface)))),
+            onChanged: (val) async {
+              if (val == null) return;
+              await widget.im.updateChat(widget.chat.id, joinMode: val);
+              if (mounted) setState(() => _joinMode = val);
             },
-            child: const Text('允许任何人'),
-          ),
-          SimpleDialogOption(
-            onPressed: () async {
-              await widget.im.updateChat(widget.chat.id, joinMode: 1);
-              setState(() => _joinMode = 1);
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('需要审核'),
-          ),
-          SimpleDialogOption(
-            onPressed: () async {
-              await widget.im.updateChat(widget.chat.id, joinMode: 2);
-              setState(() => _joinMode = 2);
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: const Text('禁止加入'),
           ),
         ],
       ),
-    );
-  }
-}
-
-/// 入群申请入口（跳转申请列表页）
-class _JoinRequestsTile extends StatelessWidget {
-  final Int64 chatId;
-  final ColorScheme cs;
-
-  const _JoinRequestsTile({required this.chatId, required this.cs});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(Icons.pending_actions, color: cs.primary),
-      title: const Text('入群申请'),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => context.push('${AppRoute.JOIN_REQUESTS}/$chatId'),
     );
   }
 }
