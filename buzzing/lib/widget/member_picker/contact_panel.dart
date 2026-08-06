@@ -1,9 +1,8 @@
 import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/res/theme.dart';
-import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/widget/member_picker/controller.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:buzzing/widget/user_list_item.dart';
 import 'package:flutter/material.dart';
 
 class ContactPanel extends StatelessWidget {
@@ -200,29 +199,6 @@ class ContactPanel extends StatelessWidget {
   }
 
   Widget _buildAvatar(ColorScheme cs, TextTheme tt, User user) {
-    if (user.avatar.isEmpty) {
-      return Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: cs.primary,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-          style: tt.bodySmall?.copyWith(color: cs.onPrimary),
-        ),
-      );
-    }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: Image(
-        width: 32,
-        height: 32,
-        image: CachedNetworkImageProvider(CommonUtils.fixResourceUrl(user.avatar)),
-        fit: BoxFit.cover,
-      ),
-    );
+    return UserAvatar(name: user.name, avatar: user.avatar, size: 32);
   }
 }

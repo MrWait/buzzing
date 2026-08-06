@@ -72,13 +72,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: '', redirect: { name: 'ImFeed' } },
       { path: 'feed', name: 'ImFeed', component: { template: '<div />' } },
-      {
-        path: 'chat/:chatId',
-        children: [
-          { path: '', name: 'ImChatMain', component: () => import('@/views/im/chat/ChatPanel.vue') },
-          { path: 'profile', name: 'ImGroupProfile', component: () => import('@/views/im/chat/GroupProfile.vue') },
-        ],
-      },
+      { path: 'chat', name: 'ImChatMain', component: () => import('@/views/im/chat/ChatPanel.vue') },
       { path: 'calendar', name: 'ImCalendar', component: { template: '<div />' } },
       { path: 'contacts', name: 'ImContacts', component: { template: '<div />' } },
     ],

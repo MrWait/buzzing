@@ -76,9 +76,9 @@
               v-for="user in filteredUsers"
               :key="user.id"
               class="org-row user-row"
-              @click="showUserProfile(user)"
+              @click="openUserProfile($event, user)"
             >
-              <div class="user-avatar" :style="{ background: avatarColor(user.name) }">
+              <div class="user-avatar js-profile-open" :style="{ background: avatarColor(user.name) }" @click.stop="openUserProfile($event, user)">
                 <img v-if="user.avatar" class="user-avatar-img" :src="user.avatar" />
                 <span v-else>{{ user.name.charAt(0) }}</span>
               </div>
@@ -99,36 +99,17 @@
     </main>
   </div>
 
-  <!-- User Profile Dialog -->
-  <Teleport to="body">
-    <div v-if="profileUser" class="dialog-overlay" @click.self="profileUser = null">
-      <div class="profile-dialog">
-        <div class="profile-header">
-          <div class="profile-avatar" :style="{ background: avatarColor(profileUser.name) }">
-            <img v-if="profileUser.avatar" class="profile-avatar-img" :src="profileUser.avatar" />
-            <span v-else>{{ profileUser.name.charAt(0) }}</span>
-          </div>
-          <div class="profile-name">{{ profileUser.name }}</div>
-        </div>
-        <div class="profile-actions">
-          <button class="action-btn" @click="sendMessage(profileUser)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span>发消息</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </Teleport>
+  <!-- 用户资料浮层 -->
+  <UserProfilePopup ref="userProfileRef" />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import UserProfilePopup from '@/components/UserProfilePopup.vue'
 import { getDeptById } from '@/services/im/contacts'
 import type { DeptInfo, UserInfo } from '@/services/im/contacts'
 
-const router = useRouter()
 const auth = useAuthStore()
 
 const tenantName = computed(() => auth.currentTenant?.name || '组织架构')
@@ -142,8 +123,6 @@ const currentDepts = ref<DeptInfo[]>([])
 const currentUsers = ref<UserInfo[]>([])
 const deptCache = new Map<number, DeptInfo>()
 const currentDeptId = ref(0)
-
-const profileUser = ref<UserInfo | null>(null)
 
 const breadcrumbLabels = computed(() => {
   const labels = ['组织架构', tenantName.value]
@@ -260,13 +239,10 @@ function onSearch() {
   // computed filteredUsers handles filtering
 }
 
-function showUserProfile(user: UserInfo) {
-  profileUser.value = user
-}
-
-function sendMessage(user: UserInfo) {
-  profileUser.value = null
-  router.push(`/im/chat/0?create=${user.id}`)
+// 点击头像/整行：在点击位置弹用户资料浮层（用搜索结果同款浮层，统一交互）
+const userProfileRef = ref<InstanceType<typeof UserProfilePopup>>()
+function openUserProfile(e: MouseEvent, user: UserInfo) {
+  userProfileRef.value?.open(e.clientX, e.clientY, String(user.id), user.name, user.avatar)
 }
 
 onMounted(() => {
@@ -421,7 +397,7 @@ onMounted(() => {
 .user-avatar {
   width: 32px;
   height: 32px;
-  border-radius: 4px;
+  border-radius: 50%;
   color: #fff;
   display: flex;
   align-items: center;
@@ -471,72 +447,5 @@ onMounted(() => {
   font-size: 14px;
 }
 
-/* ── Profile dialog ── */
-.dialog-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.3);
-  z-index: 10000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.profile-dialog {
-  width: 300px;
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.2);
-}
-.profile-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 32px 24px 20px;
-}
-.profile-avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 8px;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  overflow: hidden;
-}
-.profile-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.profile-name {
-  font-size: 16px;
-  font-weight: 500;
-  color: #333;
-}
-.profile-actions {
-  border-top: 1px solid #e8e8e8;
-  display: flex;
-}
-.action-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 14px;
-  border: none;
-  background: transparent;
-  color: #4a6cf7;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.action-btn:hover {
-  background: #f5f5f5;
-}
+/* ── 用户资料浮层由 UserProfilePopup 组件承载 ── */
 </style>

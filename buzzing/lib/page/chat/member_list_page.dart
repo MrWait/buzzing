@@ -130,6 +130,8 @@ class MemberListViewState extends ConsumerState<MemberListView> {
               return UserListItem(
                 name: item.name,
                 avatar: item.avatar,
+                im: im,
+                userId: item.userId,
                 tags: tags,
                 trailing: (isOwner || isAdmin) && !isSelf
                     ? PopupMenuButton<String>(

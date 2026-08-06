@@ -205,6 +205,32 @@ impl UserModel {
         Ok(users.drain(..).map(|u| u.into()).collect())
     }
 
+    pub async fn find_by_ids_with_account(
+        db: &DatabaseConnection,
+        ids: &[i64],
+    ) -> ModelResult<Vec<(Model, accounts::Model)>> {
+        use sea_orm::*;
+        let users = Entity::find()
+            .filter(Column::Id.is_in(ids.to_vec()))
+            .all(db)
+            .await?;
+        let account_ids: Vec<i64> = users.iter().map(|u| u.a_id).collect();
+        let accounts = accounts::Entity::find()
+            .filter(accounts::Column::Id.is_in(account_ids))
+            .all(db)
+            .await?;
+        let account_map: std::collections::HashMap<i64, accounts::Model> =
+            accounts.into_iter().map(|a| (a.id, a)).collect();
+        let result = users
+            .into_iter()
+            .filter_map(|u| {
+                let a = account_map.get(&u.a_id)?;
+                Some((u, a.clone()))
+            })
+            .collect();
+        Ok(result)
+    }
+
     pub async fn exit_chat(
         _db: &DatabaseConnection,
         _user_id: i64,
@@ -224,6 +250,12 @@ impl Into<entity::User> for UserModel {
             status: self.0.status as i32,
             version: self.0.version,
             dept_id: self.0.dept_id,
+            phone: String::new(),
+            email: self.0.email,
+            position: self.0.position,
+            city: self.0.city,
+            superior_id: self.0.superior_id,
+            superior_name: String::new(),
         }
     }
 }

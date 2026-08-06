@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -57,6 +58,7 @@ class ImController extends ChangeNotifier {
   var focusNode = FocusNode();
   var quillController = QuillController.basic();
   var showMentionPopup = false;
+  String _lastText = '';
   Offset popuppOffset = Offset.zero;
   final LayerLink layerLink = LayerLink();
   final List<({Int64 id, String name})> mentionCandidates = [];
@@ -102,21 +104,21 @@ class ImController extends ChangeNotifier {
   void onTextChanged() {
     final text = quillController.document.toPlainText();
     final selection = quillController.selection;
-    if (selection.isCollapsed) {
-      final offset = selection.baseOffset;
-      if (offset > 0 && text.substring(offset - 1, offset) == '@') {
-        showMentionPopup = true;
-        notifyListeners();
-      } else {
-        showMentionPopup = false;
-        notifyListeners();
-      }
-    } else {
-      showMentionPopup = false;
+    // 仅在 mention 弹窗开闭状态真正变化时才通知，避免光标移动/聚焦等
+    // 纯 selection 变化触发下游（如消息列表）无谓的全量重建。
+    final wantPopup = selection.isCollapsed &&
+        selection.baseOffset > 0 &&
+        selection.baseOffset <= text.length &&
+        text.substring(selection.baseOffset - 1, selection.baseOffset) == '@';
+    if (wantPopup != showMentionPopup) {
+      showMentionPopup = wantPopup;
       notifyListeners();
     }
-    // 发送 typing 信号
-    sendTyping(chatId);
+    // 文本真正变化时才发送 typing 信号（过滤纯光标移动）
+    if (text != _lastText) {
+      _lastText = text;
+      sendTyping(chatId);
+    }
   }
 
   void updatePopupPosition() {
@@ -193,7 +195,7 @@ class ImController extends ChangeNotifier {
 
   User? getUser(Int64 id) {
     if (userVers.containsKey(id) && userVers[id]?.user != null) {
-      L.d("[IM] user exist");
+      L.d("[IM] user exist: ${id}");
     } else {
       L.d("[IM] user not exist, pull from sdk");
       Future.delayed(Duration.zero, () async {
@@ -203,8 +205,93 @@ class ImController extends ChangeNotifier {
     return userVers[id]?.user;
   }
 
+  // P2P 会话对方 id（memberIds 中非自己的那个）
+  Int64 peerIdOf(Chat chat) {
+    return chat.peerAId == userId ? chat.peerBId : chat.peerAId;
+  }
+
+  // 会话展示名：群聊用群名；P2P 无 name，取对方昵称
+  String chatDisplayName(Chat? chat, {String fallback = ''}) {
+    if (chat == null) return fallback;
+    if (chat.chatType == 2) {
+      return chat.name.isNotEmpty ? chat.name : fallback;
+    }
+    if (chat.name.isNotEmpty) return chat.name;
+    final peer = getUser(peerIdOf(chat));
+    if (peer != null && peer.name.isNotEmpty) return peer.name;
+    return fallback;
+  }
+
   Tenant? getTenant() {
     return loginUser.tenant;
+  }
+
+  /// 应用登录身份：登录选择身份成功后、或启动自动登录后调用。
+  /// ImController 是全局单例（非 autoDispose），必须显式刷新身份，
+  /// 否则 A 退出后 B 登录会继续沿用 A 的用户数据。
+  void applyLoginUser(LoginUser user) {
+    L.w("apply login user: uid=${user.user.id}, tenant=${user.tenant.id}");
+    loginUser = user;
+    userId = user.user.id;
+    avatar = user.user.avatar;
+    setUserId(user.user.id);
+    notifyListeners();
+    Future.delayed(Duration.zero, () => fetchFeed());
+  }
+
+  /// 清空所有与登录用户绑定的内存状态（登出时调用）。
+  /// 注意：ImController 为全局单例，这里不清理会导致下一个用户看到上一个用户的数据。
+  void reset() {
+    L.w("reset im controller state");
+    // 身份
+    loginUser = LoginUser.create();
+    userId = Int64(0);
+    user = User.create();
+    avatar = "";
+
+    // 会话与消息
+    entity = Entity.create();
+    feedList = [];
+    messagePosList = [];
+    userVers = {};
+    chatId = Int64(0);
+    ver = 0;
+    totalUnread = 0;
+    onBadgeChanged?.call(0);
+
+    // 输入区
+    replyTarget = null;
+    imInputCtrl.clear();
+    // 先释放编辑器焦点，避免登出时 QuillEditor 反挂载过程中
+    // 触发 FocusNode 通知访问已 deactivated 的元素
+    focusNode.unfocus();
+    quillController.document = Document();
+    showMentionPopup = false;
+    mentionCandidates.clear();
+
+    // 各类缓存
+    typingUsers = {};
+    presenceMap = {};
+    pinnedMessages = [];
+    translationCache = {};
+
+    // thread / 群面板
+    threadRootMessage = null;
+    threadReplies = [];
+    isThreadPanelOpen = false;
+    isGroupProfileOpen = false;
+    isGroupMemberListOpen = false;
+    isGroupEditOpen = false;
+    isGroupManageOpen = false;
+    isAnnouncementOpen = false;
+
+    // 会话内搜索
+    chatSearchResults = [];
+    chatSearchKeyword = '';
+    chatSearchIndex = 0;
+    chatSearchVisible = false;
+
+    notifyListeners();
   }
 
   void setUserId(Int64 id) {
@@ -396,10 +483,11 @@ class ImController extends ChangeNotifier {
   void enterChat(Int64 id) {
     L.d("enter chat ${id}, cur: ${chatId}");
     if (chatId != id) {
-      isGroupProfileOpen = false;
-      isGroupMemberListOpen = false;
-      isGroupEditOpen = false;
-      isGroupManageOpen = false;
+isGroupProfileOpen = false;
+    isGroupMemberListOpen = false;
+    isGroupEditOpen = false;
+    isGroupManageOpen = false;
+    isAnnouncementOpen = false;
       isThreadPanelOpen = false;
       threadRootMessage = null;
       messagePosList.clear();
@@ -433,6 +521,9 @@ class ImController extends ChangeNotifier {
     mergeEntity(push.entity);
   }
 
+  StreamSubscription<GlobalEvent>? _loginedSub;
+  var _disposed = false;
+
   void onInit() {
     L.w("init im logic");
 
@@ -440,7 +531,7 @@ class ImController extends ChangeNotifier {
     sdk.regPushCallback(Command.PUSH_MESSAGES.value, onPushMessages);
     sdk.regPushCallback(Command.PUSH_TYPING.value, onPushTyping);
     sdk.regPushCallback(Command.PUSH_PRESENCE.value, onPushPresence);
-    ev.stream.where((e) => e == GlobalEvent.logined).listen((_) {
+    _loginedSub = ev.stream.where((e) => e == GlobalEvent.logined).listen((_) {
       Future.delayed(Duration.zero, () async {
         L.d("sdk logined, fetch feed");
         await fetchFeed();
@@ -448,6 +539,25 @@ class ImController extends ChangeNotifier {
     });
 
     quillController.addListener(onTextChanged);
+  }
+
+  @override
+  void notifyListeners() {
+    // 登出后 provider 会被 invalidate，此时可能仍有在途异步回调；
+    // 对已释放实例静默忽略通知，避免抛出 "used after dispose"
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    L.w("dispose im logic");
+    _disposed = true;
+    // provider 被 invalidate 时释放订阅，避免旧实例继续响应事件造成数据串号
+    _loginedSub?.cancel();
+    _loginedSub = null;
+    quillController.removeListener(onTextChanged);
+    super.dispose();
   }
 
   Future<void> fetchFeed() async {
@@ -475,8 +585,9 @@ class ImController extends ChangeNotifier {
     var feedLen = src.feeds.length;
     var msgLen = src.messages.length;
     var sideLen = src.readstates.length + src.reactions.length;
+    var chatLen = src.chats.length;
     L.d(
-      "merge entity, chatId: ${chatId}, feeds: ${src.feeds.keys}, messages: ${src.messages.keys}, readstates: ${src.readstates.keys}, reactions: ${src.reactions.keys}",
+      "merge entity, chatId: ${chatId}, feeds: ${src.feeds.keys}, chats: ${src.chats.keys}, messages: ${src.messages.keys}, readstates: ${src.readstates.keys}, reactions: ${src.reactions.keys}",
     );
     var currentMsgIds = <Int64>[];
     src.messages.forEach((id, msg) {
@@ -486,11 +597,26 @@ class ImController extends ChangeNotifier {
     });
     entity.mergeFromMessage(src);
 
+    // 排重：确认消息（client_id != 0 且 id 已变为服务端新 id）到达时，移除对应的
+    // 本地 stash（id == client_id），避免同一消息同屏展示两条。
+    src.messages.forEach((id, msg) {
+      if (msg.clientId.toInt() != 0 && msg.clientId != msg.id) {
+        final stashId = msg.clientId;
+        if (entity.messages.containsKey(stashId)) {
+          entity.messages.remove(stashId);
+        }
+      }
+    });
+
     var msgIds = null;
     if (feedLen > 0) {
       msgIds = updateFeedList();
       // 会话未读变化时，同步刷新全局总未读数
       refreshTotalUnread();
+    } else if (chatLen > 0) {
+      // chat-only 变更（改群名/描述/权限等）：更新会话面板标题与 feed 上的群名。
+      // feedList 里的 FeedModel 持有旧的 chat 引用，需重建 feed 列表后通知刷新。
+      updateFeedList();
     }
 
     if (msgLen > 0) {
@@ -917,6 +1043,12 @@ class ImController extends ChangeNotifier {
   // 群管理作为群资料面板的二级页面（仅桌面端）
   var isGroupManageOpen = false;
 
+  // 入群申请作为群资料面板的二级页面（仅桌面端）
+  var isGroupJoinRequestsOpen = false;
+
+  // 群公告查看/编辑覆盖层（覆盖消息列表区域，含消息输入框）
+  var isAnnouncementOpen = false;
+
   void openGroupProfile() {
     isGroupProfileOpen = true;
     notifyListeners();
@@ -927,6 +1059,17 @@ class ImController extends ChangeNotifier {
     isGroupMemberListOpen = false;
     isGroupEditOpen = false;
     isGroupManageOpen = false;
+    isGroupJoinRequestsOpen = false;
+    notifyListeners();
+  }
+
+  void openAnnouncement() {
+    isAnnouncementOpen = true;
+    notifyListeners();
+  }
+
+  void closeAnnouncement() {
+    isAnnouncementOpen = false;
     notifyListeners();
   }
 
@@ -957,6 +1100,16 @@ class ImController extends ChangeNotifier {
 
   void closeGroupManage() {
     isGroupManageOpen = false;
+    notifyListeners();
+  }
+
+  void openGroupJoinRequests() {
+    isGroupJoinRequestsOpen = true;
+    notifyListeners();
+  }
+
+  void closeGroupJoinRequests() {
+    isGroupJoinRequestsOpen = false;
     notifyListeners();
   }
 
@@ -1379,13 +1532,25 @@ class ImController extends ChangeNotifier {
     );
   }
 
-  void logout(GoRouter router) {
+  /// 退出登录：先断开 SDK 会话，再清理本地持久化与内存状态，最后跳转登录页。
+  /// [onReset] 由调用方注入（一般是 ref.invalidate(imProvider) 等 provider 兜底清理）。
+  void logout(GoRouter router, {void Function()? onReset}) {
     Future.delayed(Duration.zero, () async {
       L.d("logout user");
+      // 1. 通知 SDK 登出，释放 DB/网络连接与身份缓存
+      try {
+        await sdk.logout();
+      } catch (e) {
+        L.e("sdk logout error: $e");
+      }
+      // 2. 清理本地持久化的账号信息
       await DataPersistence.removeAccount();
-      router.pop();
+      // 3. 清理内存中的用户态，避免下一个用户复用
+      reset();
+      // 4. 兜底：由调用方 invalidate 相关 provider
+      onReset?.call();
+      // 5. 跳转登录页
       AppNavigator.startLogin(router);
-      await sdk.logout();
     });
   }
 }

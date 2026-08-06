@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { ImWsClient } from '@/services/im/ws'
 import * as imApi from '@/services/im/api'
 import { lookup } from '@/services/im/proto'
@@ -12,6 +13,10 @@ export interface FeedItem {
   badge: number
   updateTimeMs: number
   lastMsg?: string
+  // 最后一条消息的发送者 id（msg→feed 派生时写入，用于群聊预览展示发送人）
+  lastMsgFromId?: string
+  // 最后一条消息 id（refer_id），用于冷启动时用 refer 消息补齐预览
+  referId: string
   name: string
   avatar: string
   isTop: boolean
@@ -91,6 +96,13 @@ export interface UserItem {
   name: string
   avatar: string
   status: number
+  phone?: string
+  email?: string
+  position?: string
+  city?: string
+  deptId?: string
+  superiorId?: string
+  superiorName?: string
 }
 
 export interface TypingUser {
@@ -387,9 +399,11 @@ export const useImStore = defineStore('im', () => {
           referBadge: Number(feed.refer_badge || 0),
           readBadge: Number(feed.read_badge || 0),
           badge: Math.max(0, Number(feed.refer_badge || 0) - Number(feed.read_badge || 0)),
-          updateTimeMs: Number(feed.update_time_ms || 0),
-          lastMsg: feed.last_msg || '',
-          name: chat?.name || '',
+        updateTimeMs: Number(feed.update_time_ms || 0),
+        lastMsg: feed.last_msg || '',
+        lastMsgFromId: '',
+        referId: String(feed.refer_id || '0'),
+        name: chat?.name || '',
           avatar: chat?.avatar || '',
           isTop: feed.is_top === 1,
           isMute: feed.is_mute === 1,
@@ -410,7 +424,7 @@ export const useImStore = defineStore('im', () => {
         const item: MessageItem = {
           id: nid,
           chatId,
-          fromId: msg.from_id || '0',
+          fromId: String(msg.from_id || '0'),
           tpy: msg.tpy || 0,
           content: msg.content || new Uint8Array(0),
           summary: msg.summary || '',
@@ -473,6 +487,48 @@ export const useImStore = defineStore('im', () => {
       }
     }
 
+    // 消息 → 会话水位/已读派生（data_sync §6 / §8.3）：与服务端 / SDK 同一套规则。
+    // 新消息推进 refer_pos / refer_badge；自家消息（from_id == 当前用户）同步推进 read_pos / read_badge，
+    // 未读 = refer_badge - read_badge 随之归零 / 下降。服务端 send 路径权威持久化已读但不推
+    // PUSH_FEED_READ_STATUS，由各端在应用自家消息时本地推进（见 SDK feed_update_by_messages）。
+    if (entity.messages) {
+      const selfUid = useAuthStore().user?.id || '0'
+      for (const msg of Object.values(entity.messages) as any[]) {
+        const chatId = String(msg.chat_id || '0')
+        const feed = feeds.value.get(chatId)
+        if (!feed) continue
+        const pos = Number(msg.pos || 0)
+        let changed = false
+        if (feed.referPos < pos) {
+          feed.referPos = pos
+          feed.referBadge = Number(msg.badge_count || 0)
+          feed.updateTimeMs = Number(msg.create_time_ms || 0)
+          feed.lastMsg = msg.summary || ''
+          feed.lastMsgFromId = String(msg.from_id || '0')
+          // 与 SDK feed_update_by_messages 对齐：refer_id 同步推进为新消息 id，
+          // 避免后续按陈旧 refer_id 的预览兜底把 lastMsg 覆盖回旧值（见 im.ts mergeEntity 注释）
+          feed.referId = String(msg.id || '0')
+          changed = true
+        }
+        // 预览兜底：冷启动时 refer_pos 已是最新，按 refer_id 用 refer 消息补齐 lastMsg / 发送人。
+        // 仅当本地尚未有发送人（lastMsgFromId 为空）时才补齐，避免覆盖已随新消息推进的本地预览。
+        if (String(msg.id || '0') === feed.referId && !feed.lastMsgFromId) {
+          feed.lastMsg = msg.summary || ''
+          feed.lastMsgFromId = String(msg.from_id || '0')
+          changed = true
+        }
+        if (String(msg.from_id || '0') === selfUid && feed.readPos < pos) {
+          feed.readPos = pos
+          feed.readBadge = Math.min(Number(msg.badge_count || 0), feed.referBadge)
+          changed = true
+        }
+        if (changed) {
+          feed.badge = Math.max(0, feed.referBadge - feed.readBadge)
+          feeds.value.set(chatId, { ...feed })
+        }
+      }
+    }
+
     // 仅已读/表情独立实体变更（无 messages）：按 key=message_id 就地更新已有消息的 readState / reactions
     const sideRs = (entity.readstates || {}) as Record<string, any>
     const sideRx = (entity.reactions || {}) as Record<string, any>
@@ -518,6 +574,13 @@ export const useImStore = defineStore('im', () => {
           name: user.name || '',
           avatar: user.avatar || '',
           status: user.status || 0,
+          phone: user.phone || '',
+          email: user.email || '',
+          position: user.position || '',
+          city: user.city || '',
+          deptId: user.dept_id ? String(user.dept_id) : '',
+          superiorId: user.superior_id ? String(user.superior_id) : '',
+          superiorName: user.superior_name || '',
         })
       }
     }
@@ -551,6 +614,13 @@ export const useImStore = defineStore('im', () => {
             name: user.name || '',
             avatar: user.avatar || '',
             status: user.status || 0,
+            phone: user.phone || '',
+            email: user.email || '',
+            position: user.position || '',
+            city: user.city || '',
+            deptId: user.dept_id ? String(user.dept_id) : '',
+            superiorId: user.superior_id ? String(user.superior_id) : '',
+            superiorName: user.superior_name || '',
           })
         }
       }
@@ -599,7 +669,7 @@ export const useImStore = defineStore('im', () => {
     return {
       id: msg.id || '0',
       chatId: msg.chat_id || '0',
-      fromId: msg.from_id || '0',
+      fromId: String(msg.from_id || '0'),
       tpy: msg.tpy || 0,
       content: msg.content || new Uint8Array(0),
       summary: msg.summary || '',
@@ -947,6 +1017,24 @@ export const useImStore = defineStore('im', () => {
     }
   }
 
+  // 添加群成员
+  async function addChatters(chatId: string, ids: string[]) {
+    try {
+      await imApi.addChatChatters(chatId, ids)
+    } catch (e) {
+      console.error('[im] add chatters error:', e)
+    }
+  }
+
+  // 移出群成员
+  async function removeChatters(chatId: string, ids: string[]) {
+    try {
+      await imApi.removeChatChatters(chatId, ids)
+    } catch (e) {
+      console.error('[im] remove chatters error:', e)
+    }
+  }
+
   // 邀请链接：创建返回 code
   async function createInviteLink(chatId: string) {
     try {
@@ -1183,6 +1271,47 @@ export const useImStore = defineStore('im', () => {
     hasMoreMessages.value = true
   }
 
+  // ─── 会话展示名/头像派生 ───────────────────────────────
+  // P2P 会话无 name，展示名/头像取对方昵称与头像；群聊取群名。
+  function peerIdOf(chat?: ChatItem): string {
+    if (!chat || chat.chatType !== 1) return ''
+    const me = useAuthStore().user?.id || '0'
+    return chat.memberIds.find((id) => id !== me) || ''
+  }
+
+  function chatDisplayName(chat?: ChatItem): string {
+    if (!chat) return ''
+    if (chat.chatType === 2) return chat.name || ''
+    if (chat.name) return chat.name
+    const peerId = peerIdOf(chat)
+    if (!peerId) return ''
+    return users.value.get(peerId)?.name || ''
+  }
+
+  function chatDisplayAvatar(chat?: ChatItem): string {
+    if (chat && chat.chatType === 1) {
+      const peerId = peerIdOf(chat)
+      const u = users.value.get(peerId)
+      if (u?.avatar) return u.avatar
+    }
+    return chat?.avatar || ''
+  }
+
+  // 按 id 取用户资料（无则返回 undefined，方便 popup 等按需兜底）
+  function getUser(id: string): UserItem | undefined {
+    return users.value.get(id)
+  }
+
+  async function getDeptInfo(deptId: string): Promise<{ departments: Record<string, { id: string; name: string }> } | null> {
+    try {
+      const { getDeptById } = await import('@/services/im/contacts')
+      const resp = await getDeptById(Number(deptId))
+      return resp
+    } catch {
+      return null
+    }
+  }
+
   return {
     // state
     connected, connecting, wsClient,
@@ -1207,12 +1336,15 @@ export const useImStore = defineStore('im', () => {
     mergeFeedReadStatus, reportSeen, getReadMembers, markFeedRead,
     updateChat, setAnnouncement, deleteAnnouncement,
     loadPinnedMessages, pinMessage, unpinMessage, translateMessage, clearTranslation, loadThread,
-    globalMute, muteMember, getMembers,
+    globalMute, muteMember, getMembers, addChatters, removeChatters,
     createInviteLink, joinByInviteLink, revokeInviteLink,
     createJoinRequest, approveJoinRequest, rejectJoinRequest, listJoinRequests,
     selectChat,
     createP2pChat, createGroupChat,
     quitChat, dismissChat,
+    chatDisplayName, chatDisplayAvatar, peerIdOf,
+    getUser,
+    getDeptInfo,
     reset,
   }
 })

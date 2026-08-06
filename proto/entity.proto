@@ -94,6 +94,8 @@ enum SettingType {
     SETTING_FAVORITE = 1;
     SETTING_TOP_LIST = 2;
     USER_CALENDAR_LIST = 3;
+    // pipeline TTL 清理水位（服务端记录，客户端只读，见 docs/data_sync）
+    SETTING_PIPELINE_WATERMARK = 4;
 }
 
 enum EntityStatus {
@@ -169,6 +171,12 @@ message User {
     int64 version = 5;
     string avatar = 6;
     int64 dept_id = 7;
+    string phone = 8;
+    string email = 9;
+    string position = 10;
+    string city = 11;
+    int64 superior_id = 12;
+    string superior_name = 13;
 }
 
 message UserLite {

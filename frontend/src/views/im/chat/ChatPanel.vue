@@ -1,16 +1,14 @@
 <template>
   <div class="chat-panel">
     <div class="chat-header">
-      <button class="back-btn" @click="goBack">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
       <div class="chat-header-left" @click="goProfile">
-        <div class="chat-avatar">
-          <span>{{ chatNameFirstChar }}</span>
+        <div class="chat-avatar js-profile-open" @click.stop="openHeaderAvatar($event)">
+          <img v-if="isP2p && peerAvatar" class="chat-avatar-img" :src="peerAvatar" />
+          <span v-else>{{ chatNameFirstChar }}</span>
           <span v-if="isP2p" :class="['presence-dot', { online: presenceStatus === 1 }]" />
         </div>
         <div class="chat-header-info">
-          <div class="chat-name">{{ im.currentChat?.name || '...' }}</div>
+          <div class="chat-name">{{ chatDisplayName }}<span v-if="isGroup" class="chat-member-count">{{ groupMemberCount }}</span></div>
           <div class="chat-subtitle">{{ headerSubtitle }}</div>
         </div>
       </div>
@@ -81,40 +79,81 @@
           <div
             v-else
             class="msg-item"
-            :class="{ 'same-sender': !showSenderInfo(msg, idx) }"
+            :class="{ mine: msg.fromId === myId, 'msg-hover': hoveredMsgId === msg.id }"
             :data-msg-id="msg.id"
+            @mouseenter="hoveredMsgId = msg.id"
+            @mouseleave="hoveredMsgId = null"
             @click.right.prevent="showMsgMenu($event, msg)"
           >
-            <div class="msg-avatar">
-              <img v-if="showSenderInfo(msg, idx) && getSenderAvatar(msg.fromId)" class="msg-avatar-img" :src="getSenderAvatar(msg.fromId)" />
-              <span v-else-if="showSenderInfo(msg, idx)">{{ getSenderFirstChar(msg.fromId) }}</span>
+            <div class="msg-avatar js-profile-open" @click="openUserProfile($event, msg.fromId)">
+              <img v-if="getSenderAvatar(msg.fromId)" class="msg-avatar-img" :src="getSenderAvatar(msg.fromId)" />
+              <span v-else>{{ getSenderFirstChar(msg.fromId) }}</span>
             </div>
             <div class="msg-body">
-              <div v-if="showSenderInfo(msg, idx)" class="msg-meta">
+              <div class="msg-meta">
                 <span class="msg-name">{{ getSenderName(msg.fromId) }}</span>
                 <span class="msg-time">{{ formatTime(msg.createTimeMs) }}</span>
+                <!-- hover 诊断信息：展示消息 pos 与 id（对齐客户端） -->
+                <span v-if="hoveredMsgId === msg.id" class="msg-posid">[{{ msg.pos }}, {{ msg.id }}]</span>
               </div>
               <div v-if="msg.refMessageId !== '0'" class="reply-preview" @click="scrollToMessage(msg.refMessageId)">
                 {{ msg.summary ? '回复: ' + msg.summary : '回复了一条消息' }}
               </div>
-              <div class="msg-bubble" :class="'tpy-' + msg.tpy">
-                <TextMessage v-if="msg.tpy === 1" :content="msg.content" :translation="msg.translation?.translatedText" />
-                <ImageMessage v-else-if="msg.tpy === 2" :content="msg.content" />
-                <FileMessage v-else-if="msg.tpy === 3" :content="msg.content" />
-                <MarkdownMessage v-else-if="msg.tpy === 13" :content="msg.content" :summary="msg.summary" />
-                <ForwardMessage v-else-if="msg.tpy === 14" :content="msg.content" :summary="msg.summary" />
-                <span v-else>{{ msg.summary || `[类型 ${msg.tpy}]` }}</span>
+              <div class="msg-content-row">
+                <div class="msg-bubble-wrap">
+                  <div class="msg-bubble" :class="'tpy-' + msg.tpy">
+                    <TextMessage v-if="msg.tpy === 1" :content="msg.content" :translation="msg.translation?.translatedText" />
+                    <ImageMessage v-else-if="msg.tpy === 2" :content="msg.content" />
+                    <FileMessage v-else-if="msg.tpy === 3" :content="msg.content" />
+                    <MarkdownMessage v-else-if="msg.tpy === 13" :content="msg.content" :summary="msg.summary" />
+                    <ForwardMessage v-else-if="msg.tpy === 14" :content="msg.content" :summary="msg.summary" />
+                    <span v-else>{{ msg.summary || `[类型 ${msg.tpy}]` }}</span>
+                  </div>
+                  <!-- 已读状态标记：仅自己发送的消息，紧贴气泡右侧（对齐客户端 _ReadCircle 绿色进度环 + 满读 ✓） -->
+                  <span
+                    v-if="msg.fromId === myId"
+                    class="msg-read"
+                    :class="{ clickable: isGroup }"
+                    @click.stop="openReadDialog(msg)"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                      <circle cx="8" cy="8" r="7" fill="none" stroke="#4ADE80" stroke-opacity="0.8" stroke-width="2" />
+                      <circle
+                        v-if="readPercent(msg) > 0"
+                        cx="8" cy="8" r="7" fill="none" stroke="#4ADE80" stroke-width="2"
+                        stroke-linecap="round"
+                        :stroke-dasharray="readRingDash(msg)"
+                        transform="rotate(-90 8 8)"
+                      />
+                      <text
+                        v-if="readPercent(msg) >= 100"
+                        x="8" y="8" text-anchor="middle"
+                        dominant-baseline="central"
+                        fill="#4ADE80" font-size="11" font-weight="700"
+                      >✓</text>
+                    </svg>
+                  </span>
+                  <!-- hover 操作条：对齐 PC 端，贴在气泡（跟随消息宽度）右侧 -->
+                  <div class="msg-hover-actions" @click.stop="showMsgMenu($event, msg)">
+                    <button class="msg-action-btn" title="表情" @click.stop="openReactionPicker(msg)">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                    </button>
+                    <button class="msg-action-btn" title="回复" @click.stop="replyMessage(msg)">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+                    </button>
+                    <button class="msg-action-btn" title="转发" @click.stop="forwardMsg(msg)">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                    </button>
+                    <button class="msg-action-btn" title="更多" @click.stop="showMsgMenu($event, msg)">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+                    </button>
+                  </div>
+                </div>
               </div>
               <ReactionBar :message-id="msg.id" :reactions="msg.reactions" />
               <div class="msg-foot">
                 <span v-if="msg.sendStatus === 'sending'" class="msg-status sending">发送中...</span>
                 <span v-if="msg.sendStatus === 'failed'" class="msg-status failed" @click.stop="retry(msg)">发送失败，点击重试</span>
-                <span
-                  v-if="msg.sendStatus === 'sent' && msg.fromId === myId"
-                  class="msg-read-status"
-                  :class="{ clickable: isGroup }"
-                  @click.stop="openReadDialog(msg)"
-                >{{ readStatusText(msg) }}</span>
               </div>
             </div>
           </div>
@@ -196,6 +235,7 @@
           v-if="showGroupProfile"
           :chat-id="chatId!"
           @close="showGroupProfile = false"
+          @open-announce="openAnnouncementFromProfile"
         />
       </Transition>
 
@@ -231,7 +271,8 @@
                   :key="m.user_id"
                   class="read-member"
                 >
-                  <span class="read-member-avatar">{{ (m.name || '?')[0] }}</span>
+                  <span v-if="m.user_id !== myId" class="read-member-avatar js-profile-open" @click="openUserProfile($event, m.user_id)">{{ (m.name || '?')[0] }}</span>
+                  <span v-else class="read-member-avatar">{{ (m.name || '?')[0] }}</span>
                   <span class="read-member-name">{{ m.name || '未知用户' }}</span>
                 </div>
               </div>
@@ -242,7 +283,8 @@
                   :key="m.user_id"
                   class="read-member"
                 >
-                  <span class="read-member-avatar">{{ (m.name || '?')[0] }}</span>
+                  <span v-if="m.user_id !== myId" class="read-member-avatar js-profile-open" @click="openUserProfile($event, m.user_id)">{{ (m.name || '?')[0] }}</span>
+                  <span v-else class="read-member-avatar">{{ (m.name || '?')[0] }}</span>
                   <span class="read-member-name">{{ m.name || '未知用户' }}</span>
                 </div>
               </div>
@@ -252,40 +294,48 @@
       </div>
     </Teleport>
 
-    <!-- 群公告详情/编辑弹窗 -->
-    <Teleport to="body">
-      <div v-if="announceDialog.show" class="read-dialog-overlay" @click.self="closeAnnounceDialog">
-        <div class="read-dialog">
-          <div class="read-dialog-header">
-            <span>{{ announceDialog.mode === 'edit' ? '编辑群公告' : '群公告' }}</span>
-            <button class="header-btn" title="关闭" @click="closeAnnounceDialog">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-          <template v-if="announceDialog.mode !== 'edit'">
-            <div v-if="announceDialog.announcement" class="announce-view">
-              <div class="announce-title">{{ announceDialog.announcement.title || '群公告' }}</div>
-              <div class="announce-meta">
-                {{ publisherName }}<span v-if="announceTime"> · {{ announceTime }}</span>
-              </div>
-              <div class="announce-body">{{ announceDialog.announcement.bodyText || announceDialog.announcement.summary }}</div>
-              <div class="announce-actions" v-if="isAdmin">
-                <button class="confirm-btn primary small" @click="editAnnounce()">编辑</button>
-                <button class="confirm-btn danger small" @click="deleteAnnouncement()">删除</button>
-              </div>
-            </div>
-          </template>
-          <template v-else>
-            <label class="announce-field"><span>标题</span><input v-model="announceTitle" placeholder="公告标题" /></label>
-            <label class="announce-field"><span>内容</span><textarea v-model="announceBody" rows="5" placeholder="公告内容"></textarea></label>
-            <div class="announce-actions">
-              <button class="confirm-btn cancel small" @click="announceDialog.mode = 'view'">取消</button>
-              <button class="confirm-btn primary small" :disabled="announceSaving" @click="saveAnnounce()">保存</button>
-            </div>
-          </template>
-        </div>
+    <!-- 用户资料浮层 -->
+    <UserProfilePopup ref="userProfileRef" />
+
+    <!-- 群公告查看/编辑覆盖层：覆盖消息列表区域（含消息输入框） -->
+    <div v-if="announceDialog.show" class="announce-page-overlay">
+      <div class="announce-page-header">
+        <button v-if="announceDialog.mode === 'edit'" class="header-btn" title="返回查看" @click="announceDialog.mode = 'view'">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="announce-page-title">{{ announceDialog.mode === 'edit' ? '编辑群公告' : '群公告' }}</span>
+        <span class="announce-header-spacer"></span>
+        <template v-if="announceDialog.mode === 'edit'">
+          <button class="header-btn" title="保存" :disabled="announceSaving" @click="saveAnnounce()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1976d2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+          <button v-if="announceDialog.announcement" class="header-btn" title="删除" @click="deleteAnnouncement()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f44336" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          </button>
+        </template>
+        <button v-else-if="isAdmin" class="header-btn" title="编辑" @click="editAnnounce()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+        </button>
+        <button class="header-btn" title="关闭" @click="closeAnnounceDialog">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
-    </Teleport>
+      <div class="announce-page-body">
+        <template v-if="announceDialog.mode !== 'edit'">
+          <div v-if="announceDialog.announcement" class="announce-view">
+            <div class="announce-title">{{ announceDialog.announcement.title || '群公告' }}</div>
+            <div class="announce-meta">
+              {{ publisherName }}<span v-if="announceTime"> · {{ announceTime }}</span>
+            </div>
+            <div class="announce-body">{{ announceDialog.announcement.bodyText || announceDialog.announcement.summary }}</div>
+          </div>
+        </template>
+        <template v-else>
+          <label class="announce-field"><span>标题</span><input v-model="announceTitle" placeholder="公告标题" /></label>
+          <label class="announce-field"><span>内容</span><textarea v-model="announceBody" class="announce-textarea" placeholder="公告内容"></textarea></label>
+        </template>
+      </div>
+    </div>
 
     <!-- 置顶消息列表弹窗 (W4-1) -->
     <Teleport to="body">
@@ -318,7 +368,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { useImStore } from '@/stores/im'
 import { useAuthStore } from '@/stores/auth'
 import type { MessageItem } from '@/stores/im'
@@ -335,10 +384,9 @@ import TypingIndicator from './components/TypingIndicator.vue'
 import ThreadPanel from './ThreadPanel.vue'
 import GroupProfile from './GroupProfile.vue'
 import MentionPicker from './components/MentionPicker.vue'
+import UserProfilePopup from '@/components/UserProfilePopup.vue'
 import api from '@/services/api'
 
-const route = useRoute()
-const router = useRouter()
 const im = useImStore()
 const auth = useAuthStore()
 const inputText = ref('')
@@ -349,6 +397,7 @@ const fileInput = ref<HTMLInputElement>()
 const docInput = ref<HTMLInputElement>()
 const textInputRef = ref<HTMLInputElement>()
 const mentionPickerRef = ref<InstanceType<typeof MentionPicker>>()
+const userProfileRef = ref<InstanceType<typeof UserProfilePopup>>()
 const myId = ref(String(auth.user?.id ?? ''))
 const autoScroll = ref(true)
 
@@ -362,13 +411,22 @@ const chatSearchQuery = ref('')
 
 const isP2p = computed(() => im.currentChat?.chatType === 1)
 const isGroup = computed(() => im.currentChat?.chatType === 2)
-const chatNameFirstChar = computed(() => (im.currentChat?.name || '?')[0])
+const chatDisplayName = computed(() => im.chatDisplayName(im.currentChat) || '...')
+const chatNameFirstChar = computed(() => (im.chatDisplayName(im.currentChat) || '?')[0])
+// 群名称右侧展示的成员人数
+const groupMemberCount = computed(() => `${im.currentChat?.memberIds?.length || 0} 人`)
 
 // W5-1: P2P 对方用户（memberIds 中非自己的那个）
 const peerUserId = computed(() => {
   const chat = im.currentChat
   if (!chat || chat.chatType !== 1) return ''
   return chat.memberIds.find((id) => id !== myId.value) || ''
+})
+
+const peerAvatar = computed(() => {
+  const uid = peerUserId.value
+  if (!uid) return ''
+  return im.users.get(uid)?.avatar || ''
 })
 
 const presenceStatus = computed(() => {
@@ -380,8 +438,9 @@ const presenceStatus = computed(() => {
 const headerSubtitle = computed(() => {
   if (!im.currentChat || !chatId.value) return ''
   const cid = chatId.value
+  // 群聊：成员人数已在名称右侧，副标题展示群简介
   if (isGroup.value) {
-    return `${im.currentChat.memberIds?.length || 0} 人`
+    return im.currentChat?.description || ''
   }
   const list = im.typingUsers.get(cid)
   if (list && list.some((t) => t.expireAt > _now.value)) {
@@ -426,6 +485,17 @@ function showAnnouncement() {
   announceDialog.value = { show: true, mode: 'view', announcement: announcement.value }
 }
 
+// 群设置入口：管理员直接进入编辑模式，普通成员进入查看模式
+function openAnnouncementFromProfile() {
+  const a = announcement.value
+  const mode = isAdmin.value ? 'edit' : 'view'
+  if (isAdmin.value) {
+    announceTitle.value = a?.title || ''
+    announceBody.value = a?.bodyText || a?.summary || ''
+  }
+  announceDialog.value = { show: true, mode, announcement: a }
+}
+
 function editAnnounce() {
   const a = announceDialog.value.announcement
   announceTitle.value = a?.title || ''
@@ -468,6 +538,8 @@ const pinnedMessages = computed(() => {
 const msgMenu = ref<{ show: boolean; x: number; y: number; msg: MessageItem | null }>({
   show: false, x: 0, y: 0, msg: null,
 })
+// hover 的当前消息 id：用于展示诊断信息（pos/id）与更多按钮
+const hoveredMsgId = ref<string | null>(null)
 const forwardPicker = ref<{ show: boolean; sourceChatId: string; messageIds: string[] }>({
   show: false, sourceChatId: '', messageIds: [],
 })
@@ -488,13 +560,20 @@ const msgById = computed(() => {
   return m
 })
 
-// 已读标记文案：有 read_state 则按真实值（群显示 x/y），否则乐观显示「已读」
-function readStatusText(msg: MessageItem): string {
+// 已读进度百分比：对齐客户端 _ReadCircle 的 _readPercent（10% 步进，满读 100%）
+function readPercent(msg: MessageItem): number {
   const rs = msg.readState
-  if (rs && rs.total > 0 && rs.unreadCount > 0) {
-    return `${rs.readCount}/${rs.total}`
-  }
-  return '已读'
+  if (!rs || rs.total <= 0) return 0
+  const pct = Math.round((rs.readCount / rs.total) * 100)
+  if (pct >= 100) return 100
+  const stepped = Math.floor(pct / 10) * 10
+  return Math.max(10, Math.min(90, stepped))
+}
+
+// 已读进度环 SVG dash 值：周长 2π*7，进度按百分比显示（对齐客户端 _CirclePainter）
+function readRingDash(msg: MessageItem): string {
+  const circum = 2 * Math.PI * 7
+  return `${(readPercent(msg) / 100) * circum} ${circum}`
 }
 
 function openReadDialog(msg: MessageItem) {
@@ -787,10 +866,8 @@ function buildMentions(text: string) {
   return out
 }
 
-const chatId = computed<string | null>(() => {
-  const p = route.params.chatId
-  return Array.isArray(p) ? (p[0] ?? null) : (p ?? null)
-})
+// 会话选择以 store 状态为准，URL 保持 /im/chat 不变
+const chatId = computed<string | null>(() => im.currentChatId)
 const isAdmin = computed(() => {
   const chat = im.currentChat
   return chat ? chat.adminIds.includes(myId.value) || chat.ownerId === myId.value : false
@@ -826,14 +903,18 @@ onUnmounted(() => {
   clearInterval(_tick)
 })
 
-function goBack() {
-  im.selectChat(null)
-  router.push({ name: 'ImFeed' })
-}
-
 function goProfile() {
   if (im.currentChat?.chatType === 2) {
     showGroupProfile.value = true
+  }
+}
+
+// 头部头像：P2P 会话点击弹对方用户资料；群聊交回 goProfile 打开群资料
+function openHeaderAvatar(e: MouseEvent) {
+  if (isP2p.value && peerUserId.value) {
+    openUserProfile(e, peerUserId.value)
+  } else {
+    goProfile()
   }
 }
 
@@ -949,12 +1030,6 @@ function formatTime(ms: number): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
-function showSenderInfo(msg: MessageItem, idx: number): boolean {
-  if (idx === 0) return true
-  const prev = im.currentMessages[idx - 1]
-  return !prev || prev.fromId !== msg.fromId
-}
-
 function getSenderFirstChar(fromId: string): string {
   const user = im.users.get(fromId)
   return (user?.name || '?')[0]
@@ -968,6 +1043,11 @@ function getSenderAvatar(fromId: string): string {
 function getSenderName(fromId: string): string {
   const user = im.users.get(fromId)
   return user?.name || '未知用户'
+}
+
+// 点击用户头像：在点击位置弹出用户资料浮层
+function openUserProfile(e: MouseEvent, userId: string) {
+  userProfileRef.value?.open(e.clientX, e.clientY, userId)
 }
 
 async function scrollToMessage(msgId: string) {
@@ -1054,18 +1134,6 @@ function openThread(msg: MessageItem) {
   flex-shrink: 0;
   height: 52px;
 }
-.back-btn {
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-  padding: 4px 8px 4px 0;
-  margin-right: 8px;
-  color: #666;
-  display: flex;
-  align-items: center;
-}
-.back-btn:hover { color: #333; }
 .chat-header-left {
   display: flex;
   align-items: center;
@@ -1077,16 +1145,22 @@ function openThread(msg: MessageItem) {
 .chat-avatar {
   width: 32px;
   height: 32px;
-  border-radius: 6px;
+  border-radius: 50%;
   background: #1976d2;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  font-weight: 500;
-  flex-shrink: 0;
+  font-weight: 600;
   position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.chat-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .presence-dot {
   position: absolute;
@@ -1107,10 +1181,20 @@ function openThread(msg: MessageItem) {
   font-weight: 600;
   line-height: 1.3;
 }
+.chat-member-count {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #999;
+}
 .chat-subtitle {
   font-size: 11px;
   color: #999;
   line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 .chat-header-actions {
   display: flex;
@@ -1281,6 +1365,41 @@ function openThread(msg: MessageItem) {
 }
 .announce-field input:focus,
 .announce-field textarea:focus { border-color: #1976d2; }
+.announce-textarea {
+  min-height: 320px;
+}
+.announce-page-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+.announce-page-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 12px;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+.announce-page-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+.announce-header-spacer {
+  flex: 1;
+}
+.announce-page-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
 .chat-search-bar {
   display: flex;
   align-items: center;
@@ -1329,7 +1448,7 @@ function openThread(msg: MessageItem) {
   width: 32px;
   height: 32px;
   flex-shrink: 0;
-  border-radius: 4px;
+  border-radius: 50%;
   background: #1976d2;
   color: #fff;
   display: flex;
@@ -1346,9 +1465,6 @@ function openThread(msg: MessageItem) {
   object-fit: cover;
   display: block;
 }
-.same-sender .msg-avatar {
-  visibility: hidden;
-}
 .msg-body {
   flex: 1;
   min-width: 0;
@@ -1360,13 +1476,52 @@ function openThread(msg: MessageItem) {
   margin-bottom: 2px;
   line-height: 1.4;
 }
-.same-sender .msg-meta {
-  display: none;
-}
 .msg-name {
   font-size: 12px;
   color: #666;
   font-weight: 500;
+}
+/* hover 诊断信息：消息 pos 与 id（对齐客户端 MessageBubble 行为） */
+.msg-posid {
+  font-size: 11px;
+  color: #999;
+}
+/* hover 时展示的更多按钮（对齐客户端 hover 弹出操作菜单）：
+   容器收缩为「气泡 + 已读标记 + 操作条」内容宽度，操作条落在气泡右侧 */
+.msg-bubble-wrap {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 70%;
+}
+.msg-hover-actions {
+  display: inline-flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d5d8dc;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  height: 30px;
+  visibility: hidden;
+}
+.msg-item:hover .msg-hover-actions {
+  visibility: visible;
+}
+.msg-action-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #5f6368;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.msg-action-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #333;
 }
 .reply-preview {
   font-size: 12px;
@@ -1392,6 +1547,11 @@ function openThread(msg: MessageItem) {
   word-break: break-word;
   text-align: left;
 }
+/* 自己发送的消息：主色调浅背景（对齐桌面端 primaryContainer），文字用主色深色 */
+.msg-item.mine .msg-bubble {
+  background: #d6e5ff;
+  color: #1a3a6b;
+}
 .msg-foot {
   display: flex;
   align-items: center;
@@ -1409,13 +1569,16 @@ function openThread(msg: MessageItem) {
   cursor: pointer;
   text-decoration: underline;
 }
-.msg-read-status {
-  font-size: 10px;
-  color: #1976d2;
+/* 已读状态标记：对齐客户端 _ReadCircle（16×16 绿色进度环，满读显示 ✓） */
+.msg-read {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  padding-left: 4px;
+  flex-shrink: 0;
 }
-.msg-read-status.clickable {
+.msg-read.clickable {
   cursor: pointer;
-  text-decoration: underline;
 }
 .read-dialog-overlay {
   position: fixed;

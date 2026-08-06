@@ -25,6 +25,10 @@ pub struct Model {
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
     pub extra: Vec<u8>,
     pub bot_app_id: Option<i64>,
+    pub email: String,
+    pub position: String,
+    pub city: String,
+    pub superior_id: i64,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

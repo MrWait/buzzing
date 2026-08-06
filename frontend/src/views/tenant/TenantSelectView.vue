@@ -85,7 +85,7 @@ function handleSelect(lu: LoginUser) {
 .tenant-avatar {
   width: 48px;
   height: 48px;
-  border-radius: 8px;
+  border-radius: 50%;
   background: #1a1a2e;
   color: #fff;
   display: flex;

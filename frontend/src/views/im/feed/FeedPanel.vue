@@ -16,16 +16,36 @@
         @contextmenu.prevent="showContextMenu($event, feed)"
       >
         <div class="feed-avatar" :style="{ background: feed.isMute ? '#999' : '#1976d2' }">
-          {{ feed.name.charAt(0).toUpperCase() }}
+          <img v-if="feedAvatar(feed)" class="feed-avatar-img" :src="feedAvatar(feed)" alt="" />
+          <template v-else>{{ feedName(feed).charAt(0).toUpperCase() || '?' }}</template>
           <span v-if="isPeerOnline(feed)" class="feed-online-dot" />
         </div>
         <div class="feed-body">
           <div class="feed-top">
-            <span class="feed-name">{{ feed.name }}</span>
+            <span class="feed-name">{{ feedName(feed) }}</span>
             <span class="feed-time">{{ formatTime(feed.updateTimeMs) }}</span>
           </div>
           <div class="feed-bottom">
-            <span class="feed-msg">{{ feed.lastMsg || '...' }}</span>
+            <span class="feed-msg">
+              <span v-if="feedPreview(feed).showRead" class="feed-read-mark">
+                <svg width="14" height="14" viewBox="0 0 14 14">
+                  <circle cx="7" cy="7" r="6" fill="none" stroke="#4ADE80" stroke-opacity="0.8" stroke-width="1.5" />
+                  <circle
+                    v-if="feedPreview(feed).readPercent > 0"
+                    cx="7" cy="7" r="6" fill="none" stroke="#4ADE80" stroke-width="1.5"
+                    stroke-linecap="round"
+                    :stroke-dasharray="feedRingDash(feedPreview(feed).readPercent)"
+                    transform="rotate(-90 7 7)"
+                  />
+                  <text
+                    v-if="feedPreview(feed).readPercent >= 100"
+                    x="7" y="7" text-anchor="middle"
+                    dominant-baseline="central"
+                    fill="#4ADE80" font-size="9" font-weight="700"
+                  >✓</text>
+                </svg>
+              </span>{{ feedPreview(feed).text }}
+            </span>
             <span v-if="feed.badge > 0" class="feed-badge">{{ feed.badge > 99 ? '99+' : feed.badge }}</span>
           </div>
         </div>
@@ -45,6 +65,8 @@
         <div class="menu-item danger" @click="remove(contextMenu.feed!)">删除会话</div>
       </div>
     </Teleport>
+
+    <!-- 用户资料浮层保留给其他场景，不在此使用 -->
   </div>
 </template>
 
@@ -80,6 +102,52 @@ function isPeerOnline(feed: FeedItem): boolean {
 
 const myId = computed(() => String(auth.user?.id ?? ''))
 
+// P2P 会话无 name：展示名/头像取自对方用户（群聊用群名）
+function feedName(feed: FeedItem): string {
+  const chat = im.chats.get(feed.chatId)
+  const name = im.chatDisplayName(chat)
+  return name || '...'
+}
+
+function feedAvatar(feed: FeedItem): string {
+  const chat = im.chats.get(feed.chatId)
+  return im.chatDisplayAvatar(chat)
+}
+
+// 消息预览：群聊展示「发送人: 摘要」；单聊展示摘要。
+// 是否展示已读状态标记仅取决于是否自己发送的消息，与已读状态数据、会话类型无关。
+// 有已读数据则按比例填充绿环、满格 ✓；无数据（total<=0）时展示空心环（对齐客户端 _ReadCircle）。
+function feedPreview(feed: FeedItem): { text: string; showRead: boolean; readPercent: number } {
+  const chat = im.chats.get(feed.chatId)
+  const isGroup = chat?.chatType === 2
+  const senderId = feed.lastMsgFromId || ''
+  const senderName = im.users.get(senderId)?.name || ''
+  const isSelf = senderId !== '' && senderId === myId.value
+  const text = isGroup
+    ? senderName ? `${senderName}: ${feed.lastMsg || ''}` : feed.lastMsg || '...'
+    : feed.lastMsg || '...'
+  return { text, showRead: isSelf, readPercent: feedReadPercent(feed) }
+}
+
+// 会话最后一条消息的已读进度（0~100）：对齐客户端 _ReadStateIndicator/_readPercent
+function feedReadPercent(feed: FeedItem): number {
+  if (!feed.referId || feed.referId === '0') return 0
+  const msgs = im.messages.get(feed.chatId) || []
+  const last = msgs.find((m) => m.id === feed.referId)
+  const rs = last?.readState
+  if (!rs || rs.total <= 0) return 0
+  const pct = Math.round((rs.readCount / rs.total) * 100)
+  if (pct >= 100) return 100
+  const stepped = Math.floor(pct / 10) * 10
+  return Math.max(10, Math.min(90, stepped))
+}
+
+// 已读进度环 SVG dash 值：周长为 2π*6（r=6），进度按百分比显示（对齐客户端 _ReadCirclePainter）
+function feedRingDash(percent: number): string {
+  const circum = 2 * Math.PI * 6
+  return `${(percent / 100) * circum} ${circum}`
+}
+
 onMounted(() => {
   document.addEventListener('click', closeContextMenu)
 })
@@ -92,7 +160,10 @@ function selectFeed(feed: FeedItem) {
   im.currentFeedId = feed.id
   im.selectChat(feed.chatId)
   closeContextMenu()
-  router.push(`/im/chat/${feed.chatId}`)
+  // 已停留在 /im/chat 时无需重复跳转（会话切换只改 store 状态，URL 不变）
+  if (router.currentRoute.value.path !== '/im/chat') {
+    router.push({ name: 'ImChatMain' })
+  }
 }
 
 function showContextMenu(e: MouseEvent, feed: FeedItem) {
@@ -194,7 +265,7 @@ function formatTime(ms: number): string {
 .feed-avatar {
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  border-radius: 50%;
   color: #fff;
   display: flex;
   align-items: center;
@@ -204,6 +275,12 @@ function formatTime(ms: number): string {
   flex-shrink: 0;
   margin-right: 10px;
   position: relative;
+  overflow: hidden;
+}
+.feed-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .feed-online-dot {
   position: absolute;
@@ -250,6 +327,11 @@ function formatTime(ms: number): string {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.feed-read-mark {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-right: 4px;
 }
 .feed-badge {
   background: #f44336;

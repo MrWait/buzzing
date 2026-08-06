@@ -74,6 +74,34 @@ describe('message', () => {
     sentMessageId = str(dec.result.id);
   });
 
+  it('should clear sender unread after sending latest message', async () => {
+    assert.ok(chatId && sentMessageId);
+
+    // 发送者发出本会话最新消息后，服务端应把其已读游标推进到本条消息（read_badge == refer_badge），
+    // 使该会话未读归零（未读 = refer_badge - read_badge，见 data_sync §6）。多端场景：任一设备发送，
+    // 本账号该会话即视为已读。
+    const cmdEnum = getProto().lookupEnum('command.Command');
+    const PullFeedListRequest = getProto().lookupType('feed.PullFeedListRequest');
+    const reqBytes = PullFeedListRequest.encode(
+      PullFeedListRequest.create({ cursor: 0, count: 20 })
+    ).finish();
+
+    const res = await client.httpRequest(cmdEnum.values.FEED_GET_LIST, reqBytes);
+    assert.ok(res.code === 0 || res.code === 200, `get feed list code=${res.code}`);
+    const dec = safeDecode(getProto(), 'feed.PullFeedListResponse', res.data);
+    assert.ok(dec.ok, `decode feed list failed: ${dec.error}`);
+
+    const feeds = dec.result.entity?.feeds || {};
+    const feed = Object.values(feeds).find(f => str(f.id) === chatId);
+    assert.ok(feed, `should find feed for chat ${chatId}`);
+    assert.ok(
+      feed.read_badge >= feed.refer_badge && feed.read_pos >= feed.refer_pos,
+      `sender read should reach latest: ` +
+        `read_badge=${feed.read_badge} refer_badge=${feed.refer_badge} ` +
+        `read_pos=${feed.read_pos} refer_pos=${feed.refer_pos}`
+    );
+  });
+
   it('should get messages by range', async () => {
     assert.ok(chatId, 'need a chat');
     assert.ok(sentMessageId, 'need a sent message');
@@ -229,6 +257,111 @@ describe('message', () => {
     );
   });
 
+  it('should merge & compress PUSH_ENTITY_CHANGE(1057) packets on pipeline pull', async () => {
+    // 触发多个实体变更产生多行 1057 包：已读（READSTATE=17）→ 连续两次 reaction（REACTION=24）。
+    // PIPELINE_PULL_PACKET 时服务端按 (type,id) 合并仅保留 version 最大值，并压缩为少量包。
+    const cmdEnum = getProto().lookupEnum('command.Command');
+    const PullPipelineRequest = getProto().lookupType('pipeline.PullPipelineRequest');
+    const pullAll = async (untilSid, maxPages) => {
+      const packets = [];
+      let sid = untilSid;
+      let more = true;
+      for (let i = 0; more && i < maxPages; i++) {
+        const r = await client.httpRequest(cmdEnum.values.PIPELINE_PULL_PACKET,
+          PullPipelineRequest.encode(PullPipelineRequest.create({ sid, count: 100 })).finish());
+        assert.ok(r.code === 0 || r.code === 200, `pull code=${r.code}`);
+        const d = safeDecode(getProto(), 'pipeline.PullPipelineResponse', r.data);
+        assert.ok(d.ok, `decode pull failed: ${d.error}`);
+        packets.push(...d.result.packets);
+        sid = Number(d.result.sid);
+        more = d.result.has_more;
+      }
+      return { packets, sid };
+    };
+
+    // 拉取不再删除 pipeline 行（多设备共享，清理仅由服务端 TTL worker 执行），
+    // 因此历史行会一直累积；本用例按具体消息 id 断言，不受历史行影响。
+    // 新发一条消息
+    const Message = getProto().lookupType('entity.Message');
+    const MessageText = getProto().lookupType('entity.MessageText');
+    const textContent = MessageText.encode(
+      MessageText.create({ text: `merge-${Date.now()}` })
+    ).finish();
+    const draftMsg = Message.create({
+      chat_id: chatId, tpy: 1, content: new Uint8Array(textContent),
+    });
+    const SendMessageRequest = getProto().lookupType('message.SendMessageRequest');
+    const sendRes = await client.httpRequest(cmdEnum.values.MESSAGE_SEND,
+      SendMessageRequest.encode(
+        SendMessageRequest.create({ client_id: 0, message: draftMsg })
+      ).finish());
+    assert.ok(sendRes.code === 0 || sendRes.code === 200, `send code=${sendRes.code}`);
+    const sendDec = safeDecode(getProto(), 'message.SendMessageResponse', sendRes.data);
+    assert.ok(sendDec.ok, `send decode failed: ${sendDec.error}`);
+    const msgId = str(sendDec.result.id);
+    assert.ok(msgId, 'should have message id');
+
+    // 已读（READSTATE 变更 v1）
+    const MessageReadRequest = getProto().lookupType('message.MessageReadRequest');
+    const readRes = await client.httpRequest(cmdEnum.values.MESSAGE_READ,
+      MessageReadRequest.encode(
+        MessageReadRequest.create({ chat_id: chatId, max_pos: 0, message_ids: [msgId] })
+      ).finish());
+    assert.ok(readRes.code === 0 || readRes.code === 200, `read code=${readRes.code}`);
+
+    // 连续两次 reaction（REACTION 变更 v2/v3，同一实体多次变更）
+    const SetMessageReactitonRequest = getProto().lookupType('message.SetMessageReactitonRequest');
+    for (const reaction of [1, 2]) {
+      const reRes = await client.httpRequest(cmdEnum.values.REACTION_SET,
+        SetMessageReactitonRequest.encode(
+          SetMessageReactitonRequest.create({ message_id: msgId, reaction, set: true })
+        ).finish());
+      assert.ok(reRes.code === 0 || reRes.code === 200, `reaction ${reaction} code=${reRes.code}`);
+    }
+
+    // 拉取 pipeline 全量，汇总所有 1057 包里的变更
+    const { packets, sid } = await pullAll(0, 100);
+    assert.ok(sid > 0, 'should advance sid');
+    const PushEntityChanged = getProto().lookupType('pipeline.PushEntityChanged');
+    const changeMap = new Map(); // `${type}:${id}` -> {version, operate, count}
+    let push1057Count = 0;
+    for (const p of packets) {
+      if (Number(p.cmd) !== cmdEnum.values.PUSH_ENTITY_CHANGE) continue;
+      push1057Count++;
+      const chg = PushEntityChanged.decode(p.payload);
+      for (const c of chg.changes) {
+        const key = `${c.type}:${str(c.id)}`;
+        const prev = changeMap.get(key);
+        if (prev) {
+          prev.count += 1;
+          if (Number(c.version) > Number(prev.version)) {
+            prev.version = Number(c.version);
+            prev.operate = c.operate;
+          }
+        } else {
+          changeMap.set(key, { version: Number(c.version), operate: c.operate, count: 1 });
+        }
+      }
+    }
+
+    // 压缩：至少有一个 1057 包
+    assert.ok(push1057Count >= 1, 'should have at least one 1057 packet');
+
+    // 合并策略：本用例消息的 READSTATE(17) 与 REACTION(24) 变更各只出现一次
+    // （reaction 触发两次，应被合并为一条保留 version 最大值）
+    const rsKey = `17:${msgId}`;
+    const rxKey = `24:${msgId}`;
+    assert.ok(changeMap.has(rsKey), `should have readstate change for ${msgId}`);
+    assert.ok(changeMap.has(rxKey), `should have reaction change for ${msgId}`);
+    assert.strictEqual(changeMap.get(rsKey).count, 1, `readstate ${msgId} should appear once`);
+    assert.strictEqual(changeMap.get(rxKey).count, 1, `reaction ${msgId} should appear once (merged)`);
+    assert.strictEqual(changeMap.get(rxKey).operate, 2, 'reaction operate should be UPDATE(2)');
+    assert.ok(
+      changeMap.get(rxKey).version > changeMap.get(rsKey).version,
+      'merged reaction version should be the max (newer than readstate)'
+    );
+  });
+
   it('should recall message and see tombstone via pipeline', async () => {
     assert.ok(chatId && sentMessageId);
 
@@ -279,6 +412,59 @@ describe('message', () => {
     assert.ok(found, 'should find deleted message');
     // entity.EntityStatus: DELETED=5
     assert.ok(Number(found.status) === 5, `status should be DELETED(5), got ${found.status}`);
+  });
+
+  it('should pull pipeline fresh (sid=0) without replay, returning only cursor', async () => {
+    // 全新安装客户端 cursor=0：服务端仅返回当前最大 sid（无 packets、expired=false），
+    // 初始数据走 feed 全量同步，无需回放历史。
+    const cmdEnum = getProto().lookupEnum('command.Command');
+    const PullPipelineRequest = getProto().lookupType('pipeline.PullPipelineRequest');
+    const r = await client.httpRequest(cmdEnum.values.PIPELINE_PULL_PACKET,
+      PullPipelineRequest.encode(PullPipelineRequest.create({ sid: 0, count: 100 })).finish());
+    assert.ok(r.code === 0 || r.code === 200, `pull code=${r.code}`);
+    const d = safeDecode(getProto(), 'pipeline.PullPipelineResponse', r.data);
+    assert.ok(d.ok, `decode failed: ${d.error}`);
+    assert.ok(!d.result.expired, 'fresh pull should not be expired');
+    assert.ok(Number(d.result.sid) >= 0, `should return non-negative sid, got ${d.result.sid}`);
+    assert.ok(!d.result.has_more, 'fresh pull should not paginate');
+    assert.strictEqual(d.result.packets.length, 0, 'fresh pull should return no packets');
+  });
+
+  it('should not delete pipeline rows on pull (multi-device shared)', async () => {
+    // 拉取不再消费即删（delete_le_sid 已移除）：同一 cursor 重复拉取应拿到相同数据，
+    // 数据仅在服务端 TTL 清理时删除。
+    const cmdEnum = getProto().lookupEnum('command.Command');
+    const PullPipelineRequest = getProto().lookupType('pipeline.PullPipelineRequest');
+    const pullPage = async (sid) => {
+      const r = await client.httpRequest(cmdEnum.values.PIPELINE_PULL_PACKET,
+        PullPipelineRequest.encode(PullPipelineRequest.create({ sid, count: 100 })).finish());
+      assert.ok(r.code === 0 || r.code === 200, `pull code=${r.code}`);
+      const d = safeDecode(getProto(), 'pipeline.PullPipelineResponse', r.data);
+      assert.ok(d.ok, `decode failed: ${d.error}`);
+      assert.ok(!d.result.expired, 'should not be expired');
+      return d.result;
+    };
+    const first = await pullPage(0);
+    const second = await pullPage(0);
+    // 从 0 重复拉取仍能拿到历史数据（未被删除），且 cursor 一致
+    assert.ok(Number(first.sid) > 0 || first.packets.length > 0, 'should have data to advance');
+    assert.strictEqual(Number(second.sid), Number(first.sid), 'sid should be identical across pulls');
+    assert.strictEqual(second.packets.length, first.packets.length,
+      'packets should not be consumed by pull');
+  });
+
+  // 水位线/expired 路径（服务端 TTL 清理触发）无法仅通过 HTTP 触发（需服务端 DB 侧
+  // 种子水位线或等待 30 天 TTL），此处仅验证新字段存在且正常拉取时 expired=false。
+  it('should expose expired=false & min_sid on normal pipeline pull', async () => {
+    const cmdEnum = getProto().lookupEnum('command.Command');
+    const PullPipelineRequest = getProto().lookupType('pipeline.PullPipelineRequest');
+    const r = await client.httpRequest(cmdEnum.values.PIPELINE_PULL_PACKET,
+      PullPipelineRequest.encode(PullPipelineRequest.create({ sid: 1, count: 100 })).finish());
+    assert.ok(r.code === 0 || r.code === 200, `pull code=${r.code}`);
+    const d = safeDecode(getProto(), 'pipeline.PullPipelineResponse', r.data);
+    assert.ok(d.ok, `decode failed: ${d.error}`);
+    assert.strictEqual(d.result.expired, false, 'normal pull should not be expired');
+    assert.ok(typeof d.result.min_sid === 'number', 'min_sid should be present');
   });
 
 });

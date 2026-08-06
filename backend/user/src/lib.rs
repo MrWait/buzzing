@@ -58,10 +58,11 @@ impl ExternApp for AppUser {
 impl BizUser for AppUser {
     async fn get_user_by_id(&self, ctx: &AppContext, user_id: i64) -> Result<entity::User> {
         use models::users::UserModel;
-        let user = UserModel::find_by_id(&ctx.db, user_id)
-            .await?
-            .ok_or(Error::NotFound)?;
-        Ok(UserModel(user).into())
+        let pairs = UserModel::find_by_ids_with_account(&ctx.db, &[user_id]).await?;
+        let (user_model, account) = pairs.into_iter().next().ok_or(Error::NotFound)?;
+        let mut u: entity::User = UserModel(user_model).into();
+        u.phone = account.phone;
+        Ok(u)
     }
 
     async fn get_user_by_ids(
@@ -70,8 +71,15 @@ impl BizUser for AppUser {
         user_ids: Vec<i64>,
     ) -> Result<Vec<entity::User>> {
         use models::users::UserModel;
-        let mut users = UserModel::find_by_ids(&ctx.db, &user_ids).await?;
-        Ok(users.drain(..).map(|user| UserModel(user).into()).collect())
+        let pairs = UserModel::find_by_ids_with_account(&ctx.db, &user_ids).await?;
+        Ok(pairs
+            .into_iter()
+            .map(|(u, a)| {
+                let mut eu: entity::User = UserModel(u).into();
+                eu.phone = a.phone;
+                eu
+            })
+            .collect())
     }
 
     async fn list_depts(&self, ctx: &AppContext, _brief: &UserBrief, tenant_id: i64) -> Result<Vec<entity::Department>> {
@@ -109,9 +117,15 @@ impl BizUser for AppUser {
     async fn list_dept_members(&self, ctx: &AppContext, _brief: &UserBrief, dept_id: i64, _page: i32, _page_size: i32) -> Result<Vec<entity::User>> {
         use models::users::UserModel;
         let users = UserModel::find_by_dept_id(&ctx.db, dept_id).await?;
-        Ok(users.into_iter().map(|u| {
-            let um: entity::User = u.into();
-            um
-        }).collect())
+        let user_ids: Vec<i64> = users.iter().map(|u| u.0.id).collect();
+        let pairs = UserModel::find_by_ids_with_account(&ctx.db, &user_ids).await?;
+        Ok(pairs
+            .into_iter()
+            .map(|(u, a)| {
+                let mut eu: entity::User = UserModel(u).into();
+                eu.phone = a.phone;
+                eu
+            })
+            .collect())
     }
 }

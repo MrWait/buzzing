@@ -5,7 +5,6 @@ import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/utils/common_utils.dart';
-import 'package:buzzing/models/idl/command.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/entity.pbenum.dart';
 
@@ -13,8 +12,10 @@ import 'package:buzzing/models/idl/meeting.pb.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/widget/forward_picker.dart';
+import 'package:buzzing/widget/profile.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fixnum/fixnum.dart';
@@ -34,6 +35,19 @@ class MessageBox extends ConsumerStatefulWidget {
 }
 
 class _MessageBoxState extends ConsumerState<MessageBox> {
+  /// 桌面端 hover 态：由整行的 MouseRegion 维护，
+  /// 保证 hover 到气泡右侧空白区域也能弹出操作菜单。
+  var _rowHovering = false;
+
+  /// “更多”按钮的 key，用于锚定更多菜单的位置。
+  final _moreBtnKey = GlobalKey();
+
+  /// 更多菜单是否已弹出。弹出期间强制保持 hover 菜单可见。
+  var _menuOpen = false;
+
+  /// 右键按下时光标的全局位置，用于让右键菜单跟随光标弹出。
+  Offset? _menuPosition;
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -72,6 +86,15 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
                   _formatTime(msg.createTimeMs),
                   style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                 ),
+                // 诊断信息：hover 命中（规则与消息菜单一致）时展示 [pos, message id]
+                if (isDesktop && _rowHovering)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Text(
+                      '[${msg.pos}, ${msg.id}]',
+                      style: tt.labelSmall?.copyWith(color: cs.outline),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -79,10 +102,13 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
           _ReplyDecorator(msg: msg, cs: cs, tt: tt),
         _BubbleWithMenu(
           isSelf: isSelf,
-          showRead: isSelf && isGroupChat,
+          // 群聊自家消息可点击查看已读成员；单聊自家消息也展示已读标记，但仅一名目标、无需点击查看。
+          showRead: isSelf,
           readState: im.entity.readstates[msg.id] ?? ReadState.create(),
-          onReadTap: () => _showReadDetail(context, im, msg),
+          onReadTap: isGroupChat ? () => _showReadDetail(context, im, msg) : null,
           hoverMenuBuilder: () => _buildHoverActions(context, cs, tt, im, isSelf),
+          // hover 态由整行的 MouseRegion 提供；更多菜单弹出时强制保持可见
+          hovering: _rowHovering || _menuOpen,
           cs: cs,
           tt: tt,
           msg: msg,
@@ -166,25 +192,39 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
   ) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        return GestureDetector(
-          onSecondaryTap: () => _showContextMenu(context, cs, tt, im),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildAvatar(),
-              const SizedBox(width: 8),
-              Flexible(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: constraints.maxWidth - 36),
-                  child: bubble,
+        return MouseRegion(
+          // hover 命中整行（含气泡右侧空白区域），而非仅气泡本身
+          onEnter: (_) => _setRowHover(true),
+          onExit: (_) => _setRowHover(false),
+          child: GestureDetector(
+            onSecondaryTapDown: (details) => _menuPosition = details.globalPosition,
+            onSecondaryTap: () => _showContextMenu(context, cs, tt, im),
+            // 透明命中测试：让整行（含空白区域）都能响应鼠标事件
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildAvatar(),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints:
+                        BoxConstraints(maxWidth: constraints.maxWidth - 36),
+                    child: bubble,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
     );
+  }
+
+  void _setRowHover(bool hovering) {
+    if (_rowHovering == hovering) return;
+    setState(() => _rowHovering = hovering);
   }
 
   Widget _buildHoverActions(
@@ -224,78 +264,13 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
   }
 
   Widget _moreBtn(BuildContext context, ColorScheme cs, TextTheme tt, ImController im) {
-    final msg = widget.msg;
     return Tooltip(
       message: '更多',
       child: InkWell(
-        onTap: () {
-          final btn = context.findRenderObject() as RenderBox?;
-          final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
-          if (btn == null || overlay == null) return;
-          final offset = btn.localToGlobal(Offset.zero, ancestor: overlay);
-          showMenu<String>(
-            context: context,
-            position: RelativeRect.fromLTRB(offset.dx, offset.dy - 120, offset.dx + 40, offset.dy),
-            items: [
-              PopupMenuItem(value: 'thread', child: ListTile(
-                leading: Icon(Icons.forum_outlined, size: 18),
-                title: Text('Thread', style: tt.bodySmall),
-                dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero,
-              )),
-              PopupMenuItem(value: 'favorite', child: ListTile(
-                leading: Icon(Icons.star_outline, size: 18),
-                title: Text('收藏', style: tt.bodySmall),
-                dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero,
-              )),
-              if (im.pinnedMessages.any((m) => m.id == msg.id))
-                PopupMenuItem(value: 'unpin', child: ListTile(
-                  leading: Icon(Icons.push_pin, size: 18),
-                  title: Text('取消置顶', style: tt.bodySmall),
-                  dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero,
-                ))
-              else
-                PopupMenuItem(value: 'pin', child: ListTile(
-                  leading: Icon(Icons.push_pin_outlined, size: 18),
-                  title: Text('置顶', style: tt.bodySmall),
-                  dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero,
-                )),
-              if (msg.tpy == 4)
-                PopupMenuItem(value: 'transcribe', child: ListTile(
-                  leading: Icon(Icons.notes, size: 18),
-                  title: Text(t.transcribe, style: tt.bodySmall),
-                  dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero,
-                )),
-              if ([1, 11, 13].contains(msg.tpy))
-                PopupMenuItem(value: 'translate', child: ListTile(
-                  leading: Icon(Icons.translate, size: 18),
-                  title: Text('翻译', style: tt.bodySmall),
-                  dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero,
-                )),
-              PopupMenuItem(value: 'delete', child: ListTile(
-                leading: Icon(Icons.delete_outline, size: 18),
-                title: Text('删除', style: tt.bodySmall),
-                dense: true, visualDensity: VisualDensity.compact, contentPadding: EdgeInsets.zero,
-              )),
-            ],
-          ).then((value) {
-            if (value == 'thread') {
-              im.openThread(msg);
-            } else if (value == 'favorite') {
-              im.favoriteMessage(msg);
-            } else if (value == 'pin') {
-              im.pinMessage(msg.chatId, msg.id);
-            } else if (value == 'unpin') {
-              im.unpinMessage(msg.chatId, msg.id);
-            } else if (value == 'transcribe') {
-              im.transcribeVoice(msg.id, msg.chatId);
-            } else if (value == 'translate') {
-              im.translateMessage(msg.id, msg.chatId, 'zh');
-            } else if (value == 'delete') {
-              _confirmDelete(context, im, msg);
-            }
-          });
-        },
+        onTap: () => _showMoreMenu(context, im),
         child: Container(
+          // 用 key 锚定，便于更多菜单根据按钮四周可用空间定位（四角之一）
+          key: _moreBtnKey,
           width: 28,
           height: 28,
           alignment: Alignment.center,
@@ -303,6 +278,49 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
         ),
       ),
     );
+  }
+
+  /// 更多菜单项（紧凑布局），返回图标/文案/点击动作。
+  List<_MenuAction> _moreActions(BuildContext context, ImController im) {
+    final msg = widget.msg;
+    return [
+      _MenuAction(Icons.forum_outlined, 'Thread', () => im.openThread(msg)),
+      _MenuAction(Icons.star_outline, '收藏', () => im.favoriteMessage(msg)),
+      if (im.pinnedMessages.any((m) => m.id == msg.id))
+        _MenuAction(Icons.push_pin, '取消置顶', () => im.unpinMessage(msg.chatId, msg.id))
+      else
+        _MenuAction(Icons.push_pin_outlined, '置顶', () => im.pinMessage(msg.chatId, msg.id)),
+      if (msg.tpy == 4)
+        _MenuAction(Icons.notes, t.transcribe, () => im.transcribeVoice(msg.id, msg.chatId)),
+      if ([1, 11, 13].contains(msg.tpy))
+        _MenuAction(Icons.translate, '翻译', () => im.translateMessage(msg.id, msg.chatId, 'zh')),
+      _MenuAction(Icons.delete_outline, '删除', () => _confirmDelete(context, im, msg)),
+    ];
+  }
+
+  /// 弹出更多菜单。菜单紧贴“更多”按钮，依据四周可用空间选择在左上/右上/左下/右下。
+  /// 菜单弹出期间保持 hover 菜单可见（_moreMenuOpen 为 true，hover 态不隐藏）。
+  void _showMoreMenu(BuildContext context, ImController im) {
+    final overlay = Overlay.of(context);
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (ctx) => _MoreMenuPopup(
+        anchorKey: _moreBtnKey,
+        actions: _moreActions(context, im),
+        menuWidth: 132,
+        onClose: () {
+          _setMoreMenuOpen(false);
+          entry.remove();
+        },
+      ),
+    );
+    _setMoreMenuOpen(true);
+    overlay.insert(entry);
+  }
+
+  void _setMoreMenuOpen(bool open) {
+    if (_menuOpen == open) return;
+    setState(() => _menuOpen = open);
   }
 
   void _showReactionPicker(BuildContext context, ImController im) {
@@ -343,79 +361,38 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
 
   void _showContextMenu(BuildContext context, ColorScheme cs, TextTheme tt, ImController im) {
     final msg = widget.msg;
+    // 跟随右键按下时的光标位置弹出；无法拿到位置时才回退到固定偏移。
+    final overlay = Overlay.of(context).context.findRenderObject();
+    var position = const RelativeRect.fromLTRB(100, 100, 100, 100);
+    final globalPos = _menuPosition;
+    if (globalPos != null && overlay is RenderBox) {
+      final size = overlay.size;
+      position = RelativeRect.fromLTRB(
+        globalPos.dx,
+        globalPos.dy,
+        math.max(0, size.width - globalPos.dx),
+        math.max(0, size.height - globalPos.dy),
+      );
+    }
     showMenu<String>(
       context: context,
-      position: RelativeRect.fromLTRB(100, 100, 100, 100),
+      position: position,
       items: [
-        PopupMenuItem(value: 'reply', child: ListTile(
-          leading: Icon(Icons.reply_rounded, size: 18),
-          title: Text('回复', style: tt.bodySmall),
-          dense: true,
-          visualDensity: VisualDensity.compact,
-          contentPadding: EdgeInsets.zero,
-        )),
-        PopupMenuItem(value: 'thread', child: ListTile(
-          leading: Icon(Icons.forum_outlined, size: 18),
-          title: Text('Thread', style: tt.bodySmall),
-          dense: true,
-          visualDensity: VisualDensity.compact,
-          contentPadding: EdgeInsets.zero,
-        )),
-        PopupMenuItem(value: 'forward', child: ListTile(
-          leading: Icon(Icons.forward_rounded, size: 18),
-          title: Text('转发', style: tt.bodySmall),
-          dense: true,
-          visualDensity: VisualDensity.compact,
-          contentPadding: EdgeInsets.zero,
-        )),
-        PopupMenuItem(value: 'favorite', child: ListTile(
-          leading: Icon(Icons.star_outline, size: 18),
-          title: Text('收藏', style: tt.bodySmall),
-          dense: true,
-          visualDensity: VisualDensity.compact,
-          contentPadding: EdgeInsets.zero,
-        )),
+        _ctxMenuItem(tt, 'reply', Icons.reply_rounded, '回复'),
+        _ctxMenuItem(tt, 'thread', Icons.forum_outlined, 'Thread'),
+        _ctxMenuItem(tt, 'forward', Icons.forward_rounded, '转发'),
+        _ctxMenuItem(tt, 'favorite', Icons.star_outline, '收藏'),
         if (im.pinnedMessages.any((m) => m.id == msg.id))
-          PopupMenuItem(value: 'unpin', child: ListTile(
-            leading: Icon(Icons.push_pin, size: 18),
-            title: Text('取消置顶', style: tt.bodySmall),
-            dense: true,
-            visualDensity: VisualDensity.compact,
-            contentPadding: EdgeInsets.zero,
-          ))
+          _ctxMenuItem(tt, 'unpin', Icons.push_pin, '取消置顶')
         else
-          PopupMenuItem(value: 'pin', child: ListTile(
-            leading: Icon(Icons.push_pin_outlined, size: 18),
-            title: Text('置顶', style: tt.bodySmall),
-            dense: true,
-            visualDensity: VisualDensity.compact,
-            contentPadding: EdgeInsets.zero,
-          )),
+          _ctxMenuItem(tt, 'pin', Icons.push_pin_outlined, '置顶'),
         // M5-A: voice transcribe
         if (msg.tpy == 4)
-          PopupMenuItem(value: 'transcribe', child: ListTile(
-            leading: Icon(Icons.notes, size: 18),
-            title: Text(t.transcribe, style: tt.bodySmall),
-            dense: true,
-            visualDensity: VisualDensity.compact,
-            contentPadding: EdgeInsets.zero,
-          )),
+          _ctxMenuItem(tt, 'transcribe', Icons.notes, t.transcribe),
         // M5-F: translate
         if ([1, 11, 13].contains(msg.tpy))
-          PopupMenuItem(value: 'translate', child: ListTile(
-            leading: Icon(Icons.translate, size: 18),
-            title: Text('翻译', style: tt.bodySmall),
-            dense: true,
-            visualDensity: VisualDensity.compact,
-            contentPadding: EdgeInsets.zero,
-          )),
-        PopupMenuItem(value: 'delete', child: ListTile(
-          leading: Icon(Icons.delete_outline, size: 18),
-          title: Text('删除', style: tt.bodySmall),
-          dense: true,
-          visualDensity: VisualDensity.compact,
-          contentPadding: EdgeInsets.zero,
-        )),
+          _ctxMenuItem(tt, 'translate', Icons.translate, '翻译'),
+        _ctxMenuItem(tt, 'delete', Icons.delete_outline, '删除'),
       ],
     ).then((value) {
       if (value == 'reply') {
@@ -438,6 +415,23 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
         im.translateMessage(msg.id, msg.chatId, 'zh');
       }
     });
+  }
+
+  /// 紧凑风格的右键菜单项：固定行高、小图标，与 hover 操作栏风格一致。
+  PopupMenuItem<String> _ctxMenuItem(TextTheme tt, String value, IconData icon, String label) {
+    return PopupMenuItem<String>(
+      value: value,
+      height: 32,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16),
+          const SizedBox(width: 8),
+          Text(label, style: tt.bodySmall),
+        ],
+      ),
+    );
   }
 
   void _showForwardDialog(BuildContext context, ImController im) {
@@ -489,7 +483,7 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
     switch (msg.tpy) {
       case 1:
         var m = MessageText.fromBuffer(msg.content);
-        return _buildTextWithMentions(m.text, tt.bodyMedium!, cs);
+        return _buildTextWithMentions(context, im, m.text, tt.bodyMedium!, cs);
       case 2:
         return _ImageContent(msg: msg, cs: cs, tt: tt);
       case 3:
@@ -538,8 +532,11 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
     final im = ref.watch(imProvider);
     final presence = im.presenceMap[u.id];
     final isOnline = presence?.status == 1;
-    return GestureDetector(
-      onTap: () {},
+    return AvatarUserPopup(
+      im: im,
+      id: u.id,
+      url: u.avatar,
+      ver: im.getUserVer(u.id),
       child: Stack(
         children: [
           _MessageAvatar(user: u),
@@ -840,18 +837,24 @@ class _BubbleWithMenu extends StatefulWidget {
   final bool isSelf;
   final bool showRead;
   final ReadState readState;
-  final VoidCallback onReadTap;
+  final VoidCallback? onReadTap;
   final Widget Function() hoverMenuBuilder;
+
+  /// 是否处于 hover 态。由外层整行的 MouseRegion 提供，
+  /// 这样 hover 到气泡右侧的空白区域同样能弹出菜单。
+  final bool hovering;
   final ColorScheme cs;
   final TextTheme tt;
   final Message msg;
 
-  const _BubbleWithMenu({    required this.child,
+  const _BubbleWithMenu({
+    required this.child,
     required this.isSelf,
     required this.showRead,
     required this.readState,
     required this.onReadTap,
     required this.hoverMenuBuilder,
+    required this.hovering,
     required this.cs,
     required this.tt,
     required this.msg,
@@ -862,7 +865,12 @@ class _BubbleWithMenu extends StatefulWidget {
 }
 
 class _BubbleWithMenuState extends State<_BubbleWithMenu> {
-  var _hovering = false;
+  /// 已读圈（含左侧间距）占位宽度，用于计算右侧剩余空间与菜单偏移
+  static const _readCircleW = 20.0;
+
+  /// hover 菜单宽度：4 个 28px 按钮 + 边框
+  static const _menuW = 116.0;
+
   final _bubbleKey = GlobalKey();
   double _bubbleW = 0;
   // 记录 _bubbleW 对应测量的是哪条消息。ListView 会复用 State，
@@ -893,6 +901,13 @@ class _BubbleWithMenuState extends State<_BubbleWithMenu> {
       }
       _scheduleMeasure();
     }
+    // 由外层整行 MouseRegion 驱动的 hover 进入：作废旧测量结果，
+    // 待本次测量完成后再渲染菜单，避免用残留宽度定位。
+    if (!oldWidget.hovering && widget.hovering) {
+      _hoverToken += 1;
+      _measureToken = -1;
+      _scheduleMeasure();
+    }
   }
 
   void _scheduleMeasure() {
@@ -916,26 +931,11 @@ class _BubbleWithMenuState extends State<_BubbleWithMenu> {
     }
   }
 
-  void _onHoverEnter() {
-    setState(() {
-      _hovering = true;
-      // 本次 hover 尚未完成测量，先失效旧测量结果，隐藏菜单直到重新测量。
-      _hoverToken += 1;
-      _measureToken = -1;
-    });
-    _scheduleMeasure();
-  }
-
-  void _onHoverExit() {
-    setState(() => _hovering = false);
-  }
-
-  /// hover 菜单是否放在气泡右侧；右侧空间不足时放在左侧。
-  /// maxW 来自布局时的可用宽度（Flexible 的约束上限），换算后
-  /// 右侧可用空间 = maxW - 气泡宽，无需依赖外部缓存的行宽。
+  /// hover 菜单是否放在气泡右侧；右侧空间不足时放在左侧（覆盖气泡右边缘）。
+  /// maxW 为整行可用宽度，右侧剩余空间 = maxW - 气泡宽 - 已读圈宽。
   bool _showOnRight(double maxW) {
-    const menuW = 116.0;
-    return maxW - _bubbleW >= menuW;
+    final reserved = widget.showRead ? _readCircleW : 0.0;
+    return maxW - _bubbleW - reserved >= _menuW;
   }
 
   @override
@@ -946,56 +946,60 @@ class _BubbleWithMenuState extends State<_BubbleWithMenu> {
     final bubbleColor = isSelf ? cs.primaryContainer : cs.surfaceContainerHigh;
     final textColor = isSelf ? cs.onPrimaryContainer : cs.onSurface;
 
-    return MouseRegion(
-      onEnter: (_) => _onHoverEnter(),
-      onExit: (_) => _onHoverExit(),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      key: _bubbleKey,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: bubbleColor,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: DefaultTextStyle(
-                        style: tt.bodyMedium!.copyWith(color: textColor),
-                        child: widget.child,
-                      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final menuVisible = isDesktop &&
+            widget.hovering &&
+            _measureToken == _hoverToken &&
+            _measuredMsgId == widget.msg.id.toInt() &&
+            _bubbleW > 0;
+        final onRight = _showOnRight(constraints.maxWidth);
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // 桌面端用 mainAxisSize.max 撑满整行宽度，使 Stack 覆盖气泡右侧空白，
+            // Positioned 的菜单因此落在 Stack 边界内、可正常点击；
+            // 气泡自身仍由 Flexible(loose) 保持内容自适应宽度。
+            // 移动端无 hover 菜单，保持 min 以免影响原有布局。
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: isDesktop ? MainAxisSize.max : MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Container(
+                    key: _bubbleKey,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: bubbleColor,
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    if (isDesktop &&
-                        _hovering &&
-                        _measureToken == _hoverToken &&
-                        _measuredMsgId == widget.msg.id.toInt() &&
-                        _bubbleW > 0)
-                      Positioned(
-                        left: _showOnRight(constraints.maxWidth)
-                            ? _bubbleW + 4
-                            : null,
-                        right: _showOnRight(constraints.maxWidth) ? null : 4,
-                        top: 0,
-                        child: widget.hoverMenuBuilder(),
-                      ),
-                  ],
-                );
-              },
+                    child: DefaultTextStyle(
+                      style: tt.bodyMedium!.copyWith(color: textColor),
+                      child: widget.child,
+                    ),
+                  ),
+                ),
+                if (widget.showRead)
+                  _ReadCircle(
+                    readState: widget.readState,
+                    onTap: widget.onReadTap,
+                  ),
+              ],
             ),
-          ),
-          if (widget.showRead)
-            _ReadCircle(
-              readState: widget.readState,
-              onTap: widget.onReadTap,
-            ),
-        ],
-      ),
+            if (menuVisible)
+              Positioned(
+                left: onRight
+                    ? _bubbleW + (widget.showRead ? _readCircleW : 0) + 4
+                    : null,
+                right: onRight ? null : 4,
+                top: 0,
+                child: widget.hoverMenuBuilder(),
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -1009,7 +1013,7 @@ int _readPercent(ReadState rs) {
 
 class _ReadCircle extends StatelessWidget {
   final ReadState readState;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _ReadCircle({
     required this.readState,
@@ -1020,24 +1024,23 @@ class _ReadCircle extends StatelessWidget {
   Widget build(BuildContext context) {
     final pct = _readPercent(readState);
     const green = Color(0xFF4ADE80);
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.only(left: 4),
-        child: SizedBox(
-          width: 16,
-          height: 16,
-          child: CustomPaint(
-            painter: _CirclePainter(percent: pct, color: green),
-            child: pct >= 100
-                ? Center(
-                    child: Text('✓', style: TextStyle(color: green, fontSize: 11, fontWeight: FontWeight.w700)),
-                  )
-                : null,
-          ),
+    final circle = Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: SizedBox(
+        width: 16,
+        height: 16,
+        child: CustomPaint(
+          painter: _CirclePainter(percent: pct, color: green),
+          child: pct >= 100
+              ? Center(
+                  child: Text('✓', style: TextStyle(color: green, fontSize: 11, fontWeight: FontWeight.w700)),
+                )
+              : null,
         ),
       ),
     );
+    // 单聊无已读成员详情，onTap 为 null 时不包 GestureDetector（不响应点击）。
+    return onTap == null ? circle : GestureDetector(onTap: onTap, child: circle);
   }
 }
 
@@ -1080,8 +1083,10 @@ class _ReplyDecorator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = Translations.of(context);
     final ref = msg.refData;
     final preview = ref.summary.isNotEmpty ? ref.summary : '(消息已撤回)';
+    final senderName = ref.senderName.isNotEmpty ? ref.senderName : '未知用户';
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
       padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
@@ -1090,21 +1095,25 @@ class _ReplyDecorator extends StatelessWidget {
         borderRadius: BorderRadius.circular(4),
         border: Border(left: BorderSide(color: cs.primary, width: 3)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            ref.senderName.isNotEmpty ? ref.senderName : '未知用户',
-            style: tt.bodySmall?.copyWith(color: cs.primary, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            preview,
-            style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '${t.reply} ',
+              style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+            ),
+            TextSpan(
+              text: senderName,
+              style: tt.bodySmall?.copyWith(color: cs.primary, fontWeight: FontWeight.w600),
+            ),
+            TextSpan(
+              text: ': $preview',
+              style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+            ),
+          ],
+        ),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -1793,8 +1802,21 @@ class _SystemContent extends StatelessWidget {
   }
 }
 
-/// 将文本中的 @xxx 高亮渲染
-Widget _buildTextWithMentions(String text, TextStyle baseStyle, ColorScheme cs) {
+/// 文本中 @name 被点击时的全局位置（临时记录，供展示资料浮层定位）。
+Offset? _mentionTapPos;
+
+/// 将文本中的 @xxx 高亮渲染；@提及可点击，弹出用户资料浮层。
+Widget _buildTextWithMentions(
+    BuildContext context, ImController im, String text, TextStyle baseStyle, ColorScheme cs) {
+  // 通过用户缓存按名字定位 @ 到的用户 id
+  Int64? idByName(String name) {
+    for (final e in im.userVers.entries) {
+      final u = e.value.user;
+      if (u != null && u.name == name) return e.key;
+    }
+    return null;
+  }
+
   final pattern = RegExp(r'@\S+');
   final spans = <InlineSpan>[];
   int lastEnd = 0;
@@ -1802,10 +1824,39 @@ Widget _buildTextWithMentions(String text, TextStyle baseStyle, ColorScheme cs) 
     if (match.start > lastEnd) {
       spans.add(TextSpan(text: text.substring(lastEnd, match.start), style: baseStyle));
     }
-    spans.add(TextSpan(
-      text: match.group(0),
-      style: baseStyle.copyWith(color: cs.primary, fontWeight: FontWeight.w600, backgroundColor: cs.primary.withValues(alpha: 0.1)),
-    ));
+    final token = match.group(0) ?? '';
+    final name = token.substring(1);
+    final uid = idByName(name);
+    final mention = TextSpan(
+      text: token,
+      style: baseStyle.copyWith(
+          color: cs.primary,
+          fontWeight: FontWeight.w600,
+          backgroundColor: cs.primary.withValues(alpha: 0.1)),
+    );
+    if (uid != null) {
+      // 可点击的 @提及：长按时记录点击全局位置，松开展开用户资料浮层
+      final recognizer = TapGestureRecognizer();
+      recognizer.onTapDown = (d) => _mentionTapPos = d.globalPosition;
+      recognizer.onTap = () {
+        final u = im.getUser(uid);
+        showUserMenu(
+          context,
+          point: _mentionTapPos ?? Offset.zero,
+          im: im,
+          id: uid,
+          url: u?.avatar ?? '',
+          ver: im.getUserVer(uid),
+        );
+      };
+      spans.add(TextSpan(
+        text: token,
+        style: mention.style,
+        recognizer: recognizer,
+      ));
+    } else {
+      spans.add(mention);
+    }
     lastEnd = match.end;
   }
   if (lastEnd < text.length) {
@@ -1916,7 +1967,7 @@ class _MessageAvatarState extends State<_MessageAvatar> {
       height: 28,
       decoration: BoxDecoration(
         color: cs.primary,
-        borderRadius: BorderRadius.circular(4),
+        shape: BoxShape.circle,
       ),
       clipBehavior: Clip.antiAlias,
       child: showImage
@@ -1944,6 +1995,153 @@ class _MessageAvatarState extends State<_MessageAvatar> {
       child: Text(
         u.name.isNotEmpty ? u.name[0].toUpperCase() : '?',
         style: tt.bodySmall?.copyWith(color: cs.onPrimary),
+      ),
+    );
+  }
+}
+
+/// 更多菜单单项（紧凑布局）。
+class _MenuAction {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _MenuAction(this.icon, this.label, this.onTap);
+}
+
+/// 更多菜单弹出层。位于 Overlay 中，紧贴锚点（更多按钮）按可用空间选择四角之一展开。
+class _MoreMenuPopup extends StatefulWidget {
+  final GlobalKey anchorKey;
+  final List<_MenuAction> actions;
+  final double menuWidth;
+  final VoidCallback onClose;
+
+  const _MoreMenuPopup({
+    required this.anchorKey,
+    required this.actions,
+    required this.menuWidth,
+    required this.onClose,
+  });
+
+  @override
+  State<_MoreMenuPopup> createState() => _MoreMenuPopupState();
+}
+
+class _MoreMenuPopupState extends State<_MoreMenuPopup> {
+  static const _itemHeight = 30.0;
+  static const _gap = 6.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final screen = MediaQuery.sizeOf(context);
+    final overlayBox = Overlay.of(context).context.findRenderObject() as RenderBox?;
+    final anchorBox = widget.anchorKey.currentContext?.findRenderObject() as RenderBox?;
+
+    // 锚定按钮在 Overlay 中的位置
+    Offset anchorPos = Offset.zero;
+    Size anchorSize = Size.zero;
+    if (anchorBox != null && overlayBox != null) {
+      anchorPos = anchorBox.localToGlobal(Offset.zero, ancestor: overlayBox);
+      anchorSize = anchorBox.size;
+    }
+
+    final menuH = widget.actions.length * _itemHeight + 8.0;
+    final menuW = widget.menuWidth;
+    final rect =
+        _computePlacement(anchorPos & anchorSize, Size(menuW, menuH), screen);
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onClose,
+            child: const SizedBox.expand(),
+          ),
+        ),
+        Positioned.fromRect(
+          rect: rect,
+          child: _buildMenu(context, cs, tt),
+        ),
+      ],
+    );
+  }
+
+  /// 依据可用空间在锚定按钮的左上/右上/左下/右下四角选择菜单位置，保证完全在屏内。
+  Rect _computePlacement(Rect anchor, Size menu, Size screen) {
+    final w = menu.width, h = menu.height;
+
+    // 右下、右上、左下、左上
+    final candidates = <Rect>[
+      Rect.fromLTWH(anchor.right + _gap, anchor.bottom + _gap, w, h),
+      Rect.fromLTWH(anchor.right + _gap, anchor.top - h - _gap, w, h),
+      Rect.fromLTWH(anchor.left - w - _gap, anchor.bottom + _gap, w, h),
+      Rect.fromLTWH(anchor.left - w - _gap, anchor.top - h - _gap, w, h),
+    ];
+
+    for (final c in candidates) {
+      if (c.left >= 0 &&
+          c.top >= 0 &&
+          c.right <= screen.width &&
+          c.bottom <= screen.height) {
+        return c;
+      }
+    }
+
+    // 所有方位都放不下时，退回到锚点右下并收拢到屏内
+    final left =
+        math.max(0.0, math.min(anchor.right + _gap, screen.width - w));
+    final top =
+        math.max(0.0, math.min(anchor.bottom + _gap, screen.height - h));
+    return Rect.fromLTWH(left, top, w, h);
+  }
+
+  Widget _buildMenu(BuildContext context, ColorScheme cs, TextTheme tt) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: widget.menuWidth,
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: cs.outlineVariant),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final a in widget.actions)
+              InkWell(
+                onTap: () {
+                  widget.onClose();
+                  a.onTap();
+                },
+                child: SizedBox(
+                  height: _itemHeight,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(a.icon, size: 15, color: cs.onSurfaceVariant),
+                        const SizedBox(width: 6),
+                        Text(a.label,
+                            style: tt.bodySmall?.copyWith(color: cs.onSurface)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

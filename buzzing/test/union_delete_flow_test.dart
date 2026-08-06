@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sp_util/sp_util.dart';
 
+import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/controller/sdk_controller.dart';
 import 'package:buzzing/event/event_bus.dart';
 import 'package:buzzing/page/login/login_logic.dart';
@@ -26,7 +27,9 @@ void main() {
     if (currentUnion.isNotEmpty) {
       DataPersistence.putCurrentUnionServer(currentUnion);
     }
-    final logic = LoginLogic(sdk: SdkController(eventBus: EventBus()));
+    final bus = EventBus();
+    final sdk = SdkController(eventBus: bus);
+    final logic = LoginLogic(sdk: sdk, im: ImController(sdk: sdk, ev: bus));
     logic.init();
     return ProviderScope(
       overrides: [
@@ -105,7 +108,9 @@ void main() {
     DataPersistence.putUnionServerList([entry]);
     DataPersistence.putCurrentUnionServer('http://a.com');
 
-    final logic = LoginLogic(sdk: SdkController(eventBus: EventBus()));
+    final bus = EventBus();
+    final sdk = SdkController(eventBus: bus);
+    final logic = LoginLogic(sdk: sdk, im: ImController(sdk: sdk, ev: bus));
     logic.init();
     expect(logic.currentUnionEntry, isNotEmpty,
         reason: 'initData 应能从缓存恢复当前 union');

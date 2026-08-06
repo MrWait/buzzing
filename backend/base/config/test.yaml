@@ -99,3 +99,12 @@ auth:
     # Token expiration time in seconds
     expiration: 604800 # 7 days
 
+settings:
+  gen_id: true
+  storage: "storage"
+  union_master: true
+  union_id: 1024
+  # pipeline TTL 清理配置（秒）：30 天过期、每 24 小时清理一次
+  pipeline_ttl_seconds: 2592000
+  pipeline_cleanup_interval_seconds: 86400
+

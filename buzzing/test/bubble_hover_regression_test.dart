@@ -2,12 +2,66 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 回归测试：验证 hover 菜单位置测量在 State 复用到新消息时不会残留
-/// 上一条（较宽）消息的气泡宽度，导致短消息的菜单误翻转。
-/// 实现与 lib/widget/message.dart 中 _BubbleWithMenuState 保持一致。
-class _BubbleWithMenu extends StatefulWidget {
-  const _BubbleWithMenu({required this.msgId, required this.child});
+/// 回归测试：hover 菜单行为
+/// 1. hover 菜单位置测量在 State 复用到新消息时不残留上一条（较宽）消息的
+///    气泡宽度，避免短消息的菜单误翻转。
+/// 2. hover 命中整行（含气泡右侧空白区域），而非仅气泡本身。
+///
+/// 实现与 lib/widget/message.dart 中 _MessageBoxState / _BubbleWithMenuState
+/// 保持一致：hover 态由外层整行的 MouseRegion 维护，通过 hovering 传入气泡。
+
+/// 对应 _MessageBoxState：整行 MouseRegion + 撑满宽度的 Row
+class _MessageRow extends StatefulWidget {
+  const _MessageRow({required this.msgId, required this.child});
   final int msgId;
+  final Widget child;
+
+  @override
+  State<_MessageRow> createState() => _MessageRowState();
+}
+
+class _MessageRowState extends State<_MessageRow> {
+  var _rowHovering = false;
+
+  void _setRowHover(bool hovering) {
+    if (_rowHovering == hovering) return;
+    setState(() => _rowHovering = hovering);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => _setRowHover(true),
+      onExit: (_) => _setRowHover(false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Flexible(
+              child: _BubbleWithMenu(
+                msgId: widget.msgId,
+                hovering: _rowHovering,
+                child: widget.child,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 对应 _BubbleWithMenu：hover 态由外部传入
+class _BubbleWithMenu extends StatefulWidget {
+  const _BubbleWithMenu({
+    required this.msgId,
+    required this.hovering,
+    required this.child,
+  });
+  final int msgId;
+  final bool hovering;
   final Widget child;
 
   @override
@@ -16,12 +70,13 @@ class _BubbleWithMenu extends StatefulWidget {
 
 class _BubbleWithMenuState extends State<_BubbleWithMenu> {
   static const menuKey = ValueKey('menu');
+  static const _menuW = 116.0;
+
   final _bubbleKey = GlobalKey();
   double _bubbleW = 0;
   int _measuredMsgId = -1;
   int _hoverToken = 0;
   int _measureToken = -1;
-  var _hovering = false;
 
   @override
   void initState() {
@@ -35,6 +90,11 @@ class _BubbleWithMenuState extends State<_BubbleWithMenu> {
     if (oldWidget.msgId != widget.msgId) {
       _measuredMsgId = -1;
       _bubbleW = 0;
+      _measureToken = -1;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+    }
+    if (!oldWidget.hovering && widget.hovering) {
+      _hoverToken += 1;
       _measureToken = -1;
       WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
     }
@@ -55,63 +115,53 @@ class _BubbleWithMenuState extends State<_BubbleWithMenu> {
     }
   }
 
-  bool _showOnRight(double maxW) {
-    const menuW = 116.0;
-    return maxW - _bubbleW >= menuW;
-  }
+  bool _showOnRight(double maxW) => maxW - _bubbleW >= _menuW;
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) {
-        setState(() {
-          _hovering = true;
-          _hoverToken += 1;
-          _measureToken = -1;
-        });
-        WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
-      },
-      onExit: (_) => setState(() => _hovering = false),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Flexible(
-            child: LayoutBuilder(
-              builder: (context, c) {
-                return Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      key: _bubbleKey,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      child: DefaultTextStyle(
-                        style: const TextStyle(fontSize: 14),
-                        child: widget.child,
-                      ),
+    return LayoutBuilder(
+      builder: (context, c) {
+        final menuVisible = widget.hovering &&
+            _measureToken == _hoverToken &&
+            _measuredMsgId == widget.msgId &&
+            _bubbleW > 0;
+        final onRight = _showOnRight(c.maxWidth);
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Flexible(
+                  child: Container(
+                    key: _bubbleKey,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: DefaultTextStyle(
+                      style: const TextStyle(fontSize: 14),
+                      child: widget.child,
                     ),
-                    if (_hovering &&
-                        _measureToken == _hoverToken &&
-                        _measuredMsgId == widget.msgId &&
-                        _bubbleW > 0)
-                      Positioned(
-                        left: _showOnRight(c.maxWidth) ? _bubbleW + 4 : null,
-                        right: _showOnRight(c.maxWidth) ? null : 4,
-                        top: 0,
-                        child: SizedBox(
-                          key: menuKey,
-                          width: 116,
-                          height: 30,
-                          child: const ColoredBox(color: Color(0xFFEEEEEE)),
-                        ),
-                      ),
-                  ],
-                );
-              },
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
+            if (menuVisible)
+              Positioned(
+                left: onRight ? _bubbleW + 4 : null,
+                right: onRight ? null : 4,
+                top: 0,
+                child: const SizedBox(
+                  key: menuKey,
+                  width: _menuW,
+                  height: 30,
+                  child: ColoredBox(color: Color(0xFFEEEEEE)),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
@@ -122,7 +172,7 @@ void main() {
       home: Scaffold(
         body: SizedBox(
           width: 600,
-          child: _BubbleWithMenu(msgId: msgId, child: child),
+          child: _MessageRow(msgId: msgId, child: child),
         ),
       ),
     );
@@ -158,5 +208,47 @@ void main() {
     expect(menu, findsOneWidget);
     expect(tester.getTopLeft(menu).dx, closeTo(38 + 4, 10),
         reason: '短消息右侧空间充足，菜单应贴在气泡右侧，不能反转');
+  });
+
+  testWidgets('hover 气泡右侧空白区域也应弹出菜单', (tester) async {
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await gesture.addPointer(location: Offset(10, 300));
+
+    // 短消息：气泡宽度约 38px，右侧 560px 都是空白区域
+    await tester.pumpWidget(wrap(msgId: 1, child: shortChild()));
+    await tester.pump();
+    expect(menu, findsNothing, reason: '未 hover 时不应显示菜单');
+
+    // 把鼠标移到远离气泡的右侧空白处（x=550，远超气泡宽度）
+    await gesture.moveTo(const Offset(550, 20));
+    await tester.pump(); // hover 生效
+    await tester.pump(); // post-frame 完成测量 -> 菜单显示
+    expect(menu, findsOneWidget,
+        reason: 'hover 到气泡右侧空白区域应命中整行并弹出菜单');
+    expect(tester.getTopLeft(menu).dx, closeTo(38 + 4, 10),
+        reason: '菜单仍应贴在气泡右侧');
+
+    // 移出该行后菜单收起
+    await gesture.moveTo(const Offset(550, 400));
+    await tester.pump();
+    expect(menu, findsNothing, reason: '鼠标移出该行后菜单应收起');
+  });
+
+  testWidgets('菜单落在 Stack 边界内，可被点击命中', (tester) async {
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await gesture.addPointer(location: Offset(10, 300));
+
+    await tester.pumpWidget(wrap(msgId: 1, child: shortChild()));
+    await tester.pump();
+    await gesture.moveTo(const Offset(300, 20));
+    await tester.pump();
+    await tester.pump();
+    expect(menu, findsOneWidget);
+
+    // 菜单整体必须位于行宽 600 之内，否则超出父级边界无法接收点击
+    final rect = tester.getRect(menu);
+    expect(rect.left, greaterThanOrEqualTo(0));
+    expect(rect.right, lessThanOrEqualTo(600),
+        reason: '菜单超出 Stack 边界会导致按钮无法点击');
   });
 }

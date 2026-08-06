@@ -10,6 +10,7 @@ import 'package:buzzing/widget/header_bar.dart';
 import 'package:buzzing/widget/mobile_drawer.dart';
 import 'package:buzzing/widget/navigate_bar.dart';
 import 'package:buzzing/widget/user_list_item.dart';
+import 'package:buzzing/widget/profile.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -623,7 +624,12 @@ class _UserItem extends ConsumerWidget {
       name: user.name,
       avatar: user.avatar,
       subtitle: _deptName(ref),
-      onTap: () => _showUserProfile(context, ref),
+      // 整行（含头像）统一按“头像右侧”锚点规则弹出：以头像矩形为锚点，
+      // 保证与点击头像的弹出位置完全一致。移动端则统一跳转资料页。
+      onAvatarTapUp: isMobile
+          ? null
+          : (rect) => _showUserMenuRect(context, ref, rect),
+      onTap: isMobile ? () => _showUserProfile(context, ref) : null,
       trailing: Container(
         width: 8,
         height: 8,
@@ -641,6 +647,22 @@ class _UserItem extends ConsumerWidget {
     final ctl = ref.read(contactLogicProvider);
     final dept = ctl.navPath.isNotEmpty ? ctl.navPath.last.name : '';
     return dept;
+  }
+
+  void _showUserMenuRect(
+    BuildContext context,
+    WidgetRef ref,
+    Rect rect,
+  ) {
+    final im = ref.read(imProvider);
+    showUserMenu(
+      context,
+      rect: rect,
+      im: im,
+      id: user.id,
+      url: user.avatar,
+      ver: im.getUserVer(user.id),
+    );
   }
 
   void _showUserProfile(BuildContext context, WidgetRef ref) {
@@ -664,11 +686,7 @@ class _UserItem extends ConsumerWidget {
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    UserAvatar(
-                        name: user.name,
-                        avatar: user.avatar,
-                        size: 56,
-                        radius: 8),
+                    UserAvatar(name: user.name, avatar: user.avatar, size: 56),
                     const SizedBox(height: 12),
                     Text(user.name,
                         style: Theme.of(context).textTheme.titleSmall),

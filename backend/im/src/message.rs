@@ -233,6 +233,58 @@ pub(crate) async fn push_messages(
     Ok(())
 }
 
+/// 推送消息已读实体到在线用户（PUSH_MESSAGE_READSTATE=1212，pipe=false）。
+/// 载荷为 PushReadMessageRequest{ entity }，只携带 entity.readstates（key=message_id），
+/// 不下发消息体/表情（与 1211 消息内容变更通道区分，见 docs/data_sync §5）。
+pub(crate) async fn push_message_readstate(
+    ctx: &AppContext,
+    user_ids: &[i64],
+    message_ids: &[i64],
+) -> Result<()> {
+    let entity_ids = EntityIds {
+        message_ids: message_ids.iter().copied().collect(),
+        ..Default::default()
+    };
+
+    let mut pushs: Vec<_> = user_ids
+        .iter()
+        .map(|id| (*id, message::PushReadMessageRequest::default()))
+        .collect();
+    let mut user_entity: HashMap<i64, UserEntity> = user_ids
+        .iter()
+        .map(|id| {
+            let mut entity = UserEntity::default();
+            entity.user_id = *id;
+            (*id, entity)
+        })
+        .collect();
+    {
+        let messages = MessageModel::find_by_ids(&ctx.db, entity_ids.message_ids()).await?;
+        let _ = fill_messages_impl(ctx, messages, false, false, &mut user_entity).await;
+    }
+
+    for (id, push) in pushs.iter_mut() {
+        // 将 fill_messages 为每个用户填好的 entity 写入 push 载荷
+        if let Some(ue) = user_entity.get(id) {
+            push.entity = Some(ue.entity.clone());
+        }
+        let hub = BizHub::get()?;
+        let sid = id_gen(None);
+        let _ = hub
+            .gateway
+            .send_packet_to_user(
+                ctx,
+                &vec![*id],
+                sid,
+                Command::PushMessageReadstate,
+                push.encode_to_vec(),
+                false,
+            )
+            .await;
+    }
+    Ok(())
+}
+
 /// 实体变更走 pipeline 实体变更通道（PUSH_ENTITY_CHANGE，pipe=true 持久化）。
 /// 只推轻量 EntityChange{id,type,version,operate}，不携带实体内容；SDK 收到后 mark dirty + 按需懒拉。
 /// operate：Update（已读/reaction/内容变更）、Delete（撤回/删除）等，见 entity.Operate。
@@ -405,6 +457,22 @@ pub(crate) async fn message_send(
     let message = MessageModel(message).into();
     debug!("create message success: {:?}", message);
     super::feed::update_last_message(ctx, &member_ids, &message).await?;
+    // 发送者发出本会话最新消息：把其已读游标推进到本条消息（read_badge=本条 badge_count）。
+    // 发送者必然已读到最新位置，多端一致：任一设备发送，本账号该会话即视为已读、未读归零。
+    // 已读位置由服务端权威持久化，但**不推送** PUSH_FEED_READ_STATUS：新消息已随 PushMessages
+    // 下发到发送者各端，各端 SDK 应用这条自家消息时本地同步推进已读（见 SDK feed_update_by_messages），
+    // 避免多余推送。防回退：若本账号 read_pos 已更高则 update_read_pos 不推进。
+    if let Err(e) = super::feed::feed_update_read_pos_local(
+        ctx,
+        message.chat_id,
+        brief.id,
+        message.pos as i32,
+        message.badge_count as i32,
+    )
+    .await
+    {
+        debug!("update sender feed read pos error: {e}");
+    }
     resp.id = message.id;
     resp.entity
         .get_or_insert_default()
@@ -482,6 +550,10 @@ pub(crate) async fn message_read(
         let mut changed_ids = HashSet::new();
         let mut changed_message_ids = HashSet::new();
 
+        // 已读实体版本：一次取值用于 set_read 落库与 push_entity_changed 推送，保证两者一致
+        // （readstate_version 单调），客户端版本守卫（excluded.version >= version）恒满足、脏标记可清。
+        let read_ts = current_ms() as i64;
+
         for (id, _cmv_id) in msg_cmv_ids.iter() {
             // careful, maybe cause deadlock
             let mut changed = false;
@@ -494,9 +566,8 @@ pub(crate) async fn message_read(
                 }
             };
             if changed {
-                let now = current_ms() as i64;
-                msg.message.version = now;
-                MessageModel::set_read(&ctx.db, *id, now, &msg.read_state_cmv).await?;
+                msg.message.version = read_ts;
+                MessageModel::set_read(&ctx.db, *id, read_ts, &msg.read_state_cmv).await?;
                 changed_ids.insert(brief.id);
                 changed_ids.insert(msg.message.from_id);
                 changed_message_ids.insert(*id);
@@ -506,13 +577,14 @@ pub(crate) async fn message_read(
         if !changed_ids.is_empty() {
             let changed_ids: Vec<_> = changed_ids.iter().copied().collect();
             let changed_message_ids: Vec<_> = changed_message_ids.iter().copied().collect();
-            push_messages(ctx, brief, &changed_ids, &changed_message_ids, false).await?;
+            // 已读独立实体走 PUSH_MESSAGE_READSTATE（1212），只携带 entity.readstates
+            push_message_readstate(ctx, &changed_ids, &changed_message_ids).await?;
             // 已读实体变更走 pipeline 实体变更通道（持久化，离线端重连回放后 mark dirty + 懒拉）
             push_entity_changed(
                 ctx,
                 &changed_ids,
                 &changed_message_ids,
-                current_ms() as i64,
+                read_ts,
                 entity::Operate::Update,
                 entity::EntityType::Readstate,
             )
@@ -861,6 +933,9 @@ pub(crate) async fn reaction_set(
     debug!("reaction set, req: {:?}", req);
     let resp = message::SetMessageReactitonResponse::default();
     let chat_id;
+    // reaction 实体版本：置为当前时间，落库（reaction_version 单调）与 push 用同一值，
+    // 保证客户端版本守卫（excluded.reaction_version >= version）恒满足、脏标记可清。
+    let mut reaction_ts: i64 = 0;
 
     {
         let message = cache_get_message(ctx, req.message_id).await?;
@@ -868,11 +943,18 @@ pub(crate) async fn reaction_set(
         chat_id = message.message.chat_id;
         if message.reactions.set(req.reaction, brief.id) {
             let now = current_ms() as i64;
+            reaction_ts = now;
             message.message.updated_at = date_time(now);
 
             MessageModel::set_reaction(&ctx.db, message.message.id, &message.reactions, now)
                 .await?;
         }
+    }
+    // 无实际变更（重复添加相同表情）时不下发实体变更，避免携带高于现有 reaction_version 的脏标记
+    if reaction_ts == 0 {
+        debug!("reaction no change, skip push: {req:?}");
+        let resp = message::SetMessageReactitonResponse::default();
+        return Ok((ErrorCode::Success as i32, resp.encode_to_vec()));
     }
     let mut user_ids = vec![];
     {
@@ -887,7 +969,7 @@ pub(crate) async fn reaction_set(
             ctx,
             &user_ids,
             &vec![req.message_id],
-            current_ms() as i64,
+            reaction_ts,
             entity::Operate::Update,
             entity::EntityType::Reaction,
         )

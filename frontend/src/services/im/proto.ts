@@ -14,6 +14,9 @@ import officeProto from '../../../../proto/office.proto?raw'
 import muteProto from '../../../../proto/mute.proto?raw'
 import inviteProto from '../../../../proto/invite.proto?raw'
 import joinRequestProto from '../../../../proto/join_request.proto?raw'
+import pinProto from '../../../../proto/pin.proto?raw'
+import searchProto from '../../../../proto/search.proto?raw'
+import translateProto from '../../../../proto/translate.proto?raw'
 
 let protoRoot: protobuf.Root | null = null
 
@@ -36,6 +39,9 @@ export function getProto(): protobuf.Root {
     { name: 'mute.proto', content: muteProto },
     { name: 'invite.proto', content: inviteProto },
     { name: 'join_request.proto', content: joinRequestProto },
+    { name: 'pin.proto', content: pinProto },
+    { name: 'search.proto', content: searchProto },
+    { name: 'translate.proto', content: translateProto },
   ]
   for (const { content } of files) {
     const parsed = protobuf.parse(content, { keepCase: true })

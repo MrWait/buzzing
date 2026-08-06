@@ -4,6 +4,7 @@ import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/widget/header_bar.dart';
 import 'package:buzzing/widget/personal.dart';
 import 'package:buzzing/provider/im_provider.dart';
+import 'package:buzzing/page/search/search_view.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,8 +43,8 @@ class NaviBar extends ConsumerWidget {
                     ver: im.getUserVer(im.userId),
                   )),
               NaviButton(context, () {
-                final router = GoRouter.of(context);
-                router.go(AppRoute.SEARCH);
+                // 桌面端：以对话框模式弹出全局搜索框
+                GlobalSearchDialog.show(context);
               }, Icons.search_rounded),
               Container(height: 40, child: MainPopup(context)),
               // 消息入口：显示全局未读角标（跟随 ImController.totalUnread 实时刷新）

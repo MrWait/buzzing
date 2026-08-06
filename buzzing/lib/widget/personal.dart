@@ -1,15 +1,17 @@
 import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/i18n/strings.g.dart';
+import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/routes/app_routes.dart';
 import 'package:buzzing/utils/common_utils.dart';
 import 'package:flutter_popup/flutter_popup.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:go_router/go_router.dart';
 
-class PersonalPopup extends StatefulWidget {
+class PersonalPopup extends ConsumerStatefulWidget {
   final ImController im;
   final Int64 id;
   final String url;
@@ -24,10 +26,10 @@ class PersonalPopup extends StatefulWidget {
   });
 
   @override
-  State<PersonalPopup> createState() => _PersonalPopupState();
+  ConsumerState<PersonalPopup> createState() => _PersonalPopupState();
 }
 
-class _PersonalPopupState extends State<PersonalPopup> {
+class _PersonalPopupState extends ConsumerState<PersonalPopup> {
   int _status = 1; // 0=offline, 1=online, 2=busy, 3=away
 
   static const _statuses = [
@@ -57,6 +59,8 @@ class _PersonalPopupState extends State<PersonalPopup> {
     L.w("hero popup, get user: ${widget.id}, ${user}");
 
     return CustomPopup(
+      backgroundColor: cs.surface,
+      arrowColor: cs.surface,
       content: Container(
         width: 280,
         child: Column(
@@ -69,8 +73,7 @@ class _PersonalPopupState extends State<PersonalPopup> {
                 children: [
                   Stack(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
+                      ClipOval(
                         child: SizedBox(
                           width: 36,
                           height: 36,
@@ -166,7 +169,12 @@ class _PersonalPopupState extends State<PersonalPopup> {
               label: t.logout,
               isDestructive: true,
               onTap: () {
-                widget.im.logout(GoRouter.of(context));
+                Navigator.of(context).pop();
+                // onReset 兜底：销毁 im/sdk 单例，确保下一个用户从干净状态重建
+                widget.im.logout(
+                  GoRouter.of(context),
+                  onReset: () => ref.invalidate(imProvider),
+                );
               },
             ),
           ],

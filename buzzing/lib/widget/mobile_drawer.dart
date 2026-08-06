@@ -1,3 +1,4 @@
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/routes/app_routes.dart';
 import 'package:buzzing/utils/common_utils.dart';
@@ -80,10 +81,14 @@ Widget buildMobileDrawer(BuildContext context, WidgetRef ref) {
           const Divider(height: 1),
           ListTile(
             leading: Icon(Icons.logout, color: cs.error),
-            title: Text('退出登录', style: TextStyle(color: cs.error)),
+            title: Text(t.logout, style: TextStyle(color: cs.error)),
             onTap: () {
               Navigator.of(context).pop();
-              im.logout(GoRouter.of(context));
+              // onReset 兜底：销毁 im/sdk 单例，确保下一个用户从干净状态重建
+              im.logout(
+                GoRouter.of(context),
+                onReset: () => ref.invalidate(imProvider),
+              );
             },
           ),
         ],

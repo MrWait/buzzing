@@ -12,12 +12,12 @@ import 'package:buzzing/page/im/location_picker.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/utils/config/config.dart';
-import 'package:buzzing/utils/data_persistence.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
@@ -26,6 +26,32 @@ import 'package:mime_type/mime_type.dart';
 import 'package:path/path.dart' as p;
 
 class MessageInput extends ConsumerWidget {
+  /// 编辑器键盘事件处理：
+  /// 单独按 Enter → 发送消息；Alt/Shift/Option + Enter → 插入换行。
+  KeyEventResult? _onEditorKey(KeyEvent event, ImController im) {
+    if (event.logicalKey != LogicalKeyboardKey.enter) {
+      return null;
+    }
+    // 是否按住修饰键（macOS Option 会映射为 Alt），决定是换行还是发送
+    final isCompose = HardwareKeyboard.instance.isAltPressed ||
+        HardwareKeyboard.instance.isShiftPressed ||
+        HardwareKeyboard.instance.isMetaPressed ||
+        HardwareKeyboard.instance.isControlPressed;
+    if (isCompose) {
+      // 保留默认行为（插入换行）
+      return null;
+    }
+    // 仅在按下（非 KeyRepeatEvent 重复触发）时发送一次
+    if (event is KeyDownEvent) {
+      // 内容为空时不发送，避免空白消息
+      final summary = im.quillController.document.toPlainText().trim();
+      if (summary.isNotEmpty) {
+        im.onSendMessage('');
+      }
+    }
+    // 拦截 Enter，阻止插入换行
+    return KeyEventResult.handled;
+  }
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
@@ -83,6 +109,7 @@ class MessageInput extends ConsumerWidget {
                     ...FlutterQuillEmbeds.editorBuilders(),
                     MentionEmbedBuilder(),
                   ],
+                  onKeyPressed: (event, node) => _onEditorKey(event, im),
                 ),
               ),
             ),
@@ -423,8 +450,8 @@ class MessageInput extends ConsumerWidget {
     if (im.chatId == Int64(0)) return;
 
     final meetingHome = ref.read(meetingHomeLogicProvider);
-    final account = DataPersistence.getAccount();
-    final hostName = account?.loginUser?.user.name ?? '';
+    // 直接取 ImController 中的当前登录身份，避免读取持久化缓存导致的过期数据
+    final hostName = im.loginUser.user.name;
 
     var resp = await meetingHome.createMeeting(title: '群聊会议');
     if (resp == null || !resp.hasMeeting()) {

@@ -36,10 +36,8 @@ import type { UserInfo } from '@/services/im/contacts'
 const route = useRoute()
 const im = useImStore()
 
-const chatId = computed(() => {
-  const id = route.params.chatId
-  return id ? Number(id) : null
-})
+// 会话选择以 store 状态为准，URL 保持 /im/chat 不变，刷新后回到空态
+const chatId = computed(() => im.currentChatId)
 
 const activeTab = ref('chat')
 const showSearch = ref(false)

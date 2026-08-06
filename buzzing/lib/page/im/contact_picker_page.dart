@@ -2,10 +2,9 @@ import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/routes/app_routes.dart';
-import 'package:buzzing/utils/common_utils.dart';
 import 'package:buzzing/widget/member_picker/controller.dart';
 import 'package:buzzing/widget/member_picker/contact_panel.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:buzzing/widget/user_list_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fixnum/fixnum.dart';
@@ -187,30 +186,7 @@ class _ContactPickerPageState extends ConsumerState<ContactPickerPage> {
   }
 
   Widget _buildAvatar(ColorScheme cs, User user) {
-    if (user.avatar.isEmpty) {
-      return Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: cs.primary,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-          style: const TextStyle(fontSize: 12, color: Colors.white),
-        ),
-      );
-    }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
-      child: CachedNetworkImage(
-        width: 32,
-        height: 32,
-        imageUrl: CommonUtils.fixResourceUrl(user.avatar),
-        fit: BoxFit.cover,
-      ),
-    );
+    return UserAvatar(name: user.name, avatar: user.avatar, size: 32);
   }
 }
 
@@ -220,30 +196,7 @@ class _SelectedChip extends StatelessWidget {
   const _SelectedChip({required this.user, required this.onTap});
 
   Widget _buildAvatarWidget(ColorScheme cs, double size) {
-    if (user.avatar.isEmpty) {
-      return Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: cs.primary,
-          borderRadius: BorderRadius.circular(size / 4),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-          style: TextStyle(fontSize: size * 0.4, color: Colors.white),
-        ),
-      );
-    }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(size / 4),
-      child: CachedNetworkImage(
-        width: size,
-        height: size,
-        imageUrl: CommonUtils.fixResourceUrl(user.avatar),
-        fit: BoxFit.cover,
-      ),
-    );
+    return UserAvatar(name: user.name, avatar: user.avatar, size: size);
   }
 
   @override

@@ -60,6 +60,9 @@ pub struct Settings {
     pub cert: Option<String>,
     pub cert_key: Option<String>,
     pub turn_secret: Option<String>,
+    // pipeline TTL 清理：过期秒数（默认 30 天）与清理周期秒数（默认 24 小时）
+    pub pipeline_ttl_seconds: Option<u64>,
+    pub pipeline_cleanup_interval_seconds: Option<u64>,
 }
 
 #[derive(Debug, Default)]

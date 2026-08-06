@@ -77,6 +77,12 @@ class TranslationsZh with BaseTranslations<AppLocale, Translations> implements T
 	@override String get album => '相册';
 	@override String get camera => '拍摄';
 	@override String get videoCall => '视频通话';
+	@override String get voiceCall => '语音通话';
+	@override String get directSuperior => '直属上级';
+	@override String get city => '城市';
+	@override String get phoneNumber => '手机号';
+	@override String get show => '显示';
+	@override String get hide => '隐藏';
 	@override String get picture => '图片';
 	@override String get video => '视频';
 	@override String get voice => '语音';
@@ -794,6 +800,12 @@ extension on TranslationsZh {
 			'album' => '相册',
 			'camera' => '拍摄',
 			'videoCall' => '视频通话',
+			'voiceCall' => '语音通话',
+			'directSuperior' => '直属上级',
+			'city' => '城市',
+			'phoneNumber' => '手机号',
+			'show' => '显示',
+			'hide' => '隐藏',
 			'picture' => '图片',
 			'video' => '视频',
 			'voice' => '语音',
@@ -1260,14 +1272,14 @@ extension on TranslationsZh {
 			'groupCallForbidden' => '当前群正在通话中，你确定加入当前通话吗？',
 			'launchMeeting' => '发起会议',
 			'joinMeeting' => '加入会议',
+			_ => null,
+		} ?? switch (path) {
 			'readyToJoin' => '准备加入会议',
 			'microphoneDevice' => '麦克风',
 			'cameraDevice' => '摄像头',
 			'plsInputMeetingSubject' => '请输入会议主题',
 			'meetingStartTime' => '开始时间',
 			'meetingDuration' => '会议时长',
-			_ => null,
-		} ?? switch (path) {
 			'enterMeeting' => '进入会议',
 			'meetingNo' => '会议号',
 			'yourMeetingName' => '您的名称',

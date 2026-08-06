@@ -1,5 +1,6 @@
 import 'package:buzzing/provider/app_state_provider.dart';
 import 'package:buzzing/provider/im_provider.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/res/theme.dart';
 import 'package:buzzing/utils/platform.dart';
 import 'package:buzzing/widget/app_view.dart';
@@ -72,23 +73,25 @@ class _BuzzingAppState extends ConsumerState<BuzzingApp> with WindowListener {
       });
     }
 
-    return AppView(
-      builder: ((locale, builder) => MaterialApp.router(
-        debugShowCheckedModeBanner: true,
-        routerConfig: router,
-        builder: builder,
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: themeMode,
-        localizationsDelegates: [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-          FlutterQuillLocalizations.delegate,
-        ],
-        locale: locale,
-        supportedLocales: [const Locale('zh', 'CN'), const Locale('en', 'US')],
-      )),
+    return TranslationProvider(
+      child: AppView(
+        builder: ((locale, builder) => MaterialApp.router(
+          debugShowCheckedModeBanner: true,
+          routerConfig: router,
+          builder: builder,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: themeMode,
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            FlutterQuillLocalizations.delegate,
+          ],
+          locale: locale,
+          supportedLocales: [const Locale('zh', 'CN'), const Locale('en', 'US')],
+        )),
+      ),
     );
   }
 }

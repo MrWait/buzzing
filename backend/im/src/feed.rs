@@ -121,8 +121,23 @@ pub(crate) async fn feed_update_read_pos(
         // 防回退未推进（pos 未前进或 feed 不存在），不广播
         return Ok(());
     };
-    // 会话已读位置变更：向该用户所有在线设备广播 Feed 实体子集（不改变排序）
+    // 会话已读位置：向该用户所有在线设备广播 Feed 实体子集（不改变排序）
     push_feed_read_status(ctx, user_id, &feed).await
+}
+
+/// 只持久化会话已读游标，不广播 `PUSH_FEED_READ_STATUS`。
+/// 用于「发送者发出最新消息」的已读推进：新消息已随 `PushMessages` 连同成员下发到发送者各端，
+/// 各端 SDK 在应用这条自家消息时同步推进本地已读（见 docs/data_sync §6 / SDK `feed_update_by_messages`），
+/// 服务端无需再单独推送已读状态，避免重复包。已读位置仍是服务端权威（持久化，feed_sync/新设备可恢复）。
+pub(crate) async fn feed_update_read_pos_local(
+    ctx: &AppContext,
+    chat_id: i64,
+    user_id: i64,
+    pos: i32,
+    read_badge: i32,
+) -> Result<()> {
+    let _ = feeds::FeedModel::update_read_pos(&ctx.db, chat_id, user_id, pos, read_badge).await?;
+    Ok(())
 }
 
 /// 向单个用户广播会话已读位置子集推送 `PUSH_FEED_READ_STATUS`（见 data_sync §3.1）

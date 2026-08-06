@@ -33,6 +33,7 @@ impl ExternApp for AppGateway {
     }
     fn serve(&self, ctx: &AppContext) {
         websocket::start_server(ctx);
+        pipeline::start_cleanup_worker(ctx);
     }
 
     fn handled_command(&self) -> Vec<i32> {

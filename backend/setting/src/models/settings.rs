@@ -1,6 +1,6 @@
 use loco_rs::{model::ModelResult, prelude::*};
 use prost::Message;
-use sea_orm::Iterable;
+use sea_orm::{ConnectionTrait, Iterable};
 use sea_query::OnConflict;
 
 pub use base::models::_entities::settings::{ActiveModel, Column, Entity, Model};
@@ -12,8 +12,8 @@ pub struct SettingModel(pub Model);
 
 // implement your read-oriented logic here
 impl SettingModel {
-    pub async fn setting_set(
-        db: &DatabaseConnection,
+    pub async fn setting_set<C: ConnectionTrait>(
+        db: &C,
         user_id: i64,
         t: i32,
         setting: &entity::Setting,
@@ -41,8 +41,8 @@ impl SettingModel {
         Ok(set)
     }
 
-    pub async fn setting_update(
-        db: &DatabaseConnection,
+    pub async fn setting_update<C: ConnectionTrait>(
+        db: &C,
         user_id: i64,
         t: i32,
         f: Box<dyn Fn(entity::Setting) -> Result<entity::Setting> + Send + Sync>,
@@ -64,8 +64,8 @@ impl SettingModel {
     }
 
     #[allow(dead_code)]
-    pub async fn setting_get_all(
-        db: &DatabaseConnection,
+    pub async fn setting_get_all<C: ConnectionTrait>(
+        db: &C,
         user_id: i64,
     ) -> ModelResult<entity::Settings> {
         let mut settings = Entity::find()
@@ -92,8 +92,8 @@ impl SettingModel {
         Ok(settings)
     }
 
-    pub async fn setting_get(
-        db: &DatabaseConnection,
+    pub async fn setting_get<C: ConnectionTrait>(
+        db: &C,
         user_id: i64,
         t: i32,
     ) -> ModelResult<Option<entity::Setting>> {

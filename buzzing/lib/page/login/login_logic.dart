@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:buzzing/controller/im.dart';
 import 'package:buzzing/controller/sdk_controller.dart';
 import 'package:buzzing/models/model.dart';
 import 'package:buzzing/utils/net/apis.dart';
@@ -24,7 +25,8 @@ enum LoginType {
 
 class LoginLogic extends ChangeNotifier {
   final SdkController sdk;
-  LoginLogic({required this.sdk});
+  final ImController im;
+  LoginLogic({required this.sdk, required this.im});
 
   var phoneCtrl = TextEditingController();
   var emailCtrl = TextEditingController();
@@ -294,15 +296,21 @@ class LoginLogic extends ChangeNotifier {
     notifyListeners();
   }
 
-  void loginUser(LoginUser user, GoRouter router) {
+  /// 选择身份（企业/个人）后进入主界面。
+  /// 注意：ImController 为全局单例，切换用户后必须显式 applyLoginUser 刷新身份，
+  /// 否则会沿用上一个登录用户的数据。
+  void loginUser(LoginUser user, GoRouter router) async {
+    L.d("select login user: uid=${user.user.id}, tenant=${user.user.tenantId}");
     loginAccount!.loginUser = user;
-    DataPersistence.putAccount(loginAccount!);
-    sdk.login(
+    await DataPersistence.putAccount(loginAccount!);
+    await sdk.login(
       uid: user.user.id,
       tenantId: user.user.tenantId,
       token: user.token,
       unionClientConfig: json.encode(Config.union.config.toJson()),
     );
+    // 刷新客户端侧的登录身份缓存（头像、userId、租户等）
+    im.applyLoginUser(user);
     AppNavigator.startIm(router, user);
   }
 

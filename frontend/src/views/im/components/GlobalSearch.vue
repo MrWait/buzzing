@@ -34,8 +34,11 @@
             <template v-if="activeTab === 'all'">
               <div v-if="results.users.length" class="result-section">
                 <div class="section-title">联系人</div>
-                <div v-for="u in results.users" :key="u.id" class="result-item" @click="onSelectUser(u)">
-                  <div class="result-avatar">{{ u.name?.charAt(0) }}</div>
+                <div v-for="u in results.users" :key="u.id" class="result-item">
+                  <div class="result-avatar js-profile-open" @click="openUserProfile($event, u)">
+                    <img v-if="u.avatar" class="result-avatar-img" :src="u.avatar" />
+                    <span v-else>{{ u.name?.charAt(0) }}</span>
+                  </div>
                   <div class="result-info">
                     <div class="result-name" v-html="u.highlight || u.name"></div>
                   </div>
@@ -86,8 +89,11 @@
             </template>
             <template v-if="activeTab === 'contacts'">
               <div v-if="results.users.length">
-                <div v-for="u in results.users" :key="u.id" class="result-item" @click="onSelectUser(u)">
-                  <div class="result-avatar">{{ u.name?.charAt(0) }}</div>
+                <div v-for="u in results.users" :key="u.id" class="result-item">
+                  <div class="result-avatar js-profile-open" @click="openUserProfile($event, u)">
+                    <img v-if="u.avatar" class="result-avatar-img" :src="u.avatar" />
+                    <span v-else>{{ u.name?.charAt(0) }}</span>
+                  </div>
                   <div class="result-info">
                     <div class="result-name" v-html="u.highlight || u.name"></div>
                   </div>
@@ -103,22 +109,28 @@
       </div>
     </div>
   </Teleport>
+
+  <!-- 用户资料浮层 -->
+  <UserProfilePopup ref="userProfileRef" />
 </template>
 
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useImStore } from '@/stores/im'
+import UserProfilePopup from '@/components/UserProfilePopup.vue'
 
 const props = defineProps<{ visible: boolean }>()
 const emit = defineEmits<{ close: [] }>()
 
 const router = useRouter()
+const im = useImStore()
 const inputRef = ref<HTMLInputElement | null>(null)
 const keyword = ref('')
 const activeTab = ref('all')
 const loading = ref(false)
 
-interface SearchUser { id: number; name: string; highlight?: string }
+interface SearchUser { id: number; name: string; avatar?: string; highlight?: string }
 interface SearchChat { id: string; name: string; highlight?: string }
 interface SearchMessage { id: number; content: string; highlight?: string; chatId?: number; chatName?: string }
 
@@ -159,8 +171,6 @@ async function doSearch() {
   try {
     // 优先服务端全局搜索（GLOBAL_SEARCH=1406），失败回退客户端内存搜索
     const { globalSearch } = await import('@/services/im/api')
-    const { useImStore } = await import('@/stores/im')
-    const im = useImStore()
     const feedName = (chatId: string) => im.feedList.find((f) => f.chatId === chatId)?.name || '消息'
 
     const types: string[] = []
@@ -175,6 +185,7 @@ async function doSearch() {
         users: (resp.users || []).map((u: any) => ({
           id: Number(u.user?.id || 0),
           name: u.user?.name || '',
+          avatar: u.user?.avatar || '',
           highlight: u.highlight || u.user?.name || '',
         })),
         chats: (resp.chats || []).map((c: any) => ({
@@ -234,19 +245,23 @@ async function doSearch() {
   loading.value = false
 }
 
-function onSelectUser(_u: SearchUser) {
-  emit('close')
+// 点击搜索结果中的用户头像：弹用户资料浮层
+const userProfileRef = ref<InstanceType<typeof UserProfilePopup>>()
+function openUserProfile(e: MouseEvent, u: SearchUser) {
+  userProfileRef.value?.open(e.clientX, e.clientY, String(u.id), u.name, u.avatar)
 }
 
 function onSelectChat(c: SearchChat) {
   emit('close')
-  router.push(`/im/chat/${c.id}`)
+  im.selectChat(c.id)
+  router.push({ name: 'ImChatMain' })
 }
 
 function onSelectMessage(m: SearchMessage) {
   emit('close')
   if (m.chatId) {
-    router.push(`/im/chat/${m.chatId}`)
+    im.selectChat(String(m.chatId))
+    router.push({ name: 'ImChatMain' })
   }
 }
 </script>
@@ -373,7 +388,7 @@ function onSelectMessage(m: SearchMessage) {
 .result-avatar {
   width: 32px;
   height: 32px;
-  border-radius: 6px;
+  border-radius: 50%;
   background: #4a6cf7;
   color: #fff;
   display: flex;
@@ -382,6 +397,12 @@ function onSelectMessage(m: SearchMessage) {
   font-size: 13px;
   font-weight: 600;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.result-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .result-info {
   flex: 1;
