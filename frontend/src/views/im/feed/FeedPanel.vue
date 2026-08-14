@@ -130,11 +130,14 @@ function feedPreview(feed: FeedItem): { text: string; showRead: boolean; readPer
 }
 
 // 会话最后一条消息的已读进度（0~100）：对齐客户端 _ReadStateIndicator/_readPercent
+// 优先取已读独立缓存（key=referId，消息行重建不丢已读，见 im.ts readStates），
+// 缓存缺失时回退到消息列表行上的 readState。
 function feedReadPercent(feed: FeedItem): number {
   if (!feed.referId || feed.referId === '0') return 0
+  const cached = im.readStates.get(feed.referId)
   const msgs = im.messages.get(feed.chatId) || []
   const last = msgs.find((m) => m.id === feed.referId)
-  const rs = last?.readState
+  const rs = cached || last?.readState
   if (!rs || rs.total <= 0) return 0
   const pct = Math.round((rs.readCount / rs.total) * 100)
   if (pct >= 100) return 100

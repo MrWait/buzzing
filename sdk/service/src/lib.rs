@@ -13,6 +13,8 @@ pub mod todo;
 use anyhow::Result;
 use async_trait::async_trait;
 use dashmap::DashMap;
+use proto::idl;
+use proto::idl::command::Command;
 use serde::{Deserialize, Serialize};
 use std::{
     default,
@@ -131,11 +133,37 @@ impl BizHub {
     }
 
     pub async fn invoke_net_command(&self, source: i32, cmd: i32, body: &[u8]) -> Result<()> {
+        // 特化处理 PUSH_ENTITY_CHANGE(1057)：不依赖任何 service 注册，直接解码后
+        // 遍历全部 service 的 handle_entity_changed 按 EntityType 分发（各 service
+        // 默认空实现）。避免独立 dispatcher service 增加一层注册/覆盖复杂度。见 docs/data_sync §5。
+        if cmd == Command::PushEntityChange as i32 {
+            return self.dispatch_entity_changed(body);
+        }
         if let Some(handler) = self.net_handlers.get(&cmd) {
             handler.on_net_command(source, cmd, body).await
         } else {
             Err(anyhow::anyhow!("not support"))
         }
+    }
+
+    /// 解码 1057 并按 EntityType 分发到各 service 的 handle_entity_changed。
+    fn dispatch_entity_changed(&self, body: &[u8]) -> Result<()> {
+        use prost::Message as _;
+        let push = idl::pipeline::PushEntityChanged::decode(body)?;
+        debug!(
+            "dispatch entity changed, changes: {:?}",
+            push.changes
+                .iter()
+                .map(|c| (c.r#type, c.id, c.operate))
+                .collect::<Vec<_>>()
+        );
+        if push.changes.is_empty() {
+            return Ok(());
+        }
+        for svc in self.get_all() {
+            svc.handle_entity_changed(&push.changes)?;
+        }
+        Ok(())
     }
 }
 
@@ -197,6 +225,14 @@ pub trait AppTrait: Send + Sync {
     }
     fn net_commands(&self) -> Vec<i32> {
         Vec::new()
+    }
+
+    /// 实体变更（PUSH_ENTITY_CHANGE，1057）集中受理入口。
+    /// 由 BizHub::invoke_net_command 特化处理（不注册 net_handlers），解码后按
+    /// EntityType 分发到各 service 实现；默认空实现。见 docs/data_sync §5。
+    /// changes 为解码后的 EntityChange{id,type,version,operate} 列表。
+    fn handle_entity_changed(&self, _changes: &[idl::entity::EntityChange]) -> Result<()> {
+        Ok(())
     }
 }
 

@@ -78,6 +78,13 @@ impl VecBool {
             return None;
         }
 
+        // 防御：`VecBool::with(len, chunks)` 允许逻辑长度大于物理存储（如旧数据 read_states 为
+        // 空字节但 cmv_count>0）。缺失的位按 0（false）处理，避免 get_unchecked 下标越界 panic。
+        let (chunk_index, _) = VecBool::get_index(index);
+        if chunk_index >= self.chunks.len() {
+            return Some(false);
+        }
+
         Some(self.get_unchecked(index))
     }
 
@@ -96,6 +103,13 @@ impl VecBool {
     pub fn set(&mut self, index: usize, value: bool) -> bool {
         if index >= self.len as usize {
             return false;
+        }
+
+        // 防御：物理存储不足时补齐（旧数据 read_states 可能只有逻辑长度、无物理位图），
+        // 避免 set_unchecked 下标越界 panic；缺失位默认 0（false），补齐后与 get 语义一致。
+        let (chunk_index, _) = VecBool::get_index(index);
+        if chunk_index >= self.chunks.len() {
+            self.chunks.resize(chunk_index + 1, 0);
         }
 
         self.set_unchecked(index, value);
@@ -146,8 +160,15 @@ impl VecBool {
 
     #[inline]
     pub fn iter(&self) -> impl Iterator<Item = bool> + '_ {
-        self.chunks
+        // 物理存储可能短于逻辑长度（旧数据），缺失位按 0（false）处理
+        let chunks = self
+            .chunks
             .iter()
+            .chain(std::iter::repeat(&0u8).take(
+                (((self.len as usize + CHUNK_SIZE as usize - 1) / CHUNK_SIZE as usize)
+                    .saturating_sub(self.chunks.len())) as usize,
+            ));
+        chunks
             .take((self.len / CHUNK_SIZE) as usize)
             .flat_map(|chunk| (0..CHUNK_SIZE).map(move |shift| chunk & (1 << shift) != 0))
             .chain({
@@ -183,7 +204,7 @@ mod test {
 
     #[test]
     fn with_capacity() {
-        let mask = VecBool::with_capacity(CHUNK_SIZE * 4);
+        let mask = VecBool::with_capacity(CHUNK_SIZE as usize * 4);
         simple_test(mask);
     }
 
@@ -221,13 +242,33 @@ mod test {
 
     #[test]
     fn with_len() {
-        let len = 16;
-        let mask = VecBool::with_zeros(len);
+        let len: usize = 16;
+        let mask = VecBool::with_zeros(len as u64);
 
         for i in 0..len {
             assert_eq!(mask.get(i), Some(false));
         }
 
         assert_eq!(mask.get(len), None);
+    }
+
+    #[test]
+    fn get_with_missing_physical_storage() {
+        // 崩溃场景：逻辑长度 > 0 但物理 chunks 为空（旧数据 read_states 空字节），
+        // get 不应 panic，缺失位按 false 处理（见 message_get_read_members extract 越界崩溃）
+        let mask = VecBool::with(10, vec![]);
+        for i in 0..10 {
+            assert_eq!(mask.get(i), Some(false));
+        }
+        assert_eq!(mask.get(10), None);
+
+        // set 也应安全补位，之后再读为 true
+        let mut mask = VecBool::with(10, vec![]);
+        assert!(mask.set(3, true));
+        assert_eq!(mask.get(3), Some(true));
+
+        // iter 补齐缺失物理位，位序与逻辑长度一致
+        let mask = VecBool::with(10, vec![]);
+        assert_eq!(mask.iter().collect::<Vec<_>>(), vec![false; 10]);
     }
 }

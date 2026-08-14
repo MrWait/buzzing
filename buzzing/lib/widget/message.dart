@@ -13,6 +13,7 @@ import 'package:buzzing/provider/im_provider.dart';
 import 'package:buzzing/provider/page_providers.dart';
 import 'package:buzzing/widget/forward_picker.dart';
 import 'package:buzzing/widget/profile.dart';
+import 'package:buzzing/widget/user_list_item.dart';
 import 'package:buzzing/utils/logger_util.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/gestures.dart';
@@ -105,7 +106,10 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
           // 群聊自家消息可点击查看已读成员；单聊自家消息也展示已读标记，但仅一名目标、无需点击查看。
           showRead: isSelf,
           readState: im.entity.readstates[msg.id] ?? ReadState.create(),
-          onReadTap: isGroupChat ? () => _showReadDetail(context, im, msg) : null,
+          // 群聊自家消息点击已读圈：把点击全局坐标传入，用于桌面板定位浮动菜单。
+          onReadTap: isGroupChat
+              ? (offset) => _showReadDetail(context, im, msg, offset)
+              : null,
           hoverMenuBuilder: () => _buildHoverActions(context, cs, tt, im, isSelf),
           // hover 态由整行的 MouseRegion 提供；更多菜单弹出时强制保持可见
           hovering: _rowHovering || _menuOpen,
@@ -557,7 +561,7 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
     );
   }
 
-  void _showReadDetail(BuildContext context, ImController im, Message msg) async {
+  void _showReadDetail(BuildContext context, ImController im, Message msg, Offset anchor) async {
     Future<dynamic> load() async {
       return im.getReadMembers(msg.chatId, msg.id);
     }
@@ -565,7 +569,7 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
     final resp = await load();
     if (resp == null || context.mounted == false) return;
     if (isDesktop) {
-      _showReadDetailDesktop(context, msg, resp, load);
+      _showReadDetailDesktop(context, msg, resp, load, anchor);
     } else {
       _showReadDetailMobile(context, msg, resp, load);
     }
@@ -582,23 +586,24 @@ class _MessageBoxState extends ConsumerState<MessageBox> {
     );
   }
 
-  void _showReadDetailDesktop(BuildContext context, Message msg, dynamic resp, Future<dynamic> Function() load) {
+  /// 桌面端已读详情：点击已读圈后弹出锚定已读圈的浮动菜单而非对话框。
+  /// 菜单放在 Overlay 中，初始位置在点击点附近，兼顾屏幕四边约束。
+  void _showReadDetailDesktop(BuildContext context, Message msg, dynamic resp, Future<dynamic> Function() load, Offset anchor) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          contentPadding: EdgeInsets.zero,
-          content: SizedBox(
-            width: 420,
-            height: 400,
-            child: _ReadDetailPanel(resp: resp, load: load, cs: cs, tt: tt),
-          ),
-        );
-      },
+    final overlay = Overlay.of(context);
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (ctx) => _ReadDetailPopup(
+        anchor: anchor,
+        resp: resp,
+        load: load,
+        cs: cs,
+        tt: tt,
+        onClose: () => entry.remove(),
+      ),
     );
+    overlay.insert(entry);
   }
 
   String _formatTime(Int64 ms) {
@@ -808,15 +813,7 @@ class _ReadMemberRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       dense: true,
-      leading: Container(
-        width: 28, height: 28,
-        decoration: BoxDecoration(color: cs.primary, borderRadius: BorderRadius.circular(4)),
-        alignment: Alignment.center,
-        child: Text(
-          (m.name.isNotEmpty ? m.name : '?')[0].toUpperCase(),
-          style: tt.bodySmall?.copyWith(color: cs.onPrimary),
-        ),
-      ),
+      leading: UserAvatar(name: m.name, avatar: m.avatar ?? '', size: 28),
       title: Text(m.name, style: tt.bodySmall),
       trailing: showStatus
           ? Icon(
@@ -829,6 +826,141 @@ class _ReadMemberRow extends StatelessWidget {
   }
 }
 
+/// 已读详情 - 桌面端浮动菜单（点击已读圈弹出）。
+/// 位于 Overlay 中，锚定点击点附近，按屏幕四边可用空间自动选择展开方位，
+/// 点击菜单外任意区域（或按 ESC）关闭，风格与消息 hover 操作菜单保持一致。
+class _ReadDetailPopup extends StatefulWidget {
+  /// 点击已读圈时的全局坐标，作为菜单锚点。
+  final Offset anchor;
+  final dynamic resp;
+  final Future<dynamic> Function() load;
+  final ColorScheme cs;
+  final TextTheme tt;
+  final VoidCallback onClose;
+
+  const _ReadDetailPopup({
+    required this.anchor,
+    required this.resp,
+    required this.load,
+    required this.cs,
+    required this.tt,
+    required this.onClose,
+  });
+
+  @override
+  State<_ReadDetailPopup> createState() => _ReadDetailPopupState();
+}
+
+class _ReadDetailPopupState extends State<_ReadDetailPopup> {
+  static const _w = 420.0;
+  static const _h = 380.0;
+  static const _gap = 6.0;
+  static const _margin = 8.0;
+
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    // 获得焦点以接收 ESC 按键，按下即关闭菜单。
+    _focusNode.requestFocus();
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screen = MediaQuery.sizeOf(context);
+    // 点击点即已读圈中心，按圈外扩出一个锚点矩形用于定位。
+    final anchorRect =
+        Rect.fromCenter(center: widget.anchor, width: 16, height: 16);
+    final rect = _computePlacement(anchorRect, const Size(_w, _h), screen);
+
+    return KeyboardListener(
+      focusNode: _focusNode,
+      onKeyEvent: (event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.escape) {
+          widget.onClose();
+        }
+      },
+      child: Stack(
+        children: [
+          // 全屏透明层：点击菜单外任意位置关闭。
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: widget.onClose,
+              child: const SizedBox.expand(),
+            ),
+          ),
+          Positioned.fromRect(
+            rect: rect,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: _w,
+                height: _h,
+                decoration: BoxDecoration(
+                  color: widget.cs.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: widget.cs.outlineVariant),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.12),
+                      blurRadius: 8,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: _ReadDetailPanel(
+                  resp: widget.resp,
+                  load: widget.load,
+                  cs: widget.cs,
+                  tt: widget.tt,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 依据锚点四周可用空间选择展开方位（右下、右上、左下、左上），
+  /// 保证菜单完全在屏内（各边留白 _margin）；放不下时收拢回屏内。
+  Rect _computePlacement(Rect anchor, Size menu, Size screen) {
+    const gap = _gap;
+    final w = menu.width, h = menu.height;
+
+    final candidates = <Rect>[
+      Rect.fromLTWH(anchor.right + gap, anchor.bottom + gap, w, h),
+      Rect.fromLTWH(anchor.right + gap, anchor.top - h - gap, w, h),
+      Rect.fromLTWH(anchor.left - w - gap, anchor.bottom + gap, w, h),
+      Rect.fromLTWH(anchor.left - w - gap, anchor.top - h - gap, w, h),
+    ];
+    for (final c in candidates) {
+      if (c.left >= _margin &&
+          c.top >= _margin &&
+          c.right <= screen.width - _margin &&
+          c.bottom <= screen.height - _margin) {
+        return c;
+      }
+    }
+
+    // 所有方位都放不下时，退回锚点右下并收拢到屏内。
+    final left = math.max(
+        _margin, math.min(anchor.right + gap, screen.width - w - _margin));
+    final top = math.max(
+        _margin, math.min(anchor.bottom + gap, screen.height - h - _margin));
+    return Rect.fromLTWH(left, top, w, h);
+  }
+}
+
 /// 消息气泡 + 已读标记 + hover 菜单的合并组件。
 /// hover 菜单仅在鼠标悬停时挂载，位置基于布局后测量的气泡宽度计算，
 /// 不在 build 期读取 RenderBox size，避免 "could not get size during build"。
@@ -837,7 +969,7 @@ class _BubbleWithMenu extends StatefulWidget {
   final bool isSelf;
   final bool showRead;
   final ReadState readState;
-  final VoidCallback? onReadTap;
+  final ValueChanged<Offset>? onReadTap;
   final Widget Function() hoverMenuBuilder;
 
   /// 是否处于 hover 态。由外层整行的 MouseRegion 提供，
@@ -1013,7 +1145,7 @@ int _readPercent(ReadState rs) {
 
 class _ReadCircle extends StatelessWidget {
   final ReadState readState;
-  final VoidCallback? onTap;
+  final ValueChanged<Offset>? onTap;
 
   const _ReadCircle({
     required this.readState,
@@ -1040,7 +1172,13 @@ class _ReadCircle extends StatelessWidget {
       ),
     );
     // 单聊无已读成员详情，onTap 为 null 时不包 GestureDetector（不响应点击）。
-    return onTap == null ? circle : GestureDetector(onTap: onTap, child: circle);
+    // 桌面端点击后弹出已读详情浮动菜单：把点击全局坐标传给回调，用于菜单在已读标记附近定位。
+    return onTap == null
+        ? circle
+        : GestureDetector(
+            onTapDown: (d) => onTap!(d.globalPosition),
+            child: circle,
+          );
   }
 }
 

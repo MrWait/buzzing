@@ -139,8 +139,8 @@ impl ChatModel {
         let txn = db.begin().await?;
         let entity = ActiveModel {
             id: ActiveValue::set(chat.id),
-            last_message_id: ActiveValue::set(chat.last_message_id),
-            last_message_badge: ActiveValue::set(chat.last_message_badge),
+            last_message_id: ActiveValue::set(msg.id),
+            last_message_badge: ActiveValue::set(msg.badge),
             last_message_pos: ActiveValue::set(msg.pos),
             ..Default::default()
         };
@@ -158,7 +158,11 @@ impl ChatModel {
             at_user_ids: ActiveValue::set(msg.at_user_ids.clone()),
             content: ActiveValue::set(msg.content.clone()),
             summary: ActiveValue::set(msg.summary.clone()),
-            version: ActiveValue::set(0),
+            // 版本字段取内存中已初始化的值（chat.rs update_last_message 里以 now_ms 初始化），
+            // 不能写死 0：push_messages 推送按 id 从 DB 重查，版本为 0 会让各端版本守卫/脏标记失效
+            version: ActiveValue::set(msg.version),
+            readstate_version: ActiveValue::set(msg.readstate_version),
+            reaction_version: ActiveValue::set(msg.reaction_version),
             thread_root_id: ActiveValue::set(msg.thread_root_id),
             cmv_id: ActiveValue::set(msg.cmv_id),
             cmv_count: ActiveValue::set(msg.cmv_count),
@@ -226,6 +230,24 @@ impl ChatModel {
         Ok(chats)
     }
 
+    /// 解散群聊落库：chats 实体标记 Deleted + 持久化版本号。
+    /// 配合 message_send 已解散校验，避免解散后群聊继续收发消息（缓存逐出后从 DB 重载也保持解散态）。
+    pub async fn update_dismissed(
+        db: &DatabaseConnection,
+        chat_id: i64,
+        version: i64,
+    ) -> ModelResult<()> {
+        let active = ActiveModel {
+            id: ActiveValue::set(chat_id),
+            status: ActiveValue::set(EntityStatus::Deleted as i16),
+            version: ActiveValue::set(version),
+            ..Default::default()
+        };
+        Entity::update(active)
+            .exec(db)
+            .await?;
+        Ok(())
+    }
     pub async fn update_cmv(
         db: &DatabaseConnection,
         chat_id: i64,

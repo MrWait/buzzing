@@ -9,6 +9,18 @@ use crate::EntityIds;
 use crate::model::UserBrief;
 use proto::idl::{command::Command, entity};
 
+/// 服务端出包通道模式：控制"实时推送在线用户"与"pipeline 持久化"的搭配。
+/// - `Realtime`：仅实时推给在线用户（不落 pipeline），适合无离线兜底需求的轻量包（打字/在线态/已读实体）。
+/// - `Persist`：仅写入 pipeline（离线端重连回放后 mark dirty + 懒拉），不实时推给在线用户；
+///   适合"在线内容已由其他实时通道送达"的场景（如 1211 推消息实体后，EntityChange 只需持久化）。
+/// - `Both`：实时推送 + pipeline 持久化，适合需要同时覆盖在线设备与离线回放的完整实体变更。
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum SendMode {
+    Realtime,
+    Persist,
+    Both,
+}
+
 pub(crate) static APPS: OnceLock<Arc<AppHub>> = OnceLock::new();
 pub(crate) static SERVICES: OnceLock<Arc<BizHub>> = OnceLock::new();
 
@@ -170,7 +182,7 @@ pub trait BizGateway: Send + Sync {
         _sid: i64,
         _cmd: Command,
         _body: Vec<u8>,
-        _pipe: bool,
+        _mode: SendMode,
     ) -> Result<()>;
 }
 pub struct DefaultBizGateway {}
@@ -183,7 +195,7 @@ impl BizGateway for DefaultBizGateway {
         _sid: i64,
         _cmd: Command,
         _body: Vec<u8>,
-        _pipe: bool,
+        _mode: SendMode,
     ) -> Result<()> {
         Ok(())
     }

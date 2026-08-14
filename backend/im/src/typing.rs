@@ -3,6 +3,7 @@ use prost::Message;
 use tracing::debug;
 
 use common::{BizHub, UserBrief, pb_decode, rid};
+use common::SendMode;
 use proto::idl::{command::Command, entity, error::ErrorCode, typing};
 
 pub(crate) async fn handle_typing(
@@ -45,7 +46,7 @@ pub(crate) async fn handle_typing(
                 rid(),
                 Command::PushTyping,
                 push.encode_to_vec(),
-                false,
+                SendMode::Realtime,
             )
             .await?;
     }

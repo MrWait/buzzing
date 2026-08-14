@@ -7,7 +7,7 @@ use tracing::{debug, instrument, warn};
 use base_db::meta::MetaTable;
 use base_util::{gen_i32, thread_id};
 use proto::idl::pipeline;
-use service::AppTrait;
+use service::{AppTrait, BizHub};
 
 use crate::AppChat;
 
@@ -71,10 +71,13 @@ impl AppChat {
                     "pipeline replay packet, rid: {}, cmd: {}",
                     packet.rid, packet.cmd
                 );
-                // 复用实时推送的同一分发逻辑（PushMessages / PushFeedList）
-                let _ = self
-                    .on_net_command(1, packet.cmd, &packet.payload)
-                    .await;
+                // 复用实时推送的同一分发逻辑（走 hub 统一分发）：
+                // PushMessages / PushFeedList / PushChatUpdate 由 app-chat 处理，
+                // PushEntityChange(1057) 由 BizHub::invoke_net_command 特化统一分发后按
+                // EntityType 到各 service（chat mark dirty / calendar 删删/标脏）。见 docs/data_sync §5。
+                if let Ok(hub) = BizHub::get() {
+                    let _ = hub.invoke_net_command(1, packet.cmd, &packet.payload).await;
+                }
             }
             sid = ack.sid;
             if !ack.has_more {

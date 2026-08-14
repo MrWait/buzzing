@@ -1,5 +1,5 @@
 <template>
-  <span v-html="rendered"></span><template v-if="translation">（{{ translation }}）</template>
+  <span class="text-pre-wrap" v-html="rendered"></span><template v-if="translation">（{{ translation }}）</template>
 </template>
 
 <script setup lang="ts">

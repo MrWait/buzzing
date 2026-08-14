@@ -149,9 +149,17 @@ impl MessageModel {
         readstate_version: i64,
         read_state: &VecBool,
     ) -> ModelResult<()> {
+        debug!(
+            "set_read: msg={}, version={}, len={}, bits={:?}",
+            id,
+            readstate_version,
+            read_state.len(),
+            read_state.iter().map(|b| if b { 1 } else { 0 }).collect::<Vec<_>>()
+        );
         let message = ActiveModel {
             id: ActiveValue::set(id),
-            read_states: ActiveValue::set(read_state.encode_to_vec()),
+            // read_states 列统一存原始 chunks 字节（与 chat.rs 创建、VecBool::with 读取保持一致）
+            read_states: ActiveValue::set(read_state.chunks.clone()),
             readstate_version: ActiveValue::set(readstate_version),
             ..Default::default()
         };

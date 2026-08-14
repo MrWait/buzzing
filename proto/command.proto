@@ -76,6 +76,9 @@ enum Command {
     CHAT_UNPIN_MESSAGE        = 1135;
     CHAT_GET_PINNED_MESSAGES  = 1136;
 
+    // M3: 会话实体变更推送（在线直推完整 chat 实体，离线走 PUSH_ENTITY_CHANGE mark dirty）
+    PUSH_CHAT_UPDATE = 1137;
+
     MESSAGE_CREATE_DRAFT = 1200;
     MESSAGE_DELETE_DRAFT = 1201;
     MESSAGE_GET_ALL_DRAFTS = 1202;
