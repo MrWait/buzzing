@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{debug, instrument};
 
-use common::{AppHub, BizGateway, ExternApp, UserBrief, gen_i32, id_gen};
+use common::{AppHub, BizGateway, ExternApp, SendMode, UserBrief, gen_i32, id_gen};
 use models::pipelines;
 use proto::idl::{command::Command, entity};
 
@@ -72,14 +72,17 @@ impl BizGateway for AppGateway {
         sid: i64,
         cmd: Command,
         body: Vec<u8>,
-        pipe: bool,
+        mode: SendMode,
     ) -> Result<()> {
-        if pipe {
-            let _ =
-                pipelines::PipelineModel::save_packet(&ctx.db, user_ids, sid, cmd as i32, &body)
-                    .await;
+        // Both / Persist 模式下将包写入 pipeline，供离线端重连回放
+        if matches!(mode, SendMode::Both | SendMode::Persist) {
+            let _ = pipelines::PipelineModel::save_packet(&ctx.db, user_ids, sid, cmd as i32, &body)
+                .await;
         }
-
+        // 仅 Persist 模式不实时推送在线用户（在线内容已由其他实时通道送达）
+        if mode == SendMode::Persist {
+            return Ok(());
+        }
         let _ = websocket::send_packet_to_users(ctx, user_ids, cmd, sid, body).await;
         Ok(())
     }

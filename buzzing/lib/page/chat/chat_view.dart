@@ -811,12 +811,20 @@ class _MessageViewState extends ConsumerState<MessageView> {
   // 上屏已读上报做防抖，避免滚动过程频繁发请求
   Timer? _seenDebounce;
   final GlobalKey _listKey = GlobalKey();
+  // 上次渲染的消息列表签名（chatId + 条数 + 末条 id），用于识别气泡列表确实变化、
+  // 避免打字/在线等无关 notify 反复调度已读上报
+  String _lastRenderSig = '';
+  bool _renderReportScheduled = false;
 
   @override
   void initState() {
     super.initState();
     final im = ref.read(imProvider);
     im.msgCtrl.addListener(_onScrollChanged);
+    // 气泡列表变化（切会话/拉取消息/收新消息）后，下一帧补一次已读上报。
+    // 注意：imProvider 是稳定实例的普通 Provider，MessageView 又是 const，
+    // 因此 build() 不会随 notifyListeners 重跑，必须直接监听 ChangeNotifier。
+    im.addListener(_onImChanged);
     // 首帧渲染后上报一次，覆盖首屏已就绪、且未触发滚动的事件（如已滚到底部的短列表）
     WidgetsBinding.instance.addPostFrameCallback((_) => _reportSeen());
   }
@@ -826,12 +834,46 @@ class _MessageViewState extends ConsumerState<MessageView> {
     _seenDebounce?.cancel();
     final im = ref.read(imProvider);
     im.msgCtrl.removeListener(_onScrollChanged);
+    im.removeListener(_onImChanged);
     super.dispose();
   }
 
+  /// 会话/消息列表变化时识别渲染签名，下一帧布局完成时补一次已读上报。
+  /// 覆盖「进入无滚动溢出的短会话」场景：maxScrollExtent==0 时 jumpToEnd 的
+  /// animateTo(0) 不会触发滚动通知，仅靠 initState/滚动两个触发源会漏报。
+  /// 渲染签名（chatId + 条数 + 末条 id）过滤打字/在线等无关 notify。
+  void _onImChanged() {
+    final im = ref.read(imProvider);
+    final renderSig =
+        '${im.chatId}:${im.messagePosList.length}:'
+        '${im.messagePosList.isEmpty ? 0 : im.messagePosList.last.id}';
+    if (renderSig != _lastRenderSig) {
+      _lastRenderSig = renderSig;
+      _scheduleRenderReport();
+    }
+  }
+
   void _onScrollChanged() {
+    // 用户滚动时维护 autoScroll：屏幕底部保持可见则跟随最新，上滑浏览历史则停止跟随
+    final im = ref.read(imProvider);
+    if (im.msgCtrl.hasClients) {
+      final pos = im.msgCtrl.position;
+      im.autoScroll = pos.maxScrollExtent - pos.pixels < 100;
+    }
     _seenDebounce?.cancel();
     _seenDebounce = Timer(const Duration(milliseconds: 200), _reportSeen);
+  }
+
+  /// 气泡列表变更后，在下一帧布局完成时补一次已读上报。
+  /// 覆盖「进入无滚动溢出的短会话」场景：maxScrollExtent==0 时 jumpToEnd 的
+  /// animateTo(0) 不会触发滚动通知，仅靠 initState/滚动两个触发源会漏报。
+  void _scheduleRenderReport() {
+    if (_renderReportScheduled) return;
+    _renderReportScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _renderReportScheduled = false;
+      _reportSeen();
+    });
   }
 
   /// 基于「可见区全局矩形与每条消息矩形相交」判定真正上屏的消息（见 data_sync §6.2）：
@@ -861,8 +903,10 @@ class _MessageViewState extends ConsumerState<MessageView> {
       if (!viewport.overlaps(rect)) continue;
       final msg = im.entity.messages[mi.id];
       if (msg == null) continue;
-      // 非本人消息按精确 id 批量已读
-      if (msg.fromId != im.userId) {
+      // 千人千面守卫：本人已读（meRead=true，含发送人恒为 true 的自家消息）无需上报，
+      // 避免重复上报已读；真正未读的非本人消息才按精确 id 批量已读
+      final rs = im.entity.readstates[msg.id];
+      if (msg.fromId != im.userId && (rs == null || !rs.meRead)) {
         seenIds.add(msg.id);
       }
       // 会话已读位置：可见最大 pos 及其 badge_count（服务端生成字段，原样透传）

@@ -54,7 +54,8 @@ pub(crate) async fn transcribe_voice(
     let member_ids = super::chat::chat_get_all_user_ids(ctx, req.chat_id).await?;
     // 转写属内容变更，携带消息体推送
     super::message::push_messages(ctx, brief, &member_ids, &[req.message_id], true).await?;
-    // 转写属消息内容变更：走 pipeline 实体变更通道（离线端 mark dirty + 懒拉），见 docs/data_sync §5
+    // 转写属消息内容变更：内容已由 1211 实时送达在线端，这里仅持久化到 pipeline
+    // 供离线端重连回放后 mark dirty + 懒拉，见 docs/data_sync §5
     let _ = super::message::push_entity_changed(
         ctx,
         &member_ids,
@@ -62,6 +63,7 @@ pub(crate) async fn transcribe_voice(
         ts,
         entity::Operate::Update,
         entity::EntityType::Message,
+        common::SendMode::Persist,
     )
     .await;
 

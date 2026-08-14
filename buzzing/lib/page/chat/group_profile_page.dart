@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:buzzing/controller/im.dart';
+import 'package:buzzing/i18n/strings.g.dart';
 import 'package:buzzing/models/idl/chat.pb.dart';
 import 'package:buzzing/models/idl/entity.pb.dart';
 import 'package:buzzing/models/idl/entity.pbenum.dart';
@@ -520,6 +521,7 @@ class _DangerZoneTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.t;
     return Column(
       children: [
         if (isOwner)
@@ -528,10 +530,24 @@ class _DangerZoneTile extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: () => _showTransferOwnerDialog(context),
               icon: Icon(Icons.swap_horiz, color: cs.primary),
-              label: const Text('转让群主'),
+              label: Text(t.groupPermissionTransfer),
               style: OutlinedButton.styleFrom(
                 foregroundColor: cs.primary,
                 side: BorderSide(color: cs.outline),
+              ),
+            ),
+          ),
+        if (isOwner) const SizedBox(height: 8),
+        if (isOwner)
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _confirmDismissGroup(context),
+              icon: Icon(Icons.delete_forever, color: cs.error),
+              label: Text(t.dismissGroup),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: cs.error,
+                side: BorderSide(color: cs.error.withValues(alpha: 0.5)),
               ),
             ),
           ),
@@ -542,7 +558,7 @@ class _DangerZoneTile extends StatelessWidget {
           child: OutlinedButton.icon(
             onPressed: () => _confirmLeaveGroup(context),
             icon: Icon(Icons.exit_to_app, color: cs.error),
-            label: const Text('退出群聊'),
+            label: Text(t.quitGroup),
             style: OutlinedButton.styleFrom(
               foregroundColor: cs.error,
               side: BorderSide(color: cs.error.withValues(alpha: 0.5)),
@@ -550,6 +566,37 @@ class _DangerZoneTile extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  /// 解散群聊：仅群主可操作。确认后调用服务端解散接口，随后退出群设置。
+  void _confirmDismissGroup(BuildContext context) {
+    final t = context.t;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t.dismissGroup),
+        content: Text(t.dismissGroupHint),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t.cancel)),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await im.dismissGroup(chatId);
+              if (!context.mounted) return;
+              if (isDesktop) {
+                // 桌面端：关闭群设置面板，当前会话由 feed 更新自动消失
+                im.closeGroupProfile();
+              } else {
+                // 移动端：返回到会话列表（群已解散，回退两层回到首页）
+                context.pop();
+                context.pop();
+              }
+            },
+            child: Text(t.dismissGroup, style: TextStyle(color: cs.error)),
+          ),
+        ],
+      ),
     );
   }
 

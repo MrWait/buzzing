@@ -15,7 +15,7 @@ use crate::models::cycleds::CycledModel;
 use crate::models::schedule_reminders::ScheduleReminderModel;
 use crate::models::schedules::ScheduleModel;
 use crate::schedule;
-use common::{BizHub, EntityIds, EntityStatus, EntityType, Operate, UserBrief};
+use common::{BizHub, EntityIds, EntityStatus, EntityType, Operate, SendMode, UserBrief};
 use common::{id_gen, pb_decode, rid};
 use proto::idl::{calendar, command::Command, entity, error::ErrorCode, feed};
 
@@ -30,8 +30,9 @@ async fn push_schedule_to_users(
     let biz = BizHub::get()?;
     let rid = id_gen(None);
     let push = calendar::SchedulePushUpdateRequest {
-        schedules,
+        schedules: schedules.clone(),
     };
+    // 在线直推完整日程实体（Realtime）
     let _ = biz
         .gateway
         .send_packet_to_user(
@@ -40,9 +41,30 @@ async fn push_schedule_to_users(
             rid,
             Command::SchedulePushUpdate,
             push.encode_to_vec(),
-            true,
+            SendMode::Realtime,
         )
         .await?;
+    // 离线：EntityChange mark dirty + 懒拉（见 docs/data_sync §5）
+    let mut changes = pipeline::PushEntityChanged::default();
+    for s in &schedules {
+        changes.changes.push(entity::EntityChange {
+            id: s.id,
+            version: s.version,
+            r#type: entity::EntityType::Schedule as i32,
+            operate: Operate::Update as i32,
+        });
+    }
+    let _ = biz
+        .gateway
+        .send_packet_to_user(
+            ctx,
+            user_ids,
+            id_gen(None),
+            Command::PushEntityChange,
+            changes.encode_to_vec(),
+            SendMode::Persist,
+        )
+        .await;
     Ok(())
 }
 pub(crate) async fn schedule_create(
@@ -322,9 +344,18 @@ pub(crate) async fn schedule_remove(
         }
     }
 
+    // 删除日程：向所有受影响成员推 EntityChange(Delete)（在线直删 + 离线回放直删）
     let sid = id_gen(None);
     let biz = BizHub::get()?;
-    let push = pipeline::PushEntityChanged::default();
+    let mut push = pipeline::PushEntityChanged::default();
+    for id in &removed_ids {
+        push.changes.push(entity::EntityChange {
+            id: *id,
+            version: schedule.version,
+            r#type: entity::EntityType::Schedule as i32,
+            operate: Operate::Delete as i32,
+        });
+    }
     let _ = biz
         .gateway
         .send_packet_to_user(
@@ -333,7 +364,7 @@ pub(crate) async fn schedule_remove(
             sid,
             Command::PushEntityChange,
             push.encode_to_vec(),
-            true,
+            SendMode::Both,
         )
         .await;
 

@@ -10,7 +10,7 @@ use tracing::{debug, warn};
 use crate::models::calendars::{self, CalendarModel};
 use crate::models::user2calendars::{self, User2CalendarModel};
 use common::{
-    BizHub, CacheLoader, CommonCache, Operate, PresetColor, UserBrief, id_gen, pb_decode,
+    BizHub, CacheLoader, CommonCache, Operate, PresetColor, SendMode, UserBrief, id_gen, pb_decode,
 };
 use proto::idl::{calendar, command::Command, entity, error::ErrorCode};
 
@@ -77,8 +77,9 @@ async fn push_calendar_to_users(
     let biz = BizHub::get()?;
     let rid = id_gen(None);
     let push = calendar::CalendarPushUpdateRequest {
-        calendar: Some(calendar),
+        calendar: Some(calendar.clone()),
     };
+    // 在线直推完整日历实体（Realtime）
     let _ = biz
         .gateway
         .send_packet_to_user(
@@ -87,9 +88,28 @@ async fn push_calendar_to_users(
             rid,
             Command::CalendarPushUpdate,
             push.encode_to_vec(),
-            true,
+            SendMode::Realtime,
         )
         .await?;
+    // 离线：EntityChange mark dirty + 懒拉（见 docs/data_sync §5）
+    let mut changes = pipeline::PushEntityChanged::default();
+    changes.changes.push(entity::EntityChange {
+        id: calendar.id,
+        version: calendar.version,
+        r#type: entity::EntityType::Calendar as i32,
+        operate: Operate::Update as i32,
+    });
+    let _ = biz
+        .gateway
+        .send_packet_to_user(
+            ctx,
+            user_ids,
+            id_gen(None),
+            Command::PushEntityChange,
+            changes.encode_to_vec(),
+            SendMode::Persist,
+        )
+        .await;
     Ok(())
 }
 
@@ -239,7 +259,7 @@ pub(crate) async fn calendar_delete(
             sid,
             Command::PushEntityChange,
             push.encode_to_vec(),
-            true,
+            SendMode::Both,
         )
         .await;
     Ok((0, resp.encode_to_vec()))
@@ -343,7 +363,7 @@ pub(crate) async fn calendar_subscribe(
             });
             let _ = biz.gateway.send_packet_to_user(
                 ctx, &[brief.id], id_gen(None),
-                Command::PushEntityChange, push.encode_to_vec(), true,
+                Command::PushEntityChange, push.encode_to_vec(), SendMode::Both,
             ).await;
         }
 

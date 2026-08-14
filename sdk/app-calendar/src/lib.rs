@@ -9,6 +9,7 @@ use tracing::{debug, instrument};
 
 use base_db::DbConn;
 use base_util::{gen_i32, thread_id};
+use proto::idl;
 use proto::idl::command::Command;
 use service::{AppTrait, BizCalendar, BizHub, Event, InitRequest, LoginRequest};
 
@@ -81,8 +82,8 @@ impl AppTrait for AppCalendar {
             // schedule
             Command::SchedulePushUpdate as i32,
             Command::PushScheduleUpdateByRange as i32,
-            // push
-            Command::PushEntityChange as i32,
+            // push（1057 PUSH_ENTITY_CHANGE 由 BizHub::invoke_net_command 特化统一分发，
+            // 本 service 经 AppTrait::handle_entity_changed 按 EntityType 接收）
             Command::PushScheduleDelete as i32,
             Command::PushScheduleReminder as i32,
         ]
@@ -116,7 +117,6 @@ impl AppTrait for AppCalendar {
             Command::CalendarPushUpdate => self.handle_push_calendar(params).await,
             Command::SchedulePushUpdate => self.handle_push_schedule_update(params).await,
             Command::PushScheduleUpdateByRange => self.handle_push_schedule_update_by_range(params).await,
-            Command::PushEntityChange => self.handle_entity_changed(params).await,
             Command::PushScheduleDelete => self.handle_push_schedule_delete(params).await,
             Command::PushScheduleReminder => self.handle_push_schedule_reminder(params).await,
             _ => return Err(anyhow::anyhow!("not handled")),
@@ -131,6 +131,35 @@ impl AppTrait for AppCalendar {
             }
             _ => {}
         }
+    }
+
+    /// 处理实体变更（PUSH_ENTITY_CHANGE，由 BizHub::invoke_net_command 特化分发进来）。
+    /// Calendar(21)/Schedule(22)：
+    /// - Delete → 本地直删（在线直删 + 离线 pipeline 回放直删）；
+    /// - Update → 标记本地脏（下次 Calendar/Schedule 拉取时刷新，见 calendar_list_sync / schedule_pull_by_ids）。
+    fn handle_entity_changed(&self, changes: &[idl::entity::EntityChange]) -> Result<()> {
+        use idl::entity::{EntityType, Operate};
+        debug!("handle entity changed: {changes:?}");
+        let conn = self.db.inner()?;
+        for change in changes {
+            let op = Operate::from_i32(change.operate).unwrap_or(Operate::None);
+            match op {
+                Operate::Delete if change.r#type == EntityType::Calendar as i32 => {
+                    database::calendar::calendar_remove_local(&conn, change.id)?;
+                }
+                Operate::Delete if change.r#type == EntityType::Schedule as i32 => {
+                    database::schedule::schedule_remove_local(&conn, change.id)?;
+                }
+                Operate::Update if change.r#type == EntityType::Calendar as i32 => {
+                    database::calendar::calendar_mark_dirty(&conn, &[change.id])?;
+                }
+                Operate::Update if change.r#type == EntityType::Schedule as i32 => {
+                    database::schedule::schedule_mark_dirty(&conn, &[change.id])?;
+                }
+                _ => {}
+            }
+        }
+        Ok(())
     }
 }
 

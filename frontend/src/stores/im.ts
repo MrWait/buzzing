@@ -35,7 +35,8 @@ export interface MessageReadState {
   readCount: number
   unreadCount: number
   meRead: boolean
-  topReadIds: string[]
+  // 服务端 readstate_version（变更单调递增），用作已读状态合并/回退守卫（对齐 SDK message_readstate_upsert）
+  version: number
 }
 
 export interface MessageItem {
@@ -121,6 +122,11 @@ export const useImStore = defineStore('im', () => {
   const feeds = ref<Map<string, FeedItem>>(new Map())
   const chats = ref<Map<string, ChatItem>>(new Map())
   const messages = ref<Map<string, MessageItem[]>>(new Map())
+  // 已读独立实体缓存（key = message_id，见 docs/data_sync §5）：已读/表情为独立实体，
+  // 与消息内容分离下发。消息列表换加载窗口、会话切换等场景下，消息行会被整体替换重建，
+  // 若 readState 只存在消息行上就容易丢失；此 map 作为跨消息行的已读状态权威来源，
+  // 与 SDK 的 messages 表 readstate 列语义对齐（sdk message_database/message.rs:read_state）。
+  const readStates = ref<Map<string, MessageReadState>>(new Map())
   const users = ref<Map<string, UserItem>>(new Map())
   const typingUsers = ref<Map<string, TypingUser[]>>(new Map())
   // pipeline 实体脏标记（内存版：`${entityType}:${entityId}` → 变更 version），刷新即丢
@@ -365,10 +371,28 @@ export const useImStore = defineStore('im', () => {
   function mergeEntity(entity: any) {
     if (!entity) return
 
+    // 会话被解散/删除（EntityStatus >= DISMISS_PENDING，服务端 chat_dismiss 走 chat 实体直推 status=Deleted
+    // + feed 置 DismissPending 双通道）：移除会话/消息缓存；若正是当前进入的会话，同步清空当前会话，
+    // 避免列表项已移除而聊天页仍停留在已解散的会话。
+    function purgeChat(chatId: string) {
+      chats.value.delete(chatId)
+      feeds.value.delete(chatId)
+      messages.value.delete(chatId)
+      typingUsers.value.delete(chatId)
+      if (currentChatId.value === chatId) {
+        currentChatId.value = null
+      }
+    }
+
     // Merge chats
     if (entity.chats) {
       for (const chat of Object.values(entity.chats) as any[]) {
         const nid = chat.id || '0'
+        // chat 实体直推已带 deleted/dismiss 状态：整会话清理（含当前会话）
+        if (Number(chat.status || 0) >= 4) {
+          purgeChat(nid)
+          continue
+        }
         // 保留已有公告（实体更新不一定携带 announcement）
         const prev = chats.value.get(nid)
         chats.value.set(nid, {
@@ -387,7 +411,7 @@ export const useImStore = defineStore('im', () => {
         const status = Number(feed.status || 0)
         // Skip dissolved/deleted feeds
         if (status >= 4) {
-          feeds.value.delete(nid)
+          purgeChat(nid)
           continue
         }
         feeds.value.set(nid, {
@@ -415,9 +439,14 @@ export const useImStore = defineStore('im', () => {
 
     // Merge messages
     if (entity.messages) {
-      // 已读/表情为独立实体（key = message_id），见 docs/data_sync §5
-      const rsMap = (entity.readstates || {}) as Record<string, any>
-      const rxMap = (entity.reactions || {}) as Record<string, any>
+      // 已读/表情为独立实体（key = message_id），见 docs/data_sync §5。
+      // 注意：protobufjs 对 map<int64, T> 的 key 解码为原始字节（非字符串），不能按 map key 匹配，
+      // 统一改用 value 内部 id（ReadState.id / Reactions.id = message_id）做 key。
+      const rsMap = readMapByValueId(entity.readstates)
+      const rxMap = readMapByValueId(entity.reactions)
+      // 已读状态先入独立缓存（key=message_id）：服务于消息行整体替换重建时的回填，
+      // 以及会话列表中按 referId 直接取已读进度（feedReadPercent）
+      if (Object.keys(rsMap).length > 0) applyReadStateMap(rsMap)
       for (const msg of Object.values(entity.messages) as any[]) {
         const nid = msg.id || '0'
         const chatId = msg.chat_id || '0'
@@ -446,13 +475,16 @@ export const useImStore = defineStore('im', () => {
           }
         }
         const rs = rsMap[nid]
-        if (rs) {
-          item.readState = {
+        // 已读状态以独立缓存（key=message_id）为准：applyReadStateMap 已按版本守卫写入，
+        // 防止 payload 携带的旧已读状态回退覆盖新的已读状态
+        const cachedState = readStates.value.get(nid)
+        if (rs || cachedState) {
+          item.readState = cachedState || {
             total: rs.total || 0,
             readCount: rs.read_count || 0,
             unreadCount: rs.unread_count || 0,
             meRead: !!rs.me_read,
-            topReadIds: (rs.top_read_ids || []).map(String),
+            version: Number(rs.version) || 0,
           }
         }
 // 群公告：tpy==ANNOUNCEMENT(16) 且 id==chatId 的系统消息，摘入 chat.announcement，
@@ -530,24 +562,23 @@ export const useImStore = defineStore('im', () => {
     }
 
     // 仅已读/表情独立实体变更（无 messages）：按 key=message_id 就地更新已有消息的 readState / reactions
-    const sideRs = (entity.readstates || {}) as Record<string, any>
-    const sideRx = (entity.reactions || {}) as Record<string, any>
+    // 同样按 value 内部 id 归一化（protobufjs map<int64> key 是原始字节，见 readMapByValueId 注释）
+    const sideRs = readMapByValueId(entity.readstates)
+    const sideRx = readMapByValueId(entity.reactions)
     if (Object.keys(sideRs).length > 0 || Object.keys(sideRx).length > 0) {
+      console.log('[im][mergeEntity] side readstate/reaction payload', sideRs, sideRx)
+      // 已读状态先按版本守卫写入独立缓存（key=message_id）
+      if (Object.keys(sideRs).length > 0) applyReadStateMap(sideRs)
       messages.value.forEach((chatMsgs, cid) => {
         let changed = false
         const next = chatMsgs.map((m) => {
-          const rs = sideRs[m.id]
+          const cached = readStates.value.get(m.id)
           const rx = sideRx[m.id]
-          if (rs || rx) {
+          if (cached || rx) {
             const updated: MessageItem = { ...m }
-            if (rs) {
-              updated.readState = {
-                total: rs.total || 0,
-                readCount: rs.read_count || 0,
-                unreadCount: rs.unread_count || 0,
-                meRead: !!rs.me_read,
-                topReadIds: (rs.top_read_ids || []).map(String),
-              }
+            if (cached) {
+              updated.readState = cached
+              console.log('[im][mergeEntity] side update item', m.id, 'readState ->', cached, 'chat', cid)
             }
             if (rx && rx.reactions) {
               const nextRx: Record<string, { total: number; me: boolean }> = {}
@@ -563,6 +594,8 @@ export const useImStore = defineStore('im', () => {
         })
         if (changed) messages.value.set(cid, next)
       })
+    } else {
+      console.log('[im][mergeEntity] no readstate/reaction side payload, readStates cache size=', readStates.value.size)
     }
 
     // Merge users
@@ -597,6 +630,24 @@ export const useImStore = defineStore('im', () => {
       if (fromIds.length > 0) {
         const unique = [...new Set(fromIds)]
         ensureUsers(unique)
+      }
+    }
+
+    // Auto-fetch missing peer info for P2P chats（对齐 SDK fill_entity：
+    // 会话实体会携带 peer/member 用户，防止会话列表单聊渲染不出对方昵称/头像）
+    if (entity.chats) {
+      const peerIds: string[] = []
+      for (const chat of Object.values(entity.chats) as any[]) {
+        if (Number(chat.chat_type || 0) !== 1) continue
+        const cid = chat.id || '0'
+        const chatItem = chats.value.get(cid)
+        const memberIds = chatItem?.memberIds || (chat.member_ids || []).map(String)
+        const selfUid = useAuthStore().user?.id || '0'
+        const peerId = memberIds.find((id: string) => id !== selfUid)
+        if (peerId && !users.value.has(peerId)) peerIds.push(peerId)
+      }
+      if (peerIds.length > 0) {
+        ensureUsers([...new Set(peerIds)])
       }
     }
   }
@@ -666,7 +717,7 @@ export const useImStore = defineStore('im', () => {
   // 将 proto entity.Message 归一化为 MessageItem（getPinnedMessages 等场景复用）。
   // 已读/表情为独立实体（Entity.readstates/reactions），此处不内联，由 mergeEntity 侧通道补充。
   function toMessageItem(msg: any): MessageItem {
-    return {
+    const item: MessageItem = {
       id: msg.id || '0',
       chatId: msg.chat_id || '0',
       fromId: String(msg.from_id || '0'),
@@ -681,6 +732,47 @@ export const useImStore = defineStore('im', () => {
       refMessageId: msg.ref_message_id || '0',
       reactions: {},
     }
+    // 消息行重建时回填已读缓存（key=message_id），避免消息整体替换丢失已读状态
+    const cached = readStates.value.get(item.id)
+    if (cached) item.readState = cached
+    return item
+  }
+
+  // protobufjs 对 map<int64, T> 的 key 无法按 longs:String 转换为字符串（key 是原始字节乱码），
+// 因此不能依赖 entity.readstates / entity.reactions 的 map key 做 按 msg.id 查找。
+// 改为遍历 value，用 value 内部的 id 字段（ReadState.id = message_id，服务端 fill 恒填）做 key。
+  function readMapByValueId(raw: Record<string, any> | any): Record<string, any> {
+    const out: Record<string, any> = {}
+    if (!raw || typeof raw !== 'object') return out
+    for (const v of Object.values(raw) as any[]) {
+      if (!v || !v.id) continue
+      out[String(v.id)] = v
+    }
+    return out
+  }
+
+  // 解析服务端 entity.ReadState（raw）为 store 内 MessageReadState，并写入已读缓存
+  function applyReadStateMap(rsRaw: Record<string, any>) {
+    for (const rs of Object.values(rsRaw) as any[]) {
+      if (!rs || !rs.id) continue
+      const nid = String(rs.id)
+      const state: MessageReadState = {
+        total: rs.total || 0,
+        readCount: rs.read_count || 0,
+        unreadCount: rs.unread_count || 0,
+        meRead: !!rs.me_read,
+        // decodeAsPlain 用 longs:String，版本需转数值比较，避免字符串按位比较误跳更新
+        version: Number(rs.version) || 0,
+      }
+      const existing = readStates.value.get(nid)
+      // 已读状态版本守卫：新值不早于缓存值（防止旧已读状态回退覆盖新状态，见 push_message_readstate 注释）
+      if (existing && existing.version > state.version) {
+        console.log('[im][readState] SKIP older version', nid, 'existing=', existing, 'incoming=', state)
+        continue
+      }
+      readStates.value.set(nid, state)
+      console.log('[im][readState] cache set', nid, state, '|| existing=', existing)
+    }
   }
 
   function handlePush(cmd: number, payload: Uint8Array) {
@@ -688,6 +780,9 @@ export const useImStore = defineStore('im', () => {
       switch (cmd) {
         case 1211: // PUSH_MESSAGES
           const pushMsg = decodeAsPlain('message.PushMessages', payload)
+          console.log('[im][1211] push messages', 
+            Object.keys(pushMsg.entity?.messages || {}).length, 'msgs,',
+            'readstates:', Object.keys(pushMsg.entity?.readstates || {}).length, '->', pushMsg.entity?.readstates)
           mergeEntity(pushMsg.entity)
           break
         case 1111: // PUSH_FEED_LIST
@@ -704,6 +799,7 @@ export const useImStore = defineStore('im', () => {
           break
         case 1212: // PUSH_MESSAGE_READSTATE：已读独立实体推送（entity.readstates，key=message_id）
           const readPush = decodeAsPlain('message.PushReadMessageRequest', payload)
+          console.log('[im][1212] push readstate received', readPush.entity?.readstates)
           mergeEntity(readPush.entity)
           break
         case 1215: // PUSH_REACTIONS：表情独立实体推送（entity.reactions，key=message_id）
@@ -1262,6 +1358,7 @@ export const useImStore = defineStore('im', () => {
     feeds.value = new Map()
     chats.value = new Map()
     messages.value = new Map()
+    readStates.value = new Map()
     users.value = new Map()
     typingUsers.value = new Map()
     dirty.value = new Map()
@@ -1315,7 +1412,7 @@ export const useImStore = defineStore('im', () => {
   return {
     // state
     connected, connecting, wsClient,
-    feeds, chats, messages, users, typingUsers,
+    feeds, chats, messages, readStates, users, typingUsers,
     currentChatId, currentFeedId, currentChat,
     loadingFeeds, loadingMessages, hasMoreMessages,
     // computed

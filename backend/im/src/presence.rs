@@ -6,6 +6,7 @@ use std::collections::HashSet;
 use tracing::debug;
 
 use common::{BizHub, PRESENCE_SUBSCRIBERS, UserBrief, common_error, pb_decode, rid};
+use common::SendMode;
 use proto::idl::{command::Command, entity, error::ErrorCode, presence};
 
 /// Update own presence status (called from client or gateway on connect/disconnect)
@@ -56,7 +57,7 @@ pub(crate) async fn update_presence_internal(
                         rid(),
                         Command::PushPresence,
                         push.encode_to_vec(),
-                        false,
+                        SendMode::Realtime,
                     )
                     .await?;
             }

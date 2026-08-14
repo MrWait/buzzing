@@ -5,7 +5,7 @@ use tracing::{debug, instrument, warn};
 
 // use base::models::_entities::feeds;
 use crate::models::feeds;
-use common::{BizHub, EntityIds, EntityStatus, UserBrief, UserEntity, rid};
+use common::{BizHub, EntityIds, EntityStatus, SendMode, UserBrief, UserEntity, rid};
 use common::{gen_i32, pb_decode, pb_default};
 use proto::idl::{command::Command, entity, error::ErrorCode, feed};
 
@@ -36,7 +36,7 @@ pub(crate) async fn push_feed_to_user_impl(
             rid(),
             Command::PushFeedList,
             push.encode_to_vec(),
-            false,
+            SendMode::Realtime,
         )
         .await;
 
@@ -67,7 +67,7 @@ pub(crate) async fn push_feed_by_ids(ctx: &AppContext, mut chat_ids: Vec<i64>) -
                 rid(),
                 Command::PushFeedList,
                 push.encode_to_vec(),
-                false,
+                SendMode::Realtime,
             )
             .await;
     }
@@ -90,7 +90,7 @@ pub(crate) async fn push_entity(
                 rid(),
                 Command::PushFeedList,
                 push.encode_to_vec(),
-                false,
+                SendMode::Realtime,
             )
             .await;
     }
@@ -157,7 +157,7 @@ async fn push_feed_read_status(ctx: &AppContext, user_id: i64, feed: &feeds::Mod
             rid(),
             Command::PushFeedReadStatus,
             push.encode_to_vec(),
-            false,
+            SendMode::Realtime,
         )
         .await;
     Ok(())
@@ -340,7 +340,7 @@ pub(crate) async fn feed_set_top(
                             rid(),
                             Command::PushSetting,
                             setting.encode_to_vec(),
-                            false,
+                            SendMode::Realtime,
                         )
                         .await;
                 }

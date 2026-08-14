@@ -100,6 +100,7 @@ async fn batch_remind_cycle(ctx: &AppContext) -> Result<()> {
 /// 每 30 秒运行：扫描到期提醒 + 推送
 async fn remind_cycle(ctx: &AppContext) -> Result<()> {
     use common::BizHub;
+    use common::SendMode;
     use proto::idl::{calendar, command::Command};
 
     let now = current_ms() as i64;
@@ -136,7 +137,7 @@ async fn remind_cycle(ctx: &AppContext) -> Result<()> {
                         0,
                         Command::PushScheduleReminder,
                         push.encode_to_vec(),
-                        true,
+                        SendMode::Realtime,
                     )
                     .await;
             }

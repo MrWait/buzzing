@@ -142,14 +142,13 @@ pub(crate) async fn invite_link_join(
             resp.chat_id = row.chat_id;
             resp.chat = Some(c.get_entity());
             let member_ids = c.cmv.ids();
-            // 邀请加入属 chat 实体变更：走 pipeline 实体变更通道
-            let _ = crate::message::push_entity_changed(
+            // 邀请加入属 chat 实体变更：在线 PushChatUpdate 直推 + 离线 EntityChange mark dirty
+            let _ = crate::chat::push_chat_update(
                 ctx,
                 &member_ids,
-                &[row.chat_id],
+                row.chat_id,
                 version,
                 entity::Operate::Update,
-                entity::EntityType::Chat,
             )
             .await;
         }

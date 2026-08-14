@@ -34,3 +34,11 @@ input {
 #app {
   height: 100%;
 }
+
+/* 纯文本消息（含多行/空行）渲染：保留所有空白与换行，与 PC 端 Flutter Text 行为一致。
+   用于 v-html 输出的文本节点，避免 HTML 默认折叠连续换行为单个空格。 */
+.text-pre-wrap {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}

@@ -6,7 +6,7 @@ use loco_rs::{Error, Result, app::AppContext, prelude::*};
 use prost::Message;
 use tracing::debug;
 
-use common::{BizHub, UserBrief, id_gen, pb_decode, current_ms};
+use common::{BizHub, SendMode, UserBrief, id_gen, pb_decode, current_ms};
 use proto::idl::{meeting, command::Command, entity, error::ErrorCode};
 use crate::models::meetings::{MeetingModel, Model as MeetingDbModel};
 use crate::models::meeting_members::{MeetingMemberModel, Model as MemberDbModel};
@@ -38,7 +38,7 @@ async fn push_meeting_update(
         action: action as i32,
     };
     biz.gateway
-        .send_packet_to_user(ctx, user_ids, rid, Command::MeetingPushUpdate, push.encode_to_vec(), true)
+        .send_packet_to_user(ctx, user_ids, rid, Command::MeetingPushUpdate, push.encode_to_vec(), SendMode::Realtime)
         .await?;
     Ok(())
 }
@@ -435,7 +435,7 @@ pub(crate) async fn handle_invite(
         action: meeting::MeetingPushAction::MeetingPushInvited as i32,
     };
     biz.gateway
-        .send_packet_to_user(&ctx, &req.target_ids, rid, Command::MeetingPushUpdate, push.encode_to_vec(), true)
+        .send_packet_to_user(&ctx, &req.target_ids, rid, Command::MeetingPushUpdate, push.encode_to_vec(), SendMode::Realtime)
         .await?;
 
     Ok((0, resp.encode_to_vec()))

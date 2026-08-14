@@ -82,6 +82,10 @@ class ImController extends ChangeNotifier {
   int ver = 0;
   var user = User.create();
 
+  /// 是否跟随最新消息：滚动到接近底部时自动置 true；用户上滑浏览历史时置 false，
+  /// 此时收到新消息不强制跳到底，避免打断阅读。进入新会话时重置为 true。
+  var autoScroll = true;
+
   LoginUser loginUser = LoginUser.create();
 
   // 引用回复目标消息
@@ -431,14 +435,13 @@ class ImController extends ChangeNotifier {
     }
   }
 
+  /// 跳转到最新消息（底部）。进入会话/收到新消息（在底部时）由 updateMessage 调用。
+  /// 瞬移（jumpTo 而非 animateTo），避免长会话进入时从顶部平滑扫过全程；
+  /// 用户已上滑浏览历史（autoScroll=false）时不强制跳底，不打断阅读。
   void jumpToEnd() {
     Future.delayed(Duration(milliseconds: 32), () async {
-      if (msgCtrl.hasClients) {
-        await msgCtrl.animateTo(
-          msgCtrl.position.maxScrollExtent,
-          duration: Duration(milliseconds: 120),
-          curve: Curves.ease,
-        );
+      if (msgCtrl.hasClients && autoScroll) {
+        msgCtrl.jumpTo(msgCtrl.position.maxScrollExtent);
       }
     });
   }
@@ -492,6 +495,7 @@ isGroupProfileOpen = false;
       threadRootMessage = null;
       messagePosList.clear();
       chatId = id;
+      autoScroll = true;
       var chat = entity.chats[id];
       if (chat != null) {
         preloadMessage(chatId, chat.lastMessagePos, 30);
@@ -521,6 +525,14 @@ isGroupProfileOpen = false;
     mergeEntity(push.entity);
   }
 
+  // 在线 chat 实体变更直推（PUSH_CHAT_UPDATE 1137）：载荷为完整 chat 实体，
+  // 与 PushFeedList 同构（合并实体 + 刷新会话列表）。
+  void onPushChatUpdate(List<int> data) {
+    var push = PushChatUpdate.fromBuffer(data);
+    L.d("sdk push chat update, ${push}");
+    mergeEntity(push.entity);
+  }
+
   StreamSubscription<GlobalEvent>? _loginedSub;
   var _disposed = false;
 
@@ -529,6 +541,7 @@ isGroupProfileOpen = false;
 
     sdk.regPushCallback(Command.PUSH_FEED_LIST.value, onPushFeedList);
     sdk.regPushCallback(Command.PUSH_MESSAGES.value, onPushMessages);
+    sdk.regPushCallback(Command.PUSH_CHAT_UPDATE.value, onPushChatUpdate);
     sdk.regPushCallback(Command.PUSH_TYPING.value, onPushTyping);
     sdk.regPushCallback(Command.PUSH_PRESENCE.value, onPushPresence);
     _loginedSub = ev.stream.where((e) => e == GlobalEvent.logined).listen((_) {
@@ -1530,6 +1543,32 @@ isGroupProfileOpen = false;
       Command.CHAT_DELETE_CHATTERS,
       req.writeToBuffer(),
     );
+  }
+
+  // ─── M2: 解散群聊 ────────────────────────────────────────────────
+
+  /// 解散群聊（仅群主）：群聊实体推送更新，feed 状态置为 DismissPending，
+  /// 客户端 feedList 会自动过滤掉已解散的会话。
+  Future<void> dismissGroup(Int64 chatId) async {
+    var req = DismissChatRequest.create();
+    req.chatId = chatId;
+    L.d("dismiss group: chat=$chatId");
+    var result = await sdk.invokeAsync(
+      Command.CHAT_DISMISS,
+      req.writeToBuffer(),
+    );
+    if (result.data != null) {
+      var resp = DismissChatResponse.fromBuffer(result.data!);
+      L.d("dismiss group ack: chat=$chatId resp=${resp.toDebugString()}");
+    }
+    // 若解散的是当前打开的会话，重置 chatId 让聊天区回到空态。
+    // 注意：参数 chatId 与实例字段 this.chatId 同名，必须用 this 显式区分，
+    // 否则赋值落在参数上、当前会话不会真正被清空。
+    if (this.chatId == chatId) {
+      messagePosList.clear();
+      this.chatId = Int64(0);
+      notifyListeners();
+    }
   }
 
   /// 退出登录：先断开 SDK 会话，再清理本地持久化与内存状态，最后跳转登录页。

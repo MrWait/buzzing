@@ -259,12 +259,14 @@ message FavoriteList {
 }
 
 // 消息已读实体（独立实体，id = message_id，随 Entity.readstates 下发）
+// me_read 千人千面：发送人恒为 true，其他用户按其是否已读填充；
+// 已读详情（谁已读/未读）由客户端主动拉取 MessageGetReadMembers 获取，实体不再携带 top 列表。
+// 注意：字段 5 原为 top_read_ids，已弃用（勿复用）。
 message ReadState {
     int32 total = 1;
     int32 read_count = 2;
     int32 unread_count = 3;
     bool me_read = 4;
-    repeated int64 top_read_ids = 5;
     int64 version = 6;
     int64 id = 7;
 }

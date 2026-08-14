@@ -114,7 +114,7 @@
                     v-if="msg.fromId === myId"
                     class="msg-read"
                     :class="{ clickable: isGroup }"
-                    @click.stop="openReadDialog(msg)"
+                    @click.stop="openReadMenu($event, msg)"
                   >
                     <svg width="16" height="16" viewBox="0 0 16 16">
                       <circle cx="8" cy="8" r="7" fill="none" stroke="#4ADE80" stroke-opacity="0.8" stroke-width="2" />
@@ -249,47 +249,55 @@
       </Transition>
     </div>
 
-    <!-- 已读详情弹窗 -->
+    <!-- 已读详情浮动菜单：点击已读标记弹出，定位在标记右下角，空间不足向上/左翻转 -->
     <Teleport to="body">
-      <div v-if="readDialog.show" class="read-dialog-overlay" @click.self="closeReadDialog">
-        <div class="read-dialog">
-          <div class="read-dialog-header">
-            <span>已读详情</span>
-            <button class="header-btn" title="刷新" @click="refreshReadDialog">刷新</button>
-            <button class="header-btn" title="关闭" @click="closeReadDialog">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-          <div v-if="readDialog.loading" class="read-dialog-loading">加载中...</div>
-          <div v-else class="read-dialog-body">
-            <div v-if="readDialog.members.length === 0" class="read-dialog-empty">暂无成员</div>
-            <template v-else>
-              <div class="read-column">
-                <div class="read-column-title">已读 ({{ readDialog.members.filter((m: any) => m.is_read).length }})</div>
-                <div
-                  v-for="m in readDialog.members.filter((x: any) => x.is_read)"
-                  :key="m.user_id"
-                  class="read-member"
+      <div
+        v-if="readMenu.show"
+        class="read-menu"
+        :style="{ top: readMenu.y + 'px', left: readMenu.x + 'px' }"
+        @click.stop
+      >
+        <div v-if="readMenu.loading" class="read-dialog-loading">加载中...</div>
+        <div v-else class="read-menu-body">
+          <div v-if="readMenu.members.length === 0" class="read-dialog-empty">暂无成员</div>
+          <template v-else>
+            <div class="read-column">
+              <div class="read-column-title">已读 ({{ readMenu.members.filter((m: any) => m.is_read).length }})</div>
+              <div
+                v-for="m in readMenu.members.filter((x: any) => x.is_read)"
+                :key="m.user_id"
+                class="read-member"
+              >
+                <span
+                  v-if="memberAvatar(m) || m.user_id !== myId"
+                  class="read-member-avatar js-profile-open"
+                  @click="openUserProfile($event, m.user_id)"
                 >
-                  <span v-if="m.user_id !== myId" class="read-member-avatar js-profile-open" @click="openUserProfile($event, m.user_id)">{{ (m.name || '?')[0] }}</span>
-                  <span v-else class="read-member-avatar">{{ (m.name || '?')[0] }}</span>
-                  <span class="read-member-name">{{ m.name || '未知用户' }}</span>
-                </div>
+                  <img v-if="memberAvatar(m)" class="read-member-avatar-img" :src="memberAvatar(m)" />
+                  <template v-else>{{ (m.name || '?')[0] }}</template>
+                </span>
+                <span class="read-member-name">{{ m.name || '未知用户' }}</span>
               </div>
-              <div class="read-column">
-                <div class="read-column-title">未读 ({{ readDialog.members.filter((m: any) => !m.is_read).length }})</div>
-                <div
-                  v-for="m in readDialog.members.filter((x: any) => !x.is_read)"
-                  :key="m.user_id"
-                  class="read-member"
+            </div>
+            <div class="read-column">
+              <div class="read-column-title">未读 ({{ readMenu.members.filter((m: any) => !m.is_read).length }})</div>
+              <div
+                v-for="m in readMenu.members.filter((x: any) => !x.is_read)"
+                :key="m.user_id"
+                class="read-member"
+              >
+                <span
+                  v-if="memberAvatar(m) || m.user_id !== myId"
+                  class="read-member-avatar js-profile-open"
+                  @click="openUserProfile($event, m.user_id)"
                 >
-                  <span v-if="m.user_id !== myId" class="read-member-avatar js-profile-open" @click="openUserProfile($event, m.user_id)">{{ (m.name || '?')[0] }}</span>
-                  <span v-else class="read-member-avatar">{{ (m.name || '?')[0] }}</span>
-                  <span class="read-member-name">{{ m.name || '未知用户' }}</span>
-                </div>
+                  <img v-if="memberAvatar(m)" class="read-member-avatar-img" :src="memberAvatar(m)" />
+                  <template v-else>{{ (m.name || '?')[0] }}</template>
+                </span>
+                <span class="read-member-name">{{ m.name || '未知用户' }}</span>
               </div>
-            </template>
-          </div>
+            </div>
+          </template>
         </div>
       </div>
     </Teleport>
@@ -548,8 +556,8 @@ const threadMsgId = ref<string | null>(null)
 const typingTimer = ref<ReturnType<typeof setTimeout> | null>(null)
 
 // ─── 已读回执（W1）─────────────────────────────────────────────
-const readDialog = ref<{ show: boolean; msg: MessageItem | null; members: any[]; loading: boolean }>({
-  show: false, msg: null, members: [], loading: false,
+const readMenu = ref<{ show: boolean; x: number; y: number; msg: MessageItem | null; members: any[]; loading: boolean }>({
+  show: false, x: 0, y: 0, msg: null, members: [], loading: false,
 })
 let seenTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -576,23 +584,38 @@ function readRingDash(msg: MessageItem): string {
   return `${(readPercent(msg) / 100) * circum} ${circum}`
 }
 
-function openReadDialog(msg: MessageItem) {
+function openReadMenu(e: MouseEvent, msg: MessageItem) {
   if (!isGroup.value) return
-  readDialog.value = { show: true, msg, members: [], loading: true }
-  refreshReadDialog()
+  // 以已读标记元素自身为锚点：默认在其右下角弹出，空间不足则向上/向左翻转
+  const rect = (e.currentTarget as HTMLElement | null)?.getBoundingClientRect()
+  const MW = 380
+  const MH = 320
+  let x = rect ? rect.right + 4 : e.clientX
+  let y = rect ? rect.bottom + 4 : e.clientY
+  // 水平：右侧空间不足 → 向左翻转到标记左侧
+  if (rect && x + MW > window.innerWidth) x = Math.max(8, rect.left - MW)
+  // 垂直：下方空间不足 → 向上翻转到标记上方
+  if (rect && y + MH > window.innerHeight) y = Math.max(8, rect.top - MH)
+  readMenu.value = { show: true, x, y, msg, members: [], loading: true }
+  refreshReadMenu()
 }
 
-async function refreshReadDialog() {
+async function refreshReadMenu() {
   const cid = chatId.value
-  const msg = readDialog.value.msg
+  const msg = readMenu.value.msg
   if (!cid || !msg) return
-  readDialog.value.loading = true
-  readDialog.value.members = await im.getReadMembers(cid, msg.id)
-  readDialog.value.loading = false
+  readMenu.value.loading = true
+  readMenu.value.members = await im.getReadMembers(cid, msg.id)
+  readMenu.value.loading = false
 }
 
-function closeReadDialog() {
-  readDialog.value.show = false
+function closeReadMenu() {
+  readMenu.value = { show: false, x: 0, y: 0, msg: null, members: [], loading: false }
+}
+
+// 已读详情成员头像：优先服务端返回的 avatar，缺省回退本地用户缓存
+function memberAvatar(m: any): string {
+  return m.avatar || getSenderAvatar(m.user_id) || ''
 }
 
 // 防抖上屏已读上报：可见非本人消息精确 id + 可见最大 pos/badge_count → MESSAGE_READ
@@ -617,6 +640,8 @@ function doReportSeen() {
     const id = it.getAttribute('data-msg-id')!
     const msg = msgById.value.get(id)
     if (!msg || msg.fromId === myId.value) continue
+    // 千人千面守卫：本端已读（readState.meRead=true）无需重复上报
+    if (msg.readState?.meRead) continue
     const r = it.getBoundingClientRect()
     // 只要与可见区相交即视为已读（部分可见也算）
     if (r.bottom < container.top || r.top > container.bottom) continue
@@ -883,13 +908,24 @@ watch(chatId, (id) => {
   }
 }, { immediate: true })
 
-// 新消息到达/翻页后，重新计算上屏已读
+// 消息列表变化（进入会话加载 / 新消息到达 / 翻页）：处于底部跟随状态（autoScroll）时滚到最新一条，
+// 用户上滑浏览历史时不强制跳底；同时重新计算上屏已读。
+// 图片等资源异步加载会撑高 scrollHeight，故在 nextTick + rAF + 延迟后各补滚一次确保到位。
 watch(() => im.currentMessages.length, () => {
-  scheduleReportSeen()
+  nextTick(() => {
+    if (autoScroll.value) scrollToBottom()
+    requestAnimationFrame(() => {
+      if (autoScroll.value) scrollToBottom()
+    })
+    setTimeout(() => {
+      if (autoScroll.value) scrollToBottom()
+      scheduleReportSeen()
+    }, 50)
+  })
 })
 
 onMounted(() => {
-  document.addEventListener('click', closeMsgMenu)
+  document.addEventListener('click', closePopovers)
   _tick = setInterval(() => { _now.value = Date.now() }, 1000)
   const cid = chatId.value
   if (cid) {
@@ -898,8 +934,22 @@ onMounted(() => {
   }
 })
 
+// 诊断日志：会话内自己发送的消息的已读状态（消息行 readState + 独立缓存 readStates 对比），
+// 用于排查「PC 端已读、web 已读圈子仍为空」的问题。排查完删除。
+watch(
+  () => {
+    const selfUid = myId.value
+    const rows = im.currentMessages.filter((m) => m.fromId === selfUid)
+    return rows.map((m) => `${m.id}:row=${JSON.stringify(m.readState)}|cache=${JSON.stringify(im.readStates.get(m.id))}`).join('\n')
+  },
+  (v) => {
+    if (v) console.log('[ChatPanel][readState] own messages:\n' + v)
+  },
+  { deep: true },
+)
+
 onUnmounted(() => {
-  document.removeEventListener('click', closeMsgMenu)
+  document.removeEventListener('click', closePopovers)
   clearInterval(_tick)
 })
 
@@ -1061,6 +1111,12 @@ function showMsgMenu(e: MouseEvent, msg: MessageItem) {
 }
 function closeMsgMenu() {
   msgMenu.value = { show: false, x: 0, y: 0, msg: null }
+}
+
+// 点击页面空白处统一关闭各类浮层（右键菜单 / 已读详情浮层）
+function closePopovers() {
+  closeMsgMenu()
+  closeReadMenu()
 }
 
 function replyMessage(msg: MessageItem) {
@@ -1592,6 +1648,27 @@ function openThread(msg: MessageItem) {
   align-items: center;
   justify-content: center;
 }
+/* 已读详情浮动菜单：fixed 跟随点击位置，替代居中 dialog */
+.read-menu {
+  position: fixed;
+  width: 380px;
+  max-height: 320px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  border: 1px solid #eee;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.read-menu-body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  gap: 16px;
+  padding: 10px 12px;
+}
 .read-dialog {
   background: #fff;
   border-radius: 10px;
@@ -1653,6 +1730,13 @@ function openThread(msg: MessageItem) {
   justify-content: center;
   font-size: 12px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.read-member-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .read-member-name {
   font-size: 13px;

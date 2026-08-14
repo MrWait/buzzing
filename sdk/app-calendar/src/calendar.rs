@@ -147,21 +147,4 @@ impl AppCalendar {
         let _ = ffi_push(Command::CalendarPushList as i32, param.to_vec());
         Ok(())
     }
-
-    pub async fn handle_entity_changed(&self, param: &[u8]) -> Result<()> {
-        use proto::idl::pipeline;
-        let push = pipeline::PushEntityChanged::decode(param)?;
-        debug!("handle entity changed, {push:?}");
-        let conn = self.db.inner()?;
-        for change in &push.changes {
-            if change.r#type == 2 {
-                // Calendar
-                database::calendar::calendar_remove_local(&conn, change.id)?;
-            } else if change.r#type == 3 {
-                // Schedule
-                database::schedule::schedule_remove_local(&conn, change.id)?;
-            }
-        }
-        Ok(())
-    }
 }

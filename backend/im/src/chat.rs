@@ -11,11 +11,58 @@ use sea_orm::{ActiveValue, EntityTrait};
 use crate::models::{Cmv, chats::{ChatModel, ActiveModel, Entity as ChatEntity}, cmvs, feeds::FeedModel, messages};
 use common::{BizHub, CacheLoader, CommonCache, EntityIds, EntityStatus, UserBrief};
 use common::{common_error, pb_decode, rid, time::current_ms};
+use common::SendMode;
 use proto::idl::{chat, command::Command, entity, error::ErrorCode, message};
 
 type CacheChat = Arc<RwLock<ChatContext>>;
 static CACHE_CHAT: LazyLock<CommonCache<i64, CacheChat>> =
     LazyLock::new(|| CommonCache::new(10000, Arc::new(Box::new(ChatLoader))));
+
+/// chat 实体变更统一推送（在线 PushChatUpdate 直推完整实体落库清脏 + 离线 EntityChange mark dirty 懒拉）。
+/// 见 docs/data_sync §5：在线端内容由 PUSH_CHAT_UPDATE(Realtime) 直达，无需懒拉；
+/// 离线端经 PUSH_ENTITY_CHANGE(Persist) 回放 mark dirty，重连后统一拉取补齐。
+pub(crate) async fn push_chat_update(
+    ctx: &AppContext,
+    user_ids: &[i64],
+    chat_id: i64,
+    version: i64,
+    operate: entity::Operate,
+) -> Result<()> {
+    if user_ids.is_empty() {
+        return Ok(());
+    }
+    // 在线直推完整 chat 实体（含最新成员列表）
+    {
+        let context = chat_cache_get(ctx, chat_id).await?;
+        let mut push = chat::PushChatUpdate::default();
+        let e = push.entity.get_or_insert_default();
+        e.chats.insert(chat_id, context.read().await.get_entity());
+        let hub = BizHub::get()?;
+        let _ = hub
+            .gateway
+            .send_packet_to_user(
+                ctx,
+                user_ids,
+                rid(),
+                Command::PushChatUpdate,
+                push.encode_to_vec(),
+                SendMode::Realtime,
+            )
+            .await;
+    }
+    // 离线：实体变更 mark dirty + 懒拉
+    let _ = crate::message::push_entity_changed(
+        ctx,
+        user_ids,
+        &[chat_id],
+        version,
+        operate,
+        entity::EntityType::Chat,
+        common::SendMode::Persist,
+    )
+    .await;
+    Ok(())
+}
 
 struct ChatLoader;
 #[async_trait::async_trait]
@@ -144,6 +191,16 @@ pub(crate) async fn update_last_message(
     let mut member_ids = Vec::new();
     {
         let mut c = context.write().await;
+        // 群聊已解散：拒绝写消息（chat.status 落库 Deleted，缓存逐出/重启后仍生效）。
+        // message_send 已前置校验，此处为 message_forward / 定时消息等共享写路径的统一兜底。
+        if c.chat.status != EntityStatus::Normal as i16 {
+            return Err(common_error("chat dismissed"));
+        }
+        // 成员校验：发送者必须在当前成员列表内（P2P 的 peer_a/peer_b 同样位于 cmv）。
+        // message_send 已前置校验，此处为 message_forward / 定时消息等共享写路径的统一兜底。
+        if !c.cmv.contains_key(msg.from_id) {
+            return Err(common_error("chat member not found"));
+        }
         msg.pos = c.chat.last_message_pos as i32 + 1;
         // badge_count 枚举（见 data_sync §6.1）：仅系统消息不 +badge，其余逐条 +1
         msg.badge = if msg.r#type == entity::MessageType::System as i16 {
@@ -331,15 +388,14 @@ pub(crate) async fn chat_add_chatters(
 
     if let Some(ids) = user_ids {
         let _ = crate::feed::update_feed_status(ctx, req.chat_id, &ids, None).await;
-        // 群成员变更属 chat 实体变更：走 pipeline 实体变更通道（离线端 mark dirty + 拉取）
+        // 群成员变更属 chat 实体变更：在线 PushChatUpdate 直推 + 离线 EntityChange mark dirty
         if changed_version > 0 {
-            let _ = crate::message::push_entity_changed(
+            let _ = push_chat_update(
                 ctx,
                 &ids,
-                &[req.chat_id],
+                req.chat_id,
                 changed_version,
                 entity::Operate::Update,
-                entity::EntityType::Chat,
             )
             .await;
         }
@@ -433,15 +489,14 @@ pub(crate) async fn chat_delete_chatters(
 
     if let Some(ids) = user_ids {
         let _ = crate::feed::update_feed_status(ctx, req.chat_id, &ids, None).await;
-        // 群成员变更属 chat 实体变更：走 pipeline 实体变更通道（离线端 mark dirty + 拉取）
+        // 群成员变更属 chat 实体变更：在线 PushChatUpdate 直推 + 离线 EntityChange mark dirty
         if changed_version > 0 {
-            let _ = crate::message::push_entity_changed(
+            let _ = push_chat_update(
                 ctx,
                 &ids,
-                &[req.chat_id],
+                req.chat_id,
                 changed_version,
                 entity::Operate::Update,
-                entity::EntityType::Chat,
             )
             .await;
         }
@@ -568,21 +623,18 @@ pub(crate) async fn chat_update(
     {
         let c = context.read().await;
         let member_ids = c.cmv.ids();
-        let mut entity = entity::Entity::default();
-        entity.chats.insert(req.chat_id, c.get_entity());
-        let _ = crate::feed::push_entity(ctx, &member_ids, entity).await;
-        // chat 详情变更（名称/描述/权限等）属 chat 实体变更：走 pipeline 实体变更通道
+        // chat 详情变更（名称/描述/权限等）属 chat 实体变更：
+        // 在线 PushChatUpdate 直推完整实体 + 离线 EntityChange mark dirty
         let e = resp.entities.get_or_insert_default();
         e.chats.insert(req.chat_id, c.get_entity());
 
         if changed {
-            let _ = crate::message::push_entity_changed(
+            let _ = push_chat_update(
                 ctx,
                 &member_ids,
-                &[req.chat_id],
+                req.chat_id,
                 c.chat.version,
                 entity::Operate::Update,
-                entity::EntityType::Chat,
             )
             .await;
         }
@@ -676,14 +728,13 @@ pub(crate) async fn chat_quit(
     )
     .await;
     let _ = crate::feed::update_feed_status(ctx, req.chat_id, &user_ids, None).await;
-    // 退群后剩余成员收到 chat 实体变更（成员列表更新）
-    let _ = crate::message::push_entity_changed(
+    // 退群后剩余成员收到 chat 实体变更（成员列表更新）：在线直推 + 离线 mark dirty
+    let _ = push_chat_update(
         ctx,
         &user_ids,
-        &[req.chat_id],
+        req.chat_id,
         changed_version,
         entity::Operate::Update,
-        entity::EntityType::Chat,
     )
     .await;
     debug!("chat quit");
@@ -700,7 +751,7 @@ pub(crate) async fn chat_dismiss(
     debug!("chat dismiss, req: {req:?}");
     let resp = chat::DismissChatResponse::default();
     let context = chat_cache_get(ctx, req.chat_id).await?;
-    {
+    let (user_ids, version) = {
         let mut c = context.write().await;
 
         if c.chat.owner_id != brief.id || c.chat.r#type == entity::ChatType::ChatP2p as i16 {
@@ -708,25 +759,24 @@ pub(crate) async fn chat_dismiss(
         }
 
         c.chat.version = bump_chat_version(c.chat.version);
-        let user_ids = c.cmv.ids();
-        // 解散群聊属 chat 实体变更：向所有成员推 Chat Delete（离线端回放后本地清除群）
-        let _ = crate::message::push_entity_changed(
-            ctx,
-            &user_ids,
-            &[req.chat_id],
-            c.chat.version,
-            entity::Operate::Delete,
-            entity::EntityType::Chat,
-        )
+        // 解散落库：chats.status 置 Deleted + 持久化版本，避免缓存逐出/重启后群聊"复活"
+        ChatModel::update_dismissed(&ctx.db, c.chat.id, c.chat.version).await?;
+        c.chat.status = EntityStatus::Deleted as i16;
+        (c.cmv.ids(), c.chat.version)
+    };
+    // 解散群聊属 chat 实体变更：在线 PushChatUpdate 直推 + 离线 EntityChange mark dirty
+    // （会话移除由 feed DismissPending 驱动；chat 实体直推刷新本地缓存成员/版本）
+    // 注意：push_chat_update 内部会对同一 chat 缓存重取读锁，必须等写锁释放后再调用，
+    // 否则同一任务对不可重入的 RwLock 先写后读会自死锁（见 AGENTS.md 锁规范）。
+    let _ = push_chat_update(ctx, &user_ids, req.chat_id, version, entity::Operate::Update)
         .await;
-        super::feed::update_feed_status(
-            ctx,
-            req.chat_id,
-            &user_ids,
-            Some(EntityStatus::DismissPending as i32),
-        )
-        .await?;
-    }
+    super::feed::update_feed_status(
+        ctx,
+        req.chat_id,
+        &user_ids,
+        Some(EntityStatus::DismissPending as i32),
+    )
+    .await?;
     debug!("chat dismiss");
     Ok((0, vec![]))
 }
@@ -831,20 +881,22 @@ pub(crate) async fn chat_set_announcement(
         e.chats.insert(req.chat_id, c.get_entity());
     }
 
-    // 公告走消息 pipeline（PushMessages）+ pipeline 持久化广播给所有成员
-    let _ = push_announcement(ctx, &member_ids, req.chat_id).await;
+    // 公告在线直推消息实体（PushMessages Realtime）+ 离线 EntityChange(Persist) mark dirty 拉取
+    let _ = push_announcement(ctx, &member_ids, req.chat_id, entity::Operate::Update).await;
 
     debug!("set announcement done");
     Ok((0, resp.encode_to_vec()))
 }
 
-// 公告消息批量广播（含离线 pipeline 持久化）：
-// 公告载荷对全体成员一致（无已读/回执），一次编码、一次调用广播给所有成员，
-// pipe=true 将包写入 pipelines 表，离线成员重连后经 PIPELINE_PULL_PACKET 回放。
+// 公告消息批量广播：
+// - 在线：PUSH_MESSAGES(Realtime) 携带完整公告消息实体，直推落库清脏；
+// - 离线：PUSH_ENTITY_CHANGE(Persist) mark dirty，重连后经消息按需通道懒拉补齐（与 recall/edit 同构）。
+// 公告载荷对全体成员一致（无已读/回执），一次编码、一次调用广播给所有成员。
 pub(crate) async fn push_announcement(
     ctx: &AppContext,
     member_ids: &[i64],
     chat_id: i64,
+    operate: entity::Operate,
 ) -> Result<()> {
     let Some(model) = messages::Entity::find_by_id(chat_id)
         .one(&ctx.db)
@@ -867,9 +919,21 @@ pub(crate) async fn push_announcement(
             rid(),
             Command::PushMessages,
             push.encode_to_vec(),
-            true,
+            SendMode::Realtime,
         )
         .await?;
+    // 离线：公告消息 id == chat_id，EntityChange(Message) 回放后 mark dirty + 懒拉补齐
+    let version = current_ms() as i64;
+    let _ = crate::message::push_entity_changed(
+        ctx,
+        member_ids,
+        &[chat_id],
+        version,
+        operate,
+        entity::EntityType::Message,
+        common::SendMode::Persist,
+    )
+    .await;
     Ok(())
 }
 
@@ -904,7 +968,7 @@ pub(crate) async fn chat_delete_announcement(
         .await
         .map_err(|e| common_error(&format!("delete announcement error: {e}")))?;
 
-    let _ = push_announcement(ctx, &member_ids, req.chat_id).await;
+    let _ = push_announcement(ctx, &member_ids, req.chat_id, entity::Operate::Delete).await;
 
     debug!("delete announcement done");
     Ok((0, resp.encode_to_vec()))

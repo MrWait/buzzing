@@ -3,6 +3,11 @@ package chat;
 option go_package = "./proto";
 import "entity.proto";
 
+// 会话实体变更推送（在线直推完整 chat 实体，见 data_sync §5）：载荷只携带 entity.chats
+message PushChatUpdate {
+    entity.Entity entity = 1;
+}
+
 message CreateChatRequest {
     entity.Chat chat = 1;
 }

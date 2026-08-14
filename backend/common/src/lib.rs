@@ -22,7 +22,7 @@ pub use model::{PresetColor, UserBrief};
 pub use translate::{Language, StubTranslation, TranslateResult, TranslationService, get_translation, init_translation};
 pub use presence::PRESENCE_SUBSCRIBERS;
 use proto::idl::entity::{self, EntityId};
-pub use service::{AppHub, BizHub};
+pub use service::{AppHub, BizHub, SendMode};
 pub use service::{BizCalendar, BizGateway, BizIm, BizOffice, BizOpenApp, BizSetting, BizStore, BizUser, ExternApp};
 pub use text_image::{extra_name, extra};
 pub use time::*;
