@@ -7,7 +7,7 @@ By submitting a Pull Request, patch or any source‑code contribution to this re
 ## 1. Definitions
 - **You**: the individual making the Contribution. If you are submitting on behalf of an employer, you represent you have obtained your employer’s permission.
 - **Contribution**: any original source code, patches, bug‑fixes, features or other copyrightable material intentionally submitted for inclusion into the Project.
-- **Copyright Holder**: [你的名字 / 你的组织名称].
+- **Copyright Holder**: [hanlianzhen@outlook.com].
 
 ## 2. Copyright License
 You retain copyright ownership of your Contribution.
@@ -37,4 +37,4 @@ This Agreement applies to all past, present and future Contributions submitted b
 If you cannot accept these terms: please **do not submit source‑code pull‑requests**.
 Issue reports, documentation suggestions without source‑code are welcome without signing this CLA.
 
-For corporate contributors (company submitting code): please contact [your‑email@example.com] for Corporate CLA (CCLA).
+For corporate contributors (company submitting code): please contact [hanlianzhen@outlook.com] for Corporate CLA (CCLA).

@@ -78,7 +78,7 @@ This project is released under **Business Source License 1.1 (BSL‑1.1)**.
 - 💰 **Commercial Use Requirement**:
   All commercial usage (including internal business deployment, building commercial SaaS/cloud services, embedding into commercial products) requires purchasing a separate commercial license from copyright holder.
 
-For commercial licensing, pricing and contract: contact **hanlianzhen@outlook.com**
+For commercial licensing, pricing and contract: contact **[hanlianzhen@outlook.com]**
 
 ### Auto‑conversion
 Each released version will automatically convert to **Apache‑2.0** on its Change Date (4‑year protection window per release).

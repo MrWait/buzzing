@@ -10,7 +10,7 @@ By opening a Pull Request containing source‑code, you automatically accept the
 
 - If you cannot accept the CLA terms: please do not submit source‑code pull‑requests.
 - Bug reports, feature suggestions, documentation edits without source‑code are welcome and do not require CLA.
-- If you contribute on behalf of a company, please contact [your‑email@example.com] for corporate CCLA.
+- If you contribute on behalf of a company, please contact [hanlianzhen@outlook.com] for corporate CCLA.
 
 ## Development workflow
 1. Fork repository
@@ -19,4 +19,4 @@ By opening a Pull Request containing source‑code, you automatically accept the
 4. Run tests
 5. Open Pull Request
 
-Security vulnerabilities: please report via email [your‑email@example.com], do NOT open public issue.
+Security vulnerabilities: please report via email [hanlianzhen@outlook.com], do NOT open public issue.
